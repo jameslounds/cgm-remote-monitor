@@ -271,7 +271,7 @@ function init() {
         getAndPrepare("alarmTypes"),
         function onlyKnownTypes(type) {
           return type === "predict" || type === "simple";
-        }
+        },
       );
 
       if (alarmTypes.length === 0) {
@@ -296,7 +296,7 @@ function init() {
 
     enableIf(
       "treatmentnotify",
-      anyEnabled(["careportal", "pushover", "maker"])
+      anyEnabled(["careportal", "pushover", "maker"]),
     );
 
     _.each(settings.DEFAULT_FEATURES, function eachDefault(feature) {
@@ -328,13 +328,13 @@ function init() {
       thresholds.bgHigh < 50
     ) {
       thresholds.bgHigh = Math.round(
-        thresholds.bgHigh * constants.MMOL_TO_MGDL
+        thresholds.bgHigh * constants.MMOL_TO_MGDL,
       );
       thresholds.bgTargetTop = Math.round(
-        thresholds.bgTargetTop * constants.MMOL_TO_MGDL
+        thresholds.bgTargetTop * constants.MMOL_TO_MGDL,
       );
       thresholds.bgTargetBottom = Math.round(
-        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL
+        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL,
       );
       thresholds.bgLow = Math.round(thresholds.bgLow * constants.MMOL_TO_MGDL);
     }
@@ -352,7 +352,7 @@ function init() {
           thresholds.bgTargetBottom +
           ") was >= BG_TARGET_TOP(" +
           thresholds.bgTargetTop +
-          ")"
+          ")",
       );
       thresholds.bgTargetBottom = thresholds.bgTargetTop - 1;
       console.warn("BG_TARGET_BOTTOM is now " + thresholds.bgTargetBottom);
@@ -363,7 +363,7 @@ function init() {
           thresholds.bgTargetTop +
           ") was <= BG_TARGET_BOTTOM(" +
           thresholds.bgTargetBottom +
-          ")"
+          ")",
       );
       thresholds.bgTargetTop = thresholds.bgTargetBottom + 1;
       console.warn("BG_TARGET_TOP is now " + thresholds.bgTargetTop);
@@ -374,7 +374,7 @@ function init() {
           thresholds.bgLow +
           ") was >= BG_TARGET_BOTTOM(" +
           thresholds.bgTargetBottom +
-          ")"
+          ")",
       );
       thresholds.bgLow = thresholds.bgTargetBottom - 1;
       console.warn("BG_LOW is now " + thresholds.bgLow);
@@ -385,7 +385,7 @@ function init() {
           thresholds.bgHigh +
           ") was <= BG_TARGET_TOP(" +
           thresholds.bgTargetTop +
-          ")"
+          ")",
       );
       thresholds.bgHigh = thresholds.bgTargetTop + 1;
       console.warn("BG_HIGH is now " + thresholds.bgHigh);
