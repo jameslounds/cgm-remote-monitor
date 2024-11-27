@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <title>Nightscout</title>
+
+    <link href="/images/round1.png" rel="icon" id="favicon" type="image/png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="57x57"
+      href="/images/apple-touch-icon-57x57.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="60x60"
+      href="/images/apple-touch-icon-60x60.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="72x72"
+      href="/images/apple-touch-icon-72x72.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="76x76"
+      href="/images/apple-touch-icon-76x76.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="114x114"
+      href="/images/apple-touch-icon-114x114.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="/images/apple-touch-icon-120x120.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="144x144"
+      href="/images/apple-touch-icon-144x144.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="152x152"
+      href="/images/apple-touch-icon-152x152.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/images/apple-touch-icon-180x180.png"
+    />
+
+    <style type="text/css">
+      @import url("//fonts.googleapis.com/css?family=Open+Sans:700");
+      @import "./clock-shared.css";
+      @import "./clock-config.css";
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <a href="/" id="closeButton" class="close"></a>
+      <div id="inner" data-face="config" data-face-config="cy10"></div>
+    </main>
+    <script type="module" src="../bundle.clocks.source.js"></script>
+
+    <div id="config-form">
+      <h2>Clock view configurator</h2>
+      <form action="#">
+        <p>
+          <label for="bgcolor">Background type</label>
+          <select name="bgcolor" id="bgcolor">
+            <option value="c" selected="selected">Color</option>
+            <option value="b">Black</option>
+          </select>
+        </p>
+        <p>
+          <label for="sgage">Show SGV age</label>
+          <select name="sgage" id="sgage">
+            <option value="y" selected="selected">Always</option>
+            <option value="n">Only after threshold</option>
+          </select>
+        </p>
+        <p>
+          SGV age threshold:
+          <input
+            type="number"
+            class="threshold"
+            id="threshold"
+            name="threshold"
+            min="1"
+            max="99"
+            value="10"
+          />
+          minutes
+        </p>
+        <p>
+          <input
+            type="button"
+            class="elmt"
+            id="cfg_nl"
+            name="nl"
+            value="Add line break"
+          />
+        </p>
+        <p>
+          <input
+            type="button"
+            class="elmt"
+            id="cfg_sg"
+            name="sg"
+            value="Add SGV"
+          />
+          Size:
+          <input
+            type="number"
+            class="size"
+            id="cfg_sg_size"
+            name="cfg_sg_size"
+            min="1"
+            max="99"
+            value="40"
+          />
+        </p>
+        <p>
+          <input
+            type="button"
+            class="elmt"
+            id="cfg_ag"
+            name="ag"
+            value="Add SGV age"
+          />
+          Size:
+          <input
+            type="number"
+            class="size"
+            id="cfg_ag_size"
+            name="cfg_ag_size"
+            min="1"
+            max="99"
+            value="6"
+          />
+        </p>
+        <p>
+          <input
+            type="button"
+            class="elmt"
+            id="cfg_dt"
+            name="dt"
+            value="Add SGV delta"
+          />
+          Size:
+          <input
+            type="number"
+            class="size"
+            id="cfg_dt_size"
+            name="cfg_dt_size"
+            min="1"
+            max="99"
+            value="14"
+          />
+        </p>
+        <p>
+          <input
+            type="button"
+            class="elmt"
+            id="cfg_ar"
+            name="ar"
+            value="Add trend arrow"
+          />
+          Size:
+          <input
+            type="number"
+            class="size"
+            id="cfg_ar_size"
+            name="cfg_ar_size"
+            min="1"
+            max="99"
+            value="30"
+          />
+        </p>
+        <p>
+          <input
+            type="button"
+            class="elmt"
+            id="cfg_tm"
+            name="tm"
+            value="Add time"
+          />
+          Size:
+          <input
+            type="number"
+            class="size"
+            id="cfg_tm_size"
+            name="cfg_tm_size"
+            min="1"
+            max="99"
+            value="10"
+          />
+        </p>
+        <p>
+          <input
+            type="button"
+            class="undo"
+            id="cfg_undo"
+            name="undo"
+            value="Remove last element"
+          />
+        </p>
+        <a id="clocklink" target="”_blank”" href="/clock/cy10"
+          >Open my clock view!</a
+        >
+        <div id="facename">cy10</div>
+      </form>
+    </div>
+    <script type="module">
+      var clockFace = "config";
+
+      var parts = (location.search || "?").substring(1).split("&");
+      var token = "";
+      parts.forEach(function (val) {
+        if (val.startsWith("token=")) {
+          token = val.substring("token=".length);
+        }
+      });
+
+      var secret =
+        typeof localStorage !== "undefined"
+          ? localStorage.getItem("apisecrethash")
+          : "";
+      var src = "/api/v1/status.js?t=" + Date.now();
+
+      if (secret) {
+        src += "&secret=" + secret;
+      } else if (token) {
+        src += "&token=" + token;
+      }
+
+      var script = document.createElement("script");
+      script.onload = function () {
+        window.Nightscout.client.init();
+      };
+      script.src = src;
+
+      document.head.appendChild(script); //or something of the likes
+      var buttonVisible = true;
+
+      function hideClose() {
+        document.getElementById("closeButton").classList.add("hidden");
+        buttonVisible = false;
+      }
+
+      // Show on start so user knows it's there
+      setTimeout(function () {
+        hideClose();
+      }, 2000);
+
+      function showClose() {
+        if (buttonVisible) return;
+
+        buttonVisible = true;
+        document.getElementById("closeButton").classList.remove("hidden");
+        setTimeout(function () {
+          hideClose();
+        }, 2000);
+      }
+
+      window.addEventListener("touchstart", function () {
+        showClose();
+      });
+
+      window.addEventListener("click", function () {
+        showClose();
+      });
+    </script>
+    <script type="module">
+      import $ from "jquery";
+      $(function () {
+        $("input.elmt").click(function () {
+          let size = $("input#" + this.id + "_size").val();
+          let append = "-" + this.name + (size ? size : "");
+          let $facename = $("#facename");
+          $facename.text($facename.text() + append);
+          $facename.change();
+        });
+        $("select#sgage").change(function () {
+          let $facename = $("#facename");
+          $facename.text(
+            $facename.text().substring(0, 1) +
+              this.value +
+              $facename.text().substring(2)
+          );
+          $facename.change();
+        });
+        $("input#threshold").change(function () {
+          let $facename = $("#facename");
+          $facename.text(
+            $facename.text().substring(0, 2) +
+              ((this.value < 10 ? "0" : "") + this.value) +
+              $facename.text().substring(4)
+          );
+          $facename.change();
+        });
+        $("select#bgcolor").change(function () {
+          let $facename = $("#facename");
+          $facename.text(this.value + $facename.text().substring(1));
+          $facename.change();
+        });
+        $("input.undo").click(function () {
+          let $facename = $("#facename");
+          $facename.text(
+            $facename
+              .text()
+              .substring(
+                0,
+                $facename.text().lastIndexOf("-") < 0
+                  ? $facename.text().length
+                  : $facename.text().lastIndexOf("-")
+              )
+          );
+          $facename.change();
+        });
+        $("#facename").change(function () {
+          $("#inner").attr("data-face-config", $(this).text());
+          $("#clocklink").attr("href", "/clock/" + $(this).text());
+          window.Nightscout.client.query();
+        });
+      });
+    </script>
+  </body>
+</html>
