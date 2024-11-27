@@ -1,0 +1,29 @@
+http://localhost:3000 {
+	@backend {
+		path /api/*
+		path /socket.io /socket.io/*
+		path /sw.js
+		path /translations /translations/*
+		path /devbundle /devbundle/*
+		path /bundle /bundle/*
+		path /__webpack_hmr /__webpack_hmr/*
+	}
+	handle @backend {
+		reverse_proxy http://localhost:1337
+	}
+	@clockNoQuery {
+		path_regexp /clock/[^?]+$
+	}
+	@clockNoRedirect {
+		path /clock/config
+		path /clock/*.html
+		path /clock/*.js
+	}
+	handle @clockNoRedirect {
+		reverse_proxy http://localhost:5173
+	}
+	handle /* {
+		redir @clockNoQuery /clock/?face={http.request.orig_uri.path.file}
+		reverse_proxy http://localhost:5173
+	}
+}
