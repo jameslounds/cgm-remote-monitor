@@ -54,4 +54,6 @@ export default defineConfig({
     include: ["jquery-ui", "lodash", "d3"],
   },
   server: { hmr: true },
+
+  test: { include: ["../tests/**/*.test.{js,ts}"] },
 });
