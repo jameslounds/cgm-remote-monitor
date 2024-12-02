@@ -57,6 +57,8 @@ export default defineConfig({
 
   test: {
     include: ["../tests/**/*.test.{js,ts}"],
-    setupFiles: ["../tests/setup/testing-library.js"],
+    setupFiles: [
+      resolve("node_modules/@testing-library/jest-dom/vitest.js"),
+    ],
   },
 });
