@@ -89,7 +89,6 @@ function init() {
    * @param time - could be a retro time
    * @param pluginBase - used by visualization plugins to update the UI
    * @param data - svgs, treatments, profile, etc
-   * @returns {{sbx}}
    */
   sbx.clientInit = function clientInit(ctx, time, data) {
     reset();
