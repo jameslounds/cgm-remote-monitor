@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:tsc": "tsc -p . --nocheck --module commonjs --moduleResolution node",
+    "preview": "vite preview",
+    "test": "mocha --require ./tests/hooks.js --exit ./dist/tests/*.test.js"
   },
   "author": "",
   "license": "ISC",
@@ -28,6 +30,7 @@
     "parse-duration": "^1.1.0",
     "shiro-trie": "^0.4.10",
     "simple-statistics": "^7.8.7",
+    "socket.io-client": "^4.8.1",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
     "vite-plugin-commonjs": "^0.10.4"
@@ -38,6 +41,11 @@
     "@types/lodash": "^4.17.13",
     "@types/moment": "^2.11.29",
     "@types/moment-timezone": "^0.5.13",
-    "prettier": "^3.4.1"
+    "assert": "^2.1.0",
+    "benv": "^3.3.0",
+    "mocha": "^10.8.2",
+    "should": "^13.2.3",
+    "prettier": "^3.4.1",
+    "supertest": "^7.0.0"
   }
 }
