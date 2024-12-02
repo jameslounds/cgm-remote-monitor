@@ -36,6 +36,7 @@
     "vite-plugin-commonjs": "^0.10.4"
   },
   "devDependencies": {
+    "@types/d3": "^7.4.3",
     "@types/jquery": "^3.5.32",
     "@types/jqueryui": "^1.12.23",
     "@types/lodash": "^4.17.13",

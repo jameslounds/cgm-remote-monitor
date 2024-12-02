@@ -1,12 +1,12 @@
 "use strict";
 
-var consts = require("./constants");
+import consts from "./constants.json";
 
-function mgdlToMMOL(mgdl) {
+function mgdlToMMOL(mgdl: number) {
   return (Math.round((mgdl / consts.MMOL_TO_MGDL) * 10) / 10).toFixed(1);
 }
 
-function mmolToMgdl(mgdl) {
+function mmolToMgdl(mgdl: number) {
   return Math.round(mgdl * consts.MMOL_TO_MGDL);
 }
 
@@ -17,4 +17,4 @@ function configure() {
   };
 }
 
-module.exports = configure;
+export default configure;

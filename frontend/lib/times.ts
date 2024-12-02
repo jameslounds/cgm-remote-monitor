@@ -1,14 +1,14 @@
 "use strict";
 
 var factories = {
-  weeks: function weeks(value) {
+  weeks: function weeks(value: number) {
     return {
       mins: value * 7 * 24 * 60,
       secs: value * 7 * 24 * 60 * 60,
       msecs: value * 7 * 24 * 60 * 60 * 1000,
     };
   },
-  days: function days(value) {
+  days: function days(value: number) {
     return {
       hours: value * 24,
       mins: value * 24 * 60,
@@ -16,25 +16,25 @@ var factories = {
       msecs: value * 24 * 60 * 60 * 1000,
     };
   },
-  hours: function hours(value) {
+  hours: function hours(value: number) {
     return {
       mins: value * 60,
       secs: value * 60 * 60,
       msecs: value * 60 * 60 * 1000,
     };
   },
-  mins: function mins(value) {
+  mins: function mins(value: number) {
     return {
       secs: value * 60,
       msecs: value * 60 * 1000,
     };
   },
-  secs: function secs(value) {
+  secs: function secs(value: number) {
     return {
       msecs: value * 1000,
     };
   },
-  msecs: function msecs(value) {
+  msecs: function msecs(value: number) {
     return {
       mins: value / 1000 / 60,
       secs: value / 1000,
@@ -43,9 +43,10 @@ var factories = {
   },
 };
 
-function create(types) {
-  return function withValue(value) {
-    return factories[types](value);
+function create<T extends keyof typeof factories>(types: T) {
+  // TODO: just use `return factories[types];` ?
+  return function withValue(value: number) {
+    return factories[types](value) as ReturnType<(typeof factories)[T]>;
   };
 }
 
@@ -53,39 +54,39 @@ var times = {
   week: function () {
     return create("weeks")(1);
   },
-  weeks: function (value) {
+  weeks: function (value: number) {
     return create("weeks")(value);
   },
   day: function () {
     return create("days")(1);
   },
-  days: function (value) {
+  days: function (value: number) {
     return create("days")(value);
   },
   hour: function () {
     return create("hours")(1);
   },
-  hours: function (value) {
+  hours: function (value: number) {
     return create("hours")(value);
   },
   min: function () {
     return create("mins")(1);
   },
-  mins: function (value) {
+  mins: function (value: number) {
     return create("mins")(value);
   },
   sec: function () {
     return create("secs")(1);
   },
-  secs: function (value) {
+  secs: function (value: number) {
     return create("secs")(value);
   },
   msec: function () {
     return create("msecs")(1);
   },
-  msecs: function (value) {
+  msecs: function (value: number) {
     return create("msecs")(value);
   },
 };
 
-module.exports = times;
+export default times;

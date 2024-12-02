@@ -1,10 +1,107 @@
 "use strict";
 
-var _ = require("lodash");
-var constants = require("./constants.json");
+import _ from "lodash";
+import constants from "./constants.json";
 
-function init() {
-  var settings = {
+declare global {
+  function isNaN(number: string | number): boolean;
+}
+
+type Accessor = (a: string) => undefined | string | void;
+
+export type Settings = typeof defaultSettings & {
+  enable: string | string[];
+  obscured: string | string[];
+  DEFAULT_FEATURES: string[];
+  alarmTypes: string[];
+  extendedSettings: Record<string, Record<string, any>>;
+  isEnabled: (pluginName: string) => boolean;
+  eachSetting: (accessor: Accessor) => void;
+  eachSettingAsEnv: (accessor: Accessor) => void;
+  isAlarmEventEnabled: (notify: Notify) => boolean;
+  snoozeMinsForAlarmEvent: (notify: Notify) => number[];
+  snoozeFirstMinsForAlarmEvent: (notify: Notify) => number | undefined;
+  filteredSettings: (settings: Settings) => Record<string, any>;
+};
+
+// TODO rehome
+type Notify = {
+  eventName: string;
+  level: number;
+};
+
+const defaultSettings = {
+  units: "mg/dl",
+  timeFormat: 12,
+  dayStart: 7.0,
+  dayEnd: 21.0,
+  nightMode: false,
+  editMode: true,
+  showRawbg: "never",
+  customTitle: "Nightscout",
+  theme: "default",
+  alarmUrgentHigh: true,
+  alarmUrgentHighMins: [30, 60, 90, 120],
+  alarmHigh: true,
+  alarmHighMins: [30, 60, 90, 120],
+  alarmLow: true,
+  alarmLowMins: [15, 30, 45, 60],
+  alarmUrgentLow: true,
+  alarmUrgentLowMins: [15, 30, 45],
+  alarmUrgentMins: [30, 60, 90, 120],
+  alarmWarnMins: [30, 60, 90, 120],
+  alarmTimeagoWarn: true,
+  alarmTimeagoWarnMins: 15,
+  alarmTimeagoUrgent: true,
+  alarmTimeagoUrgentMins: 30,
+  alarmPumpBatteryLow: false,
+  language: "en",
+  scaleY: "log",
+  showPlugins: "dbsize",
+  showForecast: "ar2",
+  focusHours: 3,
+  heartbeat: 60,
+  baseURL: "",
+  authDefaultRoles: "readable",
+  thresholds: {
+    bgHigh: 260,
+    bgTargetTop: 180,
+    bgTargetBottom: 80,
+    bgLow: 55,
+  },
+  insecureUseHttp: false,
+  secureHstsHeader: true,
+  secureHstsHeaderIncludeSubdomains: false,
+  secureHstsHeaderPreload: false,
+  secureCsp: false,
+  deNormalizeDates: false,
+  showClockDelta: false,
+  showClockLastTime: false,
+  frameUrl1: "",
+  frameUrl2: "",
+  frameUrl3: "",
+  frameUrl4: "",
+  frameUrl5: "",
+  frameUrl6: "",
+  frameUrl7: "",
+  frameUrl8: "",
+  frameName1: "",
+  frameName2: "",
+  frameName3: "",
+  frameName4: "",
+  frameName5: "",
+  frameName6: "",
+  frameName7: "",
+  frameName8: "",
+  authFailDelay: 5000,
+  adminNotifiesEnabled: true,
+  obscured: "" as string | string[],
+  obscureDeviceProvenance: "",
+  authenticationPromptOnLoad: false,
+};
+
+export default function init() {
+  var settings: Settings = {
     units: "mg/dl",
     timeFormat: 12,
     dayStart: 7.0,
@@ -72,7 +169,7 @@ function init() {
     obscured: "",
     obscureDeviceProvenance: "",
     authenticationPromptOnLoad: false,
-  };
+  } as Settings;
 
   var secureSettings = [
     "apnsKey",
@@ -114,7 +211,7 @@ function init() {
     authenticationPromptOnLoad: mapTruthy,
   };
 
-  function filterObj(obj, secureKeys) {
+  function filterObj(obj: Record<string, any>, secureKeys: string[]) {
     if (obj && typeof obj === "object") {
       var allKeys = Object.keys(obj);
       for (var i = 0; i < allKeys.length; i++) {
@@ -132,21 +229,26 @@ function init() {
     return obj;
   }
 
-  function filteredSettings(settingsObject) {
-    let so = _.cloneDeep(settingsObject);
+  function filteredSettings(settingsObject: Settings) {
+    let so: { obscured: string | string[]; enable: string | string[] } =
+      _.cloneDeep(settingsObject);
     if (so.obscured) {
       so.enable = _.difference(so.enable, so.obscured);
     }
     return filterObj(so, secureSettings);
   }
 
-  function mapNumberArray(value) {
+  function mapNumberArray(value: string): (number | null)[];
+  function mapNumberArray<T extends number>(value: T): [T];
+  function mapNumberArray<T extends number[]>(value: T): T;
+  function mapNumberArray(value: string | number | number[]) {
     if (!value || _.isArray(value)) {
       return value;
     }
 
+    // isNaN returns true for strings which will parse to numbers
     if (isNaN(value)) {
-      var rawValues = (value && value.split(" ")) || [];
+      var rawValues = (value && value.toString().split(" ")) || [];
       return _.map(rawValues, function (num) {
         return isNaN(num) ? null : Number(num);
       });
@@ -155,7 +257,7 @@ function init() {
     }
   }
 
-  function mapNumber(value) {
+  function mapNumber(value: number | string) {
     if (!value) {
       return value;
     }
@@ -174,7 +276,7 @@ function init() {
     }
   }
 
-  function mapTruthy(value) {
+  function mapTruthy(value: string | boolean) {
     if (
       typeof value === "string" &&
       (value.toLowerCase() === "on" || value.toLowerCase() === "true")
@@ -207,26 +309,26 @@ function init() {
     "careportal",
   ];
 
-  var wasSet = [];
+  var wasSet: string[] = [];
 
-  function isSimple(value) {
+  function isSimple(value: any): boolean {
     return (
       _.isArray(value) ||
       (typeof value !== "function" && typeof value !== "object")
     );
   }
 
-  function nameFromKey(key, nameType) {
+  function nameFromKey(key: string, nameType?: string) {
     return nameType === "env" ? _.snakeCase(key).toUpperCase() : key;
   }
 
-  function eachSettingAs(nameType) {
-    function mapKeys(accessor, keys) {
+  function eachSettingAs(nameType?: string) {
+    function mapKeys(accessor: Accessor, keys: Record<string, any>) {
       _.forIn(keys, function each(value, key) {
         if (isSimple(value)) {
           var newValue = accessor(nameFromKey(key, nameType));
-          if (newValue !== undefined) {
-            var mapper = valueMappers[key];
+          if (typeof newValue !== "undefined") {
+            var mapper = valueMappers[key as keyof typeof valueMappers];
             wasSet.push(key);
             keys[key] = mapper ? mapper(newValue) : newValue;
           }
@@ -234,31 +336,28 @@ function init() {
       });
     }
 
-    return function allKeys(accessor) {
+    return function allKeys(accessor: Accessor) {
       mapKeys(accessor, settings);
       mapKeys(accessor, settings.thresholds);
       enableAndDisableFeatures(accessor, nameType);
     };
   }
 
-  function enableAndDisableFeatures(accessor, nameType) {
-    function getAndPrepare(key) {
+  function enableAndDisableFeatures(accessor: Accessor, nameType?: string) {
+    function getAndPrepare(key: string) {
       var raw = accessor(nameFromKey(key, nameType)) || "";
-      var cleaned = decodeURIComponent(raw).toLowerCase();
-      cleaned = cleaned ? cleaned.split(" ") : [];
-      cleaned = _.filter(cleaned, function (e) {
-        return e !== "";
-      });
+      var cleaned = decodeURIComponent(raw).toLowerCase().split(" ");
+      cleaned = _.filter(cleaned, (e) => !!e);
       return cleaned;
     }
 
-    function enableIf(feature, condition) {
+    function enableIf(feature: string, condition: boolean) {
       if (condition) {
         enable.push(feature);
       }
     }
 
-    function anyEnabled(features) {
+    function anyEnabled(features: string[]) {
       return (
         _.findIndex(features, function (feature) {
           return enable.indexOf(feature) > -1;
@@ -271,7 +370,7 @@ function init() {
         getAndPrepare("alarmTypes"),
         function onlyKnownTypes(type) {
           return type === "predict" || type === "simple";
-        },
+        }
       );
 
       if (alarmTypes.length === 0) {
@@ -292,11 +391,11 @@ function init() {
     settings.alarmTypes = prepareAlarmTypes();
 
     //don't require pushover to be enabled to preserve backwards compatibility if there are extendedSettings for it
-    enableIf("pushover", accessor(nameFromKey("pushoverApiToken", nameType)));
+    enableIf("pushover", !!accessor(nameFromKey("pushoverApiToken", nameType)));
 
     enableIf(
       "treatmentnotify",
-      anyEnabled(["careportal", "pushover", "maker"]),
+      anyEnabled(["careportal", "pushover", "maker"])
     );
 
     _.each(settings.DEFAULT_FEATURES, function eachDefault(feature) {
@@ -328,13 +427,13 @@ function init() {
       thresholds.bgHigh < 50
     ) {
       thresholds.bgHigh = Math.round(
-        thresholds.bgHigh * constants.MMOL_TO_MGDL,
+        thresholds.bgHigh * constants.MMOL_TO_MGDL
       );
       thresholds.bgTargetTop = Math.round(
-        thresholds.bgTargetTop * constants.MMOL_TO_MGDL,
+        thresholds.bgTargetTop * constants.MMOL_TO_MGDL
       );
       thresholds.bgTargetBottom = Math.round(
-        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL,
+        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL
       );
       thresholds.bgLow = Math.round(thresholds.bgLow * constants.MMOL_TO_MGDL);
     }
@@ -352,7 +451,7 @@ function init() {
           thresholds.bgTargetBottom +
           ") was >= BG_TARGET_TOP(" +
           thresholds.bgTargetTop +
-          ")",
+          ")"
       );
       thresholds.bgTargetBottom = thresholds.bgTargetTop - 1;
       console.warn("BG_TARGET_BOTTOM is now " + thresholds.bgTargetBottom);
@@ -363,7 +462,7 @@ function init() {
           thresholds.bgTargetTop +
           ") was <= BG_TARGET_BOTTOM(" +
           thresholds.bgTargetBottom +
-          ")",
+          ")"
       );
       thresholds.bgTargetTop = thresholds.bgTargetBottom + 1;
       console.warn("BG_TARGET_TOP is now " + thresholds.bgTargetTop);
@@ -374,7 +473,7 @@ function init() {
           thresholds.bgLow +
           ") was >= BG_TARGET_BOTTOM(" +
           thresholds.bgTargetBottom +
-          ")",
+          ")"
       );
       thresholds.bgLow = thresholds.bgTargetBottom - 1;
       console.warn("BG_LOW is now " + thresholds.bgLow);
@@ -385,7 +484,7 @@ function init() {
           thresholds.bgHigh +
           ") was <= BG_TARGET_TOP(" +
           thresholds.bgTargetTop +
-          ")",
+          ")"
       );
       thresholds.bgHigh = thresholds.bgTargetTop + 1;
       console.warn("BG_HIGH is now " + thresholds.bgHigh);
@@ -412,7 +511,8 @@ function init() {
     }
   }
 
-  function isEnabled(feature) {
+  // jameslounds: this never appears to be called with anything other than `string`, but there is clearly typechecking code here
+  function isEnabled(feature: string | any) {
     var enabled = false;
 
     if (
@@ -425,13 +525,13 @@ function init() {
           return settings.enable.indexOf(f) > -1;
         }) !== undefined;
     } else {
-      enabled = settings.enable && settings.enable.indexOf(feature) > -1;
+      enabled = !!settings.enable && settings.enable.indexOf(feature) > -1;
     }
 
     return enabled;
   }
 
-  function isUrgentHighAlarmEnabled(notify) {
+  function isUrgentHighAlarmEnabled(notify: Notify) {
     return (
       notify.eventName === "high" &&
       notify.level === constants.LEVEL_URGENT &&
@@ -439,11 +539,11 @@ function init() {
     );
   }
 
-  function isHighAlarmEnabled(notify) {
+  function isHighAlarmEnabled(notify: Notify) {
     return notify.eventName === "high" && settings.alarmHigh;
   }
 
-  function isUrgentLowAlarmEnabled(notify) {
+  function isUrgentLowAlarmEnabled(notify: Notify) {
     return (
       notify.eventName === "low" &&
       notify.level === constants.LEVEL_URGENT &&
@@ -451,11 +551,11 @@ function init() {
     );
   }
 
-  function isLowAlarmEnabled(notify) {
+  function isLowAlarmEnabled(notify: Notify) {
     return notify.eventName === "low" && settings.alarmLow;
   }
 
-  function isAlarmEventEnabled(notify) {
+  function isAlarmEventEnabled(notify: Notify) {
     return (
       ("high" !== notify.eventName && "low" !== notify.eventName) ||
       isUrgentHighAlarmEnabled(notify) ||
@@ -465,7 +565,7 @@ function init() {
     );
   }
 
-  function snoozeMinsForAlarmEvent(notify) {
+  function snoozeMinsForAlarmEvent(notify: Notify) {
     var snoozeTime;
 
     if (isUrgentHighAlarmEnabled(notify)) {
@@ -485,7 +585,7 @@ function init() {
     return snoozeTime;
   }
 
-  function snoozeFirstMinsForAlarmEvent(notify) {
+  function snoozeFirstMinsForAlarmEvent(notify: Notify) {
     return _.first(snoozeMinsForAlarmEvent(notify));
   }
 
@@ -499,5 +599,3 @@ function init() {
 
   return settings;
 }
-
-module.exports = init;

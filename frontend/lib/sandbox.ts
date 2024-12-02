@@ -1,11 +1,94 @@
 "use strict";
 
-var _ = require("lodash");
-var units = require("./units")();
-var times = require("./times");
+import _ from "lodash";
+import unitsInit from "./units";
+const units = unitsInit();
+import times from "./times";
 
-function init() {
-  var sbx = {};
+import type { DData } from "./data/ddata";
+import type { Plugin } from "./plugins";
+import type { PluginBase } from "./plugins/pluginbase";
+import type { BolusWizardPreviewProperties } from "./plugins/boluswizardpreview";
+import type { Moment } from "moment-timezone";
+import type { Settings } from "./settings";
+import type { Levels } from "./levels";
+
+export interface Notify extends Record<string, any> {
+  state?: number;
+  timestamp?: Moment;
+}
+export interface Entry extends Record<string, any> {
+  mgdl: number;
+  mills: number;
+}
+
+type ClientInitContext = {
+  settings: Settings;
+  pluginBase: PluginBase;
+  language: Sandbox["language"];
+  levels: Sandbox["levels"];
+  notifications: Sandbox["notifications"];
+};
+
+interface Properties extends Record<string, any> {
+  bwp?: BolusWizardPreviewProperties;
+}
+
+type ExtendedSettings = Record<string, any> & { enableAlerts?: boolean };
+
+export interface Sandbox {
+  properties: Properties;
+  extendedSettings: ExtendedSettings;
+  unitsLabel: "mmol/L" | "mg/dl";
+  data: DData; //TODO is this *just* ddata? Are extra things added?
+  serverInit: any; // TODO probably remove
+  runtimeEnvironment: string;
+  runtimeState: string;
+  time: number;
+  settings: Record<string, any>;
+  levels: Levels;
+  language: ReturnType<(typeof import("./language"))["default"]>;
+  translate: Sandbox["language"]["translate"];
+  notifications: {
+    requestNotify: (notify: Notify) => void;
+    requestSnooze: (notify: Notify) => void;
+    requestClear: (notify: Notify) => void;
+  };
+  withExtendedSettings(plugin: Plugin): Sandbox;
+  showPlugins: string;
+  pluginBase: PluginBase;
+  clientInit(ctx: ClientInitContext, time: number, data: DData): Sandbox;
+  offerProperty<T extends keyof Sandbox["properties"]>(
+    name: T,
+    setter: () => Sandbox["properties"][T]
+  ): void;
+  isCurrent(entry: Entry): boolean;
+  lastEntry(entries: Entry[]): Entry | undefined;
+  lastNEntries(entries: Entry[], n: number): Entry[];
+  prevEntry(entries: Entry[]): Entry | undefined;
+  prevSGVEntry(): Entry | undefined;
+  lastSGVEntry(): Entry | undefined;
+  lastSGVMgdl(): number | undefined;
+  lastSGVMills(): number | undefined;
+  entryMills(entry: Entry): number;
+  lastScaledSGV(): number | undefined;
+  lastDisplaySVG(): number | "LOW" | "HIGH" | undefined;
+  buildBGNowLine(): string;
+  propertyLine<T extends keyof Sandbox["properties"]>(
+    propertyName: T
+  ): Sandbox["properties"][T]["displayLine"];
+  appendPropertyLine(propertyName: string, lines: string[]): string[];
+  prepareDefaultLines(): string[];
+  buildDefaultMessage(): string;
+  displayBg(entry: Entry): number | "LOW" | "HIGH" | undefined;
+  scaleEntry(entry: Entry): number | undefined;
+  scaleMgdl(mgdl: number): number;
+  roundInsulinForDisplayFormat(insulin: number): string;
+  roundBGToDisplayFormat(bg: number): number;
+}
+
+export default function init() {
+  var sbx = {} as Sandbox;
 
   function reset() {
     sbx.properties = {};
@@ -13,12 +96,16 @@ function init() {
 
   function extend() {
     sbx.unitsLabel = unitsLabel();
-    sbx.data = sbx.data || {};
+    sbx.data = sbx.data || ({} as DData);
     //default to prevent adding checks everywhere
     sbx.extendedSettings = { empty: true };
   }
 
-  function withExtendedSettings(plugin, allExtendedSettings, sbx) {
+  function withExtendedSettings(
+    plugin: Plugin,
+    allExtendedSettings: Record<string, any>,
+    sbx: Sandbox
+  ) {
     var sbx2 = _.extend({}, sbx);
     sbx2.extendedSettings =
       (allExtendedSettings && allExtendedSettings[plugin.name]) || {};
@@ -31,7 +118,7 @@ function init() {
    * @param ctx
    * @returns  {{notification}}
    */
-  function safeNotifications(ctx) {
+  function safeNotifications(ctx: { notifications: Sandbox["notifications"] }) {
     return _.pick(ctx.notifications, [
       "requestNotify",
       "requestSnooze",
@@ -46,7 +133,7 @@ function init() {
    * @param ctx - created from bootevent
    * @returns {{sbx}}
    */
-  sbx.serverInit = function serverInit(env, ctx) {
+  sbx.serverInit = function serverInit(env: any, ctx: any) {
     reset();
 
     sbx.runtimeEnvironment = "server";
@@ -66,9 +153,10 @@ function init() {
     profile.updateTreatments(
       ctx.ddata.profileTreatments,
       ctx.ddata.tempbasalTreatments,
-      ctx.ddata.combobolusTreatments,
+      ctx.ddata.combobolusTreatments
     );
     sbx.data.profile = profile;
+    // @ts-ignore
     delete sbx.data.profiles;
 
     sbx.properties = {};
@@ -89,8 +177,14 @@ function init() {
    * @param time - could be a retro time
    * @param pluginBase - used by visualization plugins to update the UI
    * @param data - svgs, treatments, profile, etc
+   * @returns {{sbx}}
    */
-  sbx.clientInit = function clientInit(ctx, time, data) {
+
+  sbx.clientInit = function clientInit(
+    ctx: ClientInitContext,
+    time: number,
+    data: DData
+  ): Sandbox {
     reset();
 
     sbx.runtimeEnvironment = "client";
@@ -126,8 +220,10 @@ function init() {
    * @param name
    * @param setter
    */
-  sbx.offerProperty = function offerProperty(name, setter) {
-    if (!Object.keys(sbx.properties).includes(name)) {
+  sbx.offerProperty = function offerProperty<
+    T extends keyof Sandbox["properties"],
+  >(name: T, setter: () => Sandbox["properties"][T]) {
+    if (!Object.keys(sbx.properties).includes(name as string)) {
       var value = setter();
       if (value) {
         sbx.properties[name] = value;
@@ -146,7 +242,7 @@ function init() {
   };
 
   sbx.lastNEntries = function lastNEntries(entries, n) {
-    var lastN = [];
+    var lastN: Entry[] = [];
 
     _.takeRightWhile(entries, function (entry) {
       if (sbx.entryMills(entry) <= sbx.time) {
@@ -179,7 +275,8 @@ function init() {
   };
 
   sbx.lastSGVMills = function lastSGVMills() {
-    return sbx.entryMills(sbx.lastSGVEntry());
+    var last = sbx.lastSGVEntry();
+    return last && sbx.entryMills(last);
   };
 
   sbx.entryMills = function entryMills(entry) {
@@ -187,11 +284,13 @@ function init() {
   };
 
   sbx.lastScaledSGV = function lastScaledSVG() {
-    return sbx.scaleEntry(sbx.lastSGVEntry());
+    var last = sbx.lastSGVEntry();
+    return last && sbx.scaleEntry(last);
   };
 
   sbx.lastDisplaySVG = function lastDisplaySVG() {
-    return sbx.displayBg(sbx.lastSGVEntry());
+    var last = sbx.lastSGVEntry();
+    return last && sbx.displayBg(last);
   };
 
   sbx.buildBGNowLine = function buildBGNowLine() {
@@ -212,13 +311,18 @@ function init() {
     return line;
   };
 
-  sbx.propertyLine = function propertyLine(propertyName) {
+  sbx.propertyLine = function propertyLine<
+    T extends keyof Sandbox["properties"],
+  >(propertyName: T): Sandbox["properties"][T]["displayLine"] | false {
     return (
       sbx.properties[propertyName] && sbx.properties[propertyName].displayLine
     );
   };
 
-  sbx.appendPropertyLine = function appendPropertyLine(propertyName, lines) {
+  sbx.appendPropertyLine = function appendPropertyLine(
+    propertyName: string,
+    lines: string[]
+  ) {
     lines = lines || [];
 
     var displayLine = sbx.propertyLine(propertyName);
@@ -275,7 +379,7 @@ function init() {
   };
 
   sbx.roundInsulinForDisplayFormat = function roundInsulinForDisplayFormat(
-    insulin,
+    insulin
   ) {
     if (insulin === 0) {
       return "0";
@@ -306,5 +410,3 @@ function init() {
 
   return sbx;
 }
-
-module.exports = init;
