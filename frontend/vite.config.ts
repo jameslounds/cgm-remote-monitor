@@ -55,5 +55,8 @@ export default defineConfig({
   },
   server: { hmr: true },
 
-  test: { include: ["../tests/**/*.test.{js,ts}"] },
+  test: {
+    include: ["../tests/**/*.test.{js,ts}"],
+    setupFiles: ["../tests/setup/testing-library.js"],
+  },
 });
