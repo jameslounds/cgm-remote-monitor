@@ -44,6 +44,12 @@ export default defineConfig({
       jQuery: "jquery",
     }),
   ],
+  resolve: {
+    alias: {
+      crypto: "crypto-browserify",
+      stream: "stream-browserify",
+    },
+  },
   optimizeDeps: {
     include: ["jquery-ui", "lodash", "d3"],
   },
