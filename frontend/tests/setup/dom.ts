@@ -165,6 +165,14 @@ const verifyAuthFixute = {
   },
 };
 
+export function removeScriptTags(html: string) {
+  const SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+  while (SCRIPT_REGEX.test(html)) {
+    html = html.replace(SCRIPT_REGEX, "");
+  }
+  return html;
+}
+
 const indexHTML = fs
   .readFileSync(path.resolve("./bundle/index.html"))
   .toString();
@@ -174,7 +182,7 @@ export default async function setupBrowser(opts?: {
   verifyAuth?: any;
   translations?: any;
 }) {
-  document.write(indexHTML);
+  document.documentElement.innerHTML = removeScriptTags(indexHTML);
   (window as any).jQuery = jQuery;
   (window as any).$ = $;
   (window as any).$.ajax = ajaxMock;
@@ -216,12 +224,7 @@ export async function setupProfile(opts?: {
   translations?: any;
   profileJson?: any;
 }) {
-  let html = profileIndexHTML;
-  const SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
-  while (SCRIPT_REGEX.test(html)) {
-    html = html.replace(SCRIPT_REGEX, "");
-  }
-  document.write(html);
+  document.documentElement.innerHTML = removeScriptTags(profileIndexHTML);
 
   const el = document.createElement("div");
   el.id = "chartContainer";
@@ -251,11 +254,11 @@ export async function setupProfile(opts?: {
   emitResponsesByRouteByEvent["default"]["authorize"] = {
     read: true,
   };
-  
+
   // @ts-ignore dynamic imports are only allowed in modules, but vitest runs fine with this
   await import("../../bundle/bundle.source");
-  
+
   (window as any).Nightscout.profileclient();
-  
+
   defaultSocket.trigger("connect");
 }

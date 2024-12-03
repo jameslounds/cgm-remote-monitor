@@ -1,15 +1,16 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
 import "@testing-library/jest-dom/vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import fs from "fs";
 import * as d3 from "d3";
+import fs from "fs";
 import path from "path";
 
 import initPluginBase from "../lib/plugins/pluginbase";
+import { removeScriptTags } from "./setup/dom";
 
 const indexHTML = fs
   .readFileSync(path.resolve("./bundle/index.html"))
@@ -17,7 +18,7 @@ const indexHTML = fs
 
 describe("pluginbase", () => {
   beforeEach(async (ctx) => {
-    document.write(indexHTML);
+    document.documentElement.innerHTML = removeScriptTags(indexHTML);
     ctx.tooltip = d3
       .select("body")
       .append("div")
