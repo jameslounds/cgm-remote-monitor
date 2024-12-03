@@ -3,7 +3,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import setupBrowser from "./setup/browser";
+import "@testing-library/jest-dom/vitest";
+
 
 describe("pluginbase", () => {
   it("updates major pill text correctly", async () => {
