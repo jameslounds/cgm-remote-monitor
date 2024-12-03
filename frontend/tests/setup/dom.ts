@@ -6,7 +6,11 @@ import fs from "fs";
 import path from "path";
 import { ajaxMock, mockState as ajaxMockState } from "../fixtures/ajax";
 import enTranslations from "../../translations/en/en.json";
-import { sockerIOClientMock } from "../fixtures/socket.io-client";
+import {
+  defaultSocket,
+  emitResponsesByRouteByEvent,
+  sockerIOClientMock,
+} from "../fixtures/socket.io-client";
 
 const statusJsonFixtue = {
   status: "ok",
@@ -199,10 +203,59 @@ export default async function setupBrowser(opts?: {
 
   (window as any).Nightscout.client.init();
 
-  // defaultSocket.trigger("connect");
-  // defaultSocket.trigger(
-  //   "dataUpdate",
-  //   { delta: false, sgvs: [], treatments: [], mbgs: [] },
-  //   true // headless mode flag; stops charts from loading
-  // );
+  defaultSocket.trigger("connect");
+}
+
+const profileIndexHTML = fs
+  .readFileSync(path.resolve("./bundle/profile/index.html"))
+  .toString();
+export async function setupProfile(opts?: {
+  statusJson?: any;
+  adminNotifies?: any;
+  verifyAuth?: any;
+  translations?: any;
+  profileJson?: any;
+}) {
+  let html = profileIndexHTML;
+  const SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+  while (SCRIPT_REGEX.test(html)) {
+    html = html.replace(SCRIPT_REGEX, "");
+  }
+  document.write(html);
+
+  const el = document.createElement("div");
+  el.id = "chartContainer";
+  document.body.append(el);
+
+  (window as any).jQuery = jQuery;
+  (window as any).$ = $;
+  (window as any).$.ajax = ajaxMock;
+
+  ajaxMockState.set("/api/v1/status.json", {
+    data: opts?.statusJson ?? statusJsonFixtue,
+  });
+  ajaxMockState.set("/api/v1/adminnotifies", {
+    data: opts?.adminNotifies ?? adminNotifiesFixture,
+  });
+  ajaxMockState.set("/api/v1/verifyauth", {
+    data: opts?.verifyAuth ?? verifyAuthFixute,
+  });
+  ajaxMockState.set("/translations/en/en.json", {
+    data: opts?.translations ?? enTranslations,
+  });
+  ajaxMockState.set("/api/v1/profile", {
+    data: opts?.profileJson ?? [],
+  });
+
+  (window as any).io = sockerIOClientMock;
+  emitResponsesByRouteByEvent["default"]["authorize"] = {
+    read: true,
+  };
+  
+  // @ts-ignore dynamic imports are only allowed in modules, but vitest runs fine with this
+  await import("../../bundle/bundle.source");
+  
+  (window as any).Nightscout.profileclient();
+  
+  defaultSocket.trigger("connect");
 }

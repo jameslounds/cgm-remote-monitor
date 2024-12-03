@@ -46,7 +46,7 @@
     "@types/lodash": "^4.17.13",
     "@types/moment": "^2.11.29",
     "@types/moment-timezone": "^0.5.13",
-    "jsdom": "^25.0.1",
+    "happy-dom": "^15.11.7",
     "prettier": "^3.4.1",
     "vitest": "^2.1.8"
   }

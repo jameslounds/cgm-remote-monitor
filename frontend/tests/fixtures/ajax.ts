@@ -1,10 +1,12 @@
 import { vi } from "vitest";
 
-export const ajaxMock = vi.fn();
 export const mockState: Map<
   RegExp | string,
   { data: any; error?: never } | { error: any; data?: never }
 > = new Map();
+export const ajaxMock = vi.fn() as ReturnType<typeof vi.fn> & {
+  mockState: typeof mockState;
+};
 
 type ValueOfMap<T> = T extends Map<any, infer G> ? G : never;
 
@@ -20,6 +22,7 @@ function mockImplementation(
   opts?: JQuery.AjaxSettings
 ): JQuery.jqXHR {
   const url = typeof maybeOpts === "string" ? maybeOpts : maybeOpts.url;
+  console.log("mocking url", url);
   opts = typeof maybeOpts === "string" ? opts : maybeOpts;
 
   const data = [...mockState.entries()].find(([matcher, data]) =>
@@ -35,7 +38,7 @@ function mockImplementation(
     }
     done(callback: (d: any) => void) {
       if (this.data.data) {
-        callback(this.data.data);
+        callback(opts?.success ? undefined : this.data.data);
       }
       return this;
     }
@@ -93,6 +96,13 @@ function mockImplementation(
       return this.data.error ? "error" : "OK";
     }
   }
-  return new AjaxReturnMock(data);
+  const mock = new AjaxReturnMock(data);
+  if (opts?.success && data.data) {
+    if (!Array.isArray(opts.success)) {
+      opts.success(data.data, "success", mock);
+    }
+  }
+  return mock;
 }
 ajaxMock.mockImplementation(mockImplementation);
+ajaxMock.mockState = mockState;
