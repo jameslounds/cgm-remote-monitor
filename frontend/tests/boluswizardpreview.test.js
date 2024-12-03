@@ -12,26 +12,13 @@ import initAr2 from "../lib/plugins/ar2";
 import initIob from "../lib/plugins/iob";
 import initBgnow from "../lib/plugins/bgnow";
 import initProfileFunctions from "../lib/profilefunctions";
+import baseEnv from "./fixtures/baseEnv";
 
 describe("boluswizardpreview", function () {
-  const env = {
-    testMode: true,
-    settings: {
-      alarmHigh: true,
-      thresholds: {
-        bgHigh: 260,
-        bgTargetTop: 180,
-        bgTargetBottom: 80,
-        bgLow: 55,
-      },
-      units: "mg/dl",
-    },
-  };
-
   const { ctx } = helper;
 
   ctx.ddata = initDdata();
-  ctx.notifications = initNotifications(env, ctx);
+  ctx.notifications = initNotifications(baseEnv, ctx);
 
   const boluswizardpreview = initBolusWizardPreview(ctx);
   const ar2 = initAr2(ctx);
@@ -39,7 +26,7 @@ describe("boluswizardpreview", function () {
   const bgnow = initBgnow(ctx);
 
   function prepareSandbox() {
-    const sbx = initSandbox().serverInit(env, ctx);
+    const sbx = initSandbox().serverInit(baseEnv, ctx);
     bgnow.setProperties(sbx);
     ar2.setProperties(sbx);
     iob.setProperties(sbx);
