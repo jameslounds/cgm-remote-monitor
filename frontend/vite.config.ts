@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import commonjs from "vite-plugin-commonjs";
 import inject from "@rollup/plugin-inject";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { resolve } from "path";
 
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -32,9 +33,6 @@ export default defineConfig({
   },
   define: {
     global: "window",
-    "process.env.NODE_ENV": JSON.stringify(
-      process.env.NODE_ENV ?? "production"
-    ),
   },
   assetsInclude: ["**/*.jpg", "**/*.png", "**/*.gif"],
   plugins: [
@@ -43,15 +41,21 @@ export default defineConfig({
       $: "jquery",
       jQuery: "jquery",
     }),
+    nodePolyfills({
+      include: [
+        "crypto",
+        "stream",
+        "process", //necessary for `crypto` > `browserify-sign` > `readable-stream` to work
+      ],
+      globals: { Buffer: true },
+    }),
   ],
-  resolve: {
-    alias: {
-      crypto: "crypto-browserify",
-      stream: "stream-browserify",
-    },
-  },
   optimizeDeps: {
     include: ["jquery-ui", "lodash", "d3"],
   },
   server: { hmr: true },
+
+  test: {
+    include: ["../tests/**/*.test.{js,ts}"],
+  },
 });

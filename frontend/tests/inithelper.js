@@ -1,24 +1,15 @@
+import fs from "node:fs";
+import moment from "moment-timezone";
 
-const fs = require('fs');
-const moment = require('moment-timezone');
-const language = require('../lib/language')(fs);
-const settings = require('../lib/settings')();
-const levels = require('../lib/levels');
+import languageInit from "../lib/language";
+import settingsInit from "../lib/settings";
+import levels from "../lib/levels";
 
-function helper() {
-
-    helper.ctx = {
-        language: language
-        , settings: settings
-        , levels: levels
-        , moment: moment
-      };
-
-    helper.getctx = function getctx () {
-        return helper.ctx;
-    }
-
-    return helper;
-}
-
-module.exports = helper;
+export default {
+  ctx: {
+    language: languageInit(fs),
+    settings: settingsInit(),
+    levels: levels,
+    moment: moment,
+  },
+};

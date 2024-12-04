@@ -1,9 +1,65 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
+import _ from "lodash";
 
-function init(ctx) {
+import times from "../times";
+import type { Plugin, PluginCtx } from ".";
+import type { Sandbox } from "../sandbox";
+import type { Treatment } from "../data/ddata";
+
+export type BolusWizardPreviewProperties = CalcSuccessReturn | CalcErrorReturn;
+
+type CalcErrorReturn = {
+  status: "error";
+  effect: number;
+  outcome: number;
+  bolusEstimate: number;
+  scaledSGV: any;
+  errors: string[];
+};
+type CalcSuccessReturn = {
+  status: "success";
+  effect: number;
+  outcome: number;
+  bolusEstimate: number;
+  scaledSGV: any;
+  iob: any;
+  recentCarbs: Treatment;
+  belowLowTarget: boolean;
+  aimTarget: any;
+  aimTargetString: "above high" | "below low";
+  tempBasalAdjustment: {
+    thirtymin: number;
+    onehour: number;
+  };
+  bolusEstimateDisplay: string;
+  outcomeDisplay: number;
+  displayIOB: string;
+  effectDisplay: number;
+  displayLine: string;
+  errors: false;
+};
+
+type Settings = {
+  snoozeBWP: number;
+  warnBWP: number;
+  urgentBWP: number;
+  snoozeLength: number;
+};
+
+interface BolucWizardPreviewPluging extends Plugin {
+  name: "bwp";
+  label: "Bolus Wizard Preview";
+  pluginType: "pill-minor";
+  calc(sbx: Sandbox): CalcErrorReturn | CalcSuccessReturn;
+  highSnoozedByIOB(
+    prop: BolusWizardPreviewProperties,
+    settings: Settings,
+    sbx: Sandbox
+  ): boolean;
+}
+
+export default function init(ctx: PluginCtx) {
   var translate = ctx.language.translate;
   var levels = ctx.levels;
 
@@ -11,15 +67,15 @@ function init(ctx) {
     name: "bwp",
     label: "Bolus Wizard Preview",
     pluginType: "pill-minor",
-  };
+  } as BolucWizardPreviewPluging;
 
-  function checkMissingInfo(sbx) {
+  function checkMissingInfo(sbx: Sandbox) {
     var errors = [];
     if (!sbx.data.profile || !sbx.data.profile.hasData()) {
       errors.push("Missing need a treatment profile");
     } else if (profileFieldsMissing(sbx)) {
       errors.push(
-        "Missing sens, target_high, or target_low treatment profile fields",
+        "Missing sens, target_high, or target_low treatment profile fields"
       );
     }
 
@@ -34,13 +90,13 @@ function init(ctx) {
     return errors;
   }
 
-  bwp.setProperties = function setProperties(sbx) {
+  bwp.setProperties = function setProperties(sbx: Sandbox) {
     sbx.offerProperty("bwp", function setBWP() {
-      return bwp.calc(sbx);
+      return bwp.calc(sbx) as CalcSuccessReturn;
     });
   };
 
-  bwp.checkNotifications = function checkNotifications(sbx) {
+  bwp.checkNotifications = function checkNotifications(sbx: Sandbox) {
     var prop = sbx.properties.bwp;
     if (prop === undefined) {
       return;
@@ -86,16 +142,30 @@ function init(ctx) {
     return high && prop.bolusEstimate < settings.snoozeBWP;
   };
 
+  function propsHaveError(
+    props: BolusWizardPreviewProperties
+  ): props is CalcErrorReturn {
+    return props.errors && Array.isArray(props.errors) && !!props.errors.length;
+  }
+
   bwp.updateVisualisation = function updateVisualisation(sbx) {
     var prop = sbx.properties.bwp;
 
-    var info = [];
+    var info: { label: string; value: string }[] = [];
     pushInfo(prop, info, sbx);
 
-    var value;
-    if (prop && prop.bolusEstimateDisplay >= 0) {
+    var value: string = "";
+    if (
+      prop &&
+      !propsHaveError(prop) &&
+      parseFloat(prop.bolusEstimateDisplay) >= 0
+    ) {
       value = prop.bolusEstimateDisplay + "U";
-    } else if (prop && prop.bolusEstimateDisplay < 0) {
+    } else if (
+      prop &&
+      !propsHaveError(prop) &&
+      parseFloat(prop.bolusEstimateDisplay) < 0
+    ) {
       value = "< 0U";
     }
 
@@ -106,12 +176,12 @@ function init(ctx) {
     });
   };
 
-  bwp.calc = function calc(sbx) {
+  bwp.calc = function calc(sbx: Sandbox) {
     var results = {
       effect: 0,
       outcome: 0,
       bolusEstimate: 0.0,
-    };
+    } as CalcSuccessReturn;
 
     var scaled = sbx.lastScaledSGV();
 
@@ -119,9 +189,15 @@ function init(ctx) {
 
     var errors = checkMissingInfo(sbx);
 
-    if (errors && errors.length > 0) {
-      results.errors = errors;
-      return results;
+    if (!scaled || (errors && errors.length > 0)) {
+      return <CalcErrorReturn>{
+        status: "error",
+        errors,
+        effect: 0,
+        outcome: 0,
+        bolusEstimate: 0.0,
+        scaledSGV: scaled,
+      };
     }
 
     var profile = sbx.data.profile;
@@ -137,12 +213,14 @@ function init(ctx) {
         return (
           treatment.mills <= sbx.time &&
           sbx.time - treatment.mills < times.mins(60).msecs &&
-          treatment.carbs > 0
+          (treatment.carbs ?? 0) > 0
         );
-      },
+      }
     );
 
-    results.recentCarbs = recentCarbs;
+    if (recentCarbs) {
+      results.recentCarbs = recentCarbs;
+    }
 
     var target_high = profile.getHighBGTarget(sbx.time);
     var sens = profile.getSensitivity(sbx.time);
@@ -173,10 +251,10 @@ function init(ctx) {
       var basal = sbx.data.profile.getBasal(sbx.time);
 
       var thirtyMinAdjustment = Math.round(
-        ((basal / 2 + results.bolusEstimate) / (basal / 2)) * 100,
+        ((basal / 2 + results.bolusEstimate) / (basal / 2)) * 100
       );
       var oneHourAdjustment = Math.round(
-        ((basal + results.bolusEstimate) / basal) * 100,
+        ((basal + results.bolusEstimate) / basal) * 100
       );
 
       results.tempBasalAdjustment = {
@@ -186,7 +264,7 @@ function init(ctx) {
     }
 
     results.bolusEstimateDisplay = sbx.roundInsulinForDisplayFormat(
-      results.bolusEstimate,
+      results.bolusEstimate
     );
     results.outcomeDisplay = sbx.roundBGToDisplayFormat(results.outcome);
     results.displayIOB = sbx.roundInsulinForDisplayFormat(results.iob);
@@ -194,10 +272,11 @@ function init(ctx) {
     results.displayLine =
       translate("BWP") + ": " + results.bolusEstimateDisplay + "U";
 
+    results.status = "success";
     return results;
   };
 
-  function prepareSettings(sbx) {
+  function prepareSettings(sbx: Sandbox) {
     return {
       snoozeBWP: Number(sbx.extendedSettings.snooze) || 0.1,
       warnBWP: Number(sbx.extendedSettings.warn) || 0.5,
@@ -209,14 +288,14 @@ function init(ctx) {
     };
   }
 
-  function isSGVOk(sbx) {
+  function isSGVOk(sbx: Sandbox) {
     var lastSGVEntry = sbx.lastSGVEntry();
     return (
       lastSGVEntry && lastSGVEntry.mgdl >= 39 && sbx.isCurrent(lastSGVEntry)
     );
   }
 
-  function profileFieldsMissing(sbx) {
+  function profileFieldsMissing(sbx: Sandbox) {
     return (
       !sbx.data.profile.getSensitivity(sbx.time) ||
       !sbx.data.profile.getHighBGTarget(sbx.time) ||
@@ -224,8 +303,12 @@ function init(ctx) {
     );
   }
 
-  function pushInfo(prop, info, sbx) {
-    if (prop && prop.errors) {
+  function pushInfo(
+    prop: Sandbox["properties"]["bwp"],
+    info: { label: string; value: string }[],
+    sbx: Sandbox
+  ) {
+    if (prop && propsHaveError(prop)) {
       info.push({
         label: translate("Notice"),
         value: translate("required info missing"),
@@ -233,7 +316,7 @@ function init(ctx) {
       _.each(prop.errors, function pushError(error) {
         info.push({ label: "  • ", value: error });
       });
-    } else if (prop) {
+    } else if (prop && !propsHaveError(prop)) {
       info.push({
         label: translate("Insulin on Board"),
         value: prop.displayIOB + "U",
@@ -280,10 +363,11 @@ function init(ctx) {
           " " +
           sbx.settings.units,
       });
-      if (prop.bolusEstimateDisplay < 0) {
+      const estDisplay = parseFloat(prop.bolusEstimateDisplay);
+      if (estDisplay < 0) {
         info.unshift({ label: "---------", value: "" });
         var carbEquivalent = Math.ceil(
-          Math.abs(sbx.data.profile.getCarbRatio() * prop.bolusEstimateDisplay),
+          Math.abs(sbx.data.profile.getCarbRatio() * estDisplay)
         );
         info.unshift({
           label: translate("Carb Equivalent"),
@@ -318,7 +402,7 @@ function init(ctx) {
             label: "-" + translate("BWP"),
             value: translate(
               "Excess insulin equivalent %1U more than needed to reach low target, not accounting for carbs",
-              { params: [prop.bolusEstimateDisplay] },
+              { params: [prop.bolusEstimateDisplay] }
             ),
           });
         }
@@ -329,7 +413,7 @@ function init(ctx) {
               label: "-" + translate("BWP"),
               value: translate(
                 "Excess insulin equivalent %1U more than needed to reach low target, MAKE SURE IOB IS COVERED BY CARBS",
-                { params: [prop.bolusEstimateDisplay] },
+                { params: [prop.bolusEstimateDisplay] }
               ),
             });
           } else {
@@ -337,7 +421,7 @@ function init(ctx) {
               label: "-" + translate("BWP"),
               value: translate(
                 "%1U reduction needed in active insulin to reach low target, too much basal?",
-                { params: [prop.bolusEstimateDisplay] },
+                { params: [prop.bolusEstimateDisplay] }
               ),
             });
           }
@@ -353,15 +437,19 @@ function init(ctx) {
     pushTempBasalAdjustments(prop, info, sbx);
   }
 
-  function pushTempBasalAdjustments(prop, info, sbx) {
-    if (prop && prop.tempBasalAdjustment) {
+  function pushTempBasalAdjustments(
+    prop: Sandbox["properties"]["bwp"],
+    info: { label: string; value: string }[],
+    sbx: Sandbox
+  ) {
+    if (prop && !propsHaveError(prop) && prop.tempBasalAdjustment) {
       var carbsOrBolusMessage = translate(
-        "basal adjustment out of range, give carbs?",
+        "basal adjustment out of range, give carbs?"
       );
       var sign = "";
       if (prop.tempBasalAdjustment.thirtymin > 100) {
         carbsOrBolusMessage = translate(
-          "basal adjustment out of range, give bolus?",
+          "basal adjustment out of range, give bolus?"
         );
         sign = "+";
       }
@@ -452,5 +540,3 @@ function init(ctx) {
 
   return bwp;
 }
-
-module.exports = init;

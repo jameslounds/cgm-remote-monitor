@@ -1,18 +1,58 @@
 "use strict";
 
-var _map = require("lodash/map");
-var _each = require("lodash/each");
+import type d3 from "d3";
+import type { Plugin } from ".";
+import _map from "lodash/map";
+import _each from "lodash/each";
 
 var TOOLTIP_WIDTH = 275; //min-width + padding
 
-function init(majorPills, minorPills, statusPills, bgStatus, tooltip) {
-  var pluginBase = {};
+export type ForecastPoint = {
+  color?: string;
+  info: { type: string; label: string };
+  mgdl: number;
+  mills: number;
+  type: "forecast";
+};
 
-  pluginBase.forecastInfos = [];
-  pluginBase.forecastPoints = {};
+type UpdatePillTextOptions = {
+  hide?: boolean;
+  pillClass?: string;
+  info?: { label: string; value: string }[];
+  label?: string;
+  directText?: boolean;
+  directHTML?: boolean;
 
-  function findOrCreatePill(plugin) {
-    var container = null;
+  value?: string;
+  labelClass?: string;
+  valueClass?: string;
+};
+
+export interface PluginBase {
+  forecastInfos: any[];
+  forecastPoints: Record<string, ForecastPoint[]>;
+  updatePillText(plugin: Plugin, options: UpdatePillTextOptions): void;
+  addForecastPoints(
+    points: ForecastPoint[],
+    info: { label: string; type: string }
+  ): void;
+}
+
+export default function init(
+  majorPills: JQuery<HTMLElement>,
+  minorPills: JQuery<HTMLElement>,
+  statusPills: JQuery<HTMLElement>,
+  bgStatus: JQuery<HTMLElement>,
+  tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>
+): PluginBase {
+  var pluginBase: Partial<PluginBase> &
+    Pick<PluginBase, "forecastInfos" | "forecastPoints"> = {
+    forecastInfos: [],
+    forecastPoints: {},
+  };
+
+  function findOrCreatePill(plugin: Plugin) {
+    var container: JQuery<HTMLElement> | null = null;
 
     if (plugin.pluginType === "pill-major") {
       container = majorPills;
@@ -87,7 +127,9 @@ function init(majorPills, minorPills, statusPills, bgStatus, tooltip) {
       pill.mouseover(function pillMouseover(event) {
         tooltip.style("opacity", 0.9);
 
-        var windowWidth = $(tooltip.node()).parent().parent().width();
+        const tooltipNode = tooltip.node();
+        if (!tooltipNode) return;
+        var windowWidth = $(tooltipNode).parent().parent().width() ?? 0;
         var left =
           event.pageX + TOOLTIP_WIDTH < windowWidth
             ? event.pageX
@@ -106,7 +148,10 @@ function init(majorPills, minorPills, statusPills, bgStatus, tooltip) {
     }
   };
 
-  pluginBase.addForecastPoints = function addForecastPoints(points, info) {
+  pluginBase.addForecastPoints = function addForecastPoints(
+    points,
+    info
+  ): void {
     _each(points, function eachPoint(point) {
       point.type = "forecast";
       point.info = info;
@@ -119,7 +164,5 @@ function init(majorPills, minorPills, statusPills, bgStatus, tooltip) {
     pluginBase.forecastPoints[info.type] = points;
   };
 
-  return pluginBase;
+  return pluginBase as PluginBase;
 }
-
-module.exports = init;

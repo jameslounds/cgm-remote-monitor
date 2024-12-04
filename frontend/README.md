@@ -12,13 +12,15 @@ In 3 terminals (in the root of `nightscout/cgm-remote-monitor`), run:
 - `caddy run` Runs `caddy` to reverse proxy frontend/backend onto same port (`3000`)
 
 ## To run tests
-- `npm run build:tsc` will build the project with `tsc`, compiling all the typescript and javascript into `./dist`. At the moment it requires the additional flags `--module commonjs --moduleResolution node` for mocha to run. Migrating everything to ES modules would fix this. I _think_ that if we used `vitest` instead, this build step would not be necessary
-- `npm run test` will run mocha on files matching `./dist/*.test`
+
+- `npm run test` will run the tests and exit.
+- `npm run test:watch` will rerun the tests as they change.
 
 Dont forget to set your env!
 
 ## Aims
-- Reduce build time for both hmr in development and building for production. 
+
+- Reduce build time for both hmr in development and building for production.
 - Allow for incremental migration from `function init()`s to `class`es
 - Get "go to definition" working as much as possible
 - Use typescript wherever possible
