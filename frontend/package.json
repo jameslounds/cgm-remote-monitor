@@ -8,9 +8,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:tsc": "tsc -p . --nocheck --module commonjs --moduleResolution node",
     "preview": "vite preview",
-    "test": "mocha --require ./tests/hooks.js --exit ./dist/tests/*.test.js"
+    "test": "mocha --require ./mocha-tests/hooks.js --exit ./mocha-tests/"
   },
   "author": "",
   "license": "ISC",
