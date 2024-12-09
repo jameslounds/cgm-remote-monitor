@@ -24,3 +24,6 @@ Dont forget to set your env!
 - Use typescript wherever possible
 
 In general, my aim is to migrate to a more modern tech stack to make it easier and more enjoyable to work on.
+
+## Fun bugs
+In `jquery@3.6.0`, we can't use `:first` to get the first child of an selector. We have to use `$("<selector>:first-child")` or `$("<selector>").first()` instead.

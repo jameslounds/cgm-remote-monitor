@@ -62,7 +62,6 @@ function headless(binding = {}) {
           maybeCall("click", button);
         });
       };
-      console.log("finished mocking profile editor");
     }
     if (options.mockSimpleAjax) {
       mockAjaxResponses = options.mockSimpleAjax;
@@ -79,7 +78,6 @@ function headless(binding = {}) {
           return {
             done: function mockDone(fn) {
               if (url.indexOf("status.json") > -1) {
-                console.log("-------- sending status.json");
                 fn(serverSettings);
               } else {
                 fn({ message: "OK" });
@@ -107,7 +105,6 @@ function headless(binding = {}) {
             url.includes(key)
           );
           if (maybeNewUrl) {
-            console.log("changing", url, "to", maybeNewUrl);
             url = maybeNewUrl;
           }
         }
@@ -152,7 +149,7 @@ function headless(binding = {}) {
     }
 
     // $.fn.tooltip = function mockTooltip() {};
-    // $.fn.dialog = function mockDialog(opts) {
+    // $.fn.dialog = function mockDialog(options) {
     //   function maybeCall(name, obj) {
     //     if (obj[name] && obj[name].call) {
     //       obj[name]();
