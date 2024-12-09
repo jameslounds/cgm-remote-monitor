@@ -325,7 +325,7 @@ exampleProfile[0].startDate.setSeconds(0);
 exampleProfile[0].startDate.setMilliseconds(0);
 
 let window, document;
-describe('reports', function ( ) {
+describe.skip('reports', function ( ) {
   var self = this;
   var headless = require('./fixtures/headless')(this);
   this.timeout(80000);

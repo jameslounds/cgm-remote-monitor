@@ -91,7 +91,7 @@ describe("Profile editor", function () {
     done();
   });
 
-  beforeEach(function (done) {
+  before(function (done) {
     var opts = {
       htmlFile: path.resolve("./bundle/profile/index.html"),
       mockProfileEditor: true,
@@ -104,7 +104,7 @@ describe("Profile editor", function () {
     });
   });
 
-  afterEach(function (done) {
+  after(function (done) {
     headless.teardown();
     done();
   });

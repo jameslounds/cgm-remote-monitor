@@ -3,7 +3,7 @@
 var init = function init() {
   //for the tests window isn't the global object
   var $ = window.$ || require("jquery");
-  var _ = window._;
+  var _ = window._ || require("lodash");
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
 

@@ -18,7 +18,7 @@ describe("careportal", async function () {
 
   var headless = require("./fixtures/headless")(this);
 
-  beforeEach(function (done) {
+  before(function (done) {
     const t = Date.now();
     console.log("Starting headless setup for Careportal test");
 
@@ -31,14 +31,13 @@ describe("careportal", async function () {
     headless.setup({ mockAjax: true }, d);
   });
 
-  afterEach(function (done) {
+  after(function (done) {
     headless.teardown();
     done();
   });
 
   it("open careportal, and enter a treatment", async () => {
     console.log("Careportal test client start");
-
     var client = window.Nightscout.client;
 
     var hashauth = require("../lib/client/hashauth");

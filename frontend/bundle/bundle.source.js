@@ -52,3 +52,5 @@ console.info("Nightscout bundle ready");
 // if (typeof module.hot !== "undefined") {
 //   module.hot.accept();
 // }
+
+export default window.Nightscout;

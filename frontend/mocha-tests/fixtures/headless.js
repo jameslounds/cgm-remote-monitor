@@ -194,7 +194,10 @@ function headless(binding = {}) {
       self.localStorage =
         $.localStorage;
 
-    await import("../../bundle/bundle.source.js");
+    const ns = (await import("../../bundle/bundle.source.js")).default;
+    if (!window.Nightscout) {
+      window.Nightscout = ns;
+    }
     console.log("loaded bundle ok");
     const extraRequires = options.benvRequires || [];
     await Promise.all(
