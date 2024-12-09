@@ -1,6 +1,6 @@
-const $ = require("jquery");
 const _ = require("lodash");
 var init = function init() {
+  const $ = global.$ || require("jquery");
   "use strict";
   // for the tests window isn't the global object
   var Nightscout = window.Nightscout;
