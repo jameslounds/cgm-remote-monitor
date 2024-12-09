@@ -29,7 +29,7 @@
     "moment-timezone": "^0.5.46",
     "parse-duration": "^1.1.0",
     "shiro-trie": "^0.4.10",
-    "simple-statistics": "^7.8.7",
+    "simple-statistics": "^0.7.0",
     "socket.io-client": "^4.8.1",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
@@ -43,9 +43,10 @@
     "@types/moment-timezone": "^0.5.13",
     "assert": "^2.1.0",
     "benv": "^3.3.0",
+    "happy-dom": "^15.11.7",
     "mocha": "^10.8.2",
-    "should": "^13.2.3",
     "prettier": "^3.4.1",
+    "should": "^13.2.3",
     "supertest": "^7.0.0"
   }
 }

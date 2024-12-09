@@ -1,6 +1,6 @@
-import "./public/css/drawer.css";
-import "./public/css/dropdown.css";
-import "./public/css/sgv.css";
+// // import "./public/css/drawer.css";
+// // import "./public/css/dropdown.css";
+// // import "./public/css/sgv.css";
 
 import "jquery-ui-bundle";
 import "jquery.tooltips";
@@ -13,29 +13,35 @@ window.d3 = d3;
 import Storage from "js-storage";
 window.Storage = Storage;
 
-import moment from "moment-timezone";
-window.moment = moment;
+// import moment from "moment-timezone";
+// window.moment = moment;
 
 window.Nightscout = window.Nightscout || {};
 
-var ctx = {
-  moment: moment,
-};
+// var ctx = {
+// moment: moment,
+// };
 
-// import client from "./src/client"
-
+import client from "../lib/client/index.js";
+import initUnits from "../lib/units.js";
+import initAdminPlugins from "../lib/admin_plugins/index.js";
 window.Nightscout = {
-  // client: client,
-  client: require("../lib/client"),
-  units: require("../lib/units")(),
-  admin_plugins: require("../lib/admin_plugins/")(ctx),
+  client,
+  units: initUnits(),
+  admin_plugins: initAdminPlugins(),
 };
 
-window.Nightscout.report_plugins_preinit = require("../lib/report_plugins/");
-window.Nightscout.predictions = require("../lib/report/predictions");
-window.Nightscout.reportclient = require("../lib/report/reportclient");
-window.Nightscout.profileclient = require("../lib/profile/profileeditor");
-window.Nightscout.foodclient = require("../lib/food/food");
+import report_plugins from "../lib/report_plugins/index.js";
+import report_predictions from "../lib/report/predictions.js";
+import report_reportclient from "../lib/report/reportclient.js";
+import profile_profileeditor from "../lib/profile/profileeditor.js";
+import food from "../lib/food/food.js";
+
+window.Nightscout.report_plugins_preinit = report_plugins;
+window.Nightscout.predictions = report_predictions;
+window.Nightscout.reportclient = report_reportclient;
+window.Nightscout.profileclient = profile_profileeditor;
+window.Nightscout.foodclient = food;
 // even though it's typescript, this is apparently fine
 // import foodClient from "./src/food";
 // window.Nightscout.foodclient = foodClient;

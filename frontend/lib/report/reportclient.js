@@ -2,7 +2,7 @@ const $ = require("jquery");
 const _ = require("lodash");
 var init = function init() {
   "use strict";
-  //for the tests window isn't the global object
+  // for the tests window isn't the global object
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
   var report_plugins_preinit = Nightscout.report_plugins_preinit;
@@ -706,6 +706,7 @@ var init = function init() {
 
     function switchreport_handler(event) {
       var id = $(this).attr("id");
+      console.log("switching report handler", id)
 
       $(".menutab").removeClass("selected");
       $("#" + id).addClass("selected");

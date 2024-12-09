@@ -189,6 +189,7 @@ treatments.report = function report_treatments(
   }
 
   function deleteTreatment(event) {
+    console.log("------------ deleting treatment")
     if (!client.hashauth.isAuthenticated()) {
       window.alert(translate("Your device is not authenticated yet"));
       return false;

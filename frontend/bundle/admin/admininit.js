@@ -9,5 +9,6 @@
   client.init(function loaded() {
     // init HTML code
     admin_plugins.createHTML(client);
+    document.dispatchEvent(new CustomEvent("Nightscout-load"));
   });
 })();

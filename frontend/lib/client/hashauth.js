@@ -141,7 +141,7 @@ hashauth.init = function init(client, $) {
                 } else {
                   $("#apisecret").val("").focus();
                 }
-              },
+              }
             );
           },
         },
@@ -167,7 +167,7 @@ hashauth.init = function init(client, $) {
   hashauth.processSecret = function processSecret(
     apisecret,
     storeapisecret,
-    callback,
+    callback
   ) {
     var translate = client.translate;
 
@@ -269,7 +269,7 @@ hashauth.init = function init(client, $) {
       "<br>" +
       '<input type="checkbox" id="storeapisecret" /> <label for="storeapisecret">' +
       translate(
-        "Remember this device. (Do not enable this on public computers.)",
+        "Remember this device. (Do not enable this on public computers.)"
       ) +
       "</label>" +
       "</div>" +
@@ -295,7 +295,7 @@ hashauth.init = function init(client, $) {
         if (!data.read && !client.authorized) {
           hashauth.requestAuthentication();
         }
-      },
+      }
     );
   };
 

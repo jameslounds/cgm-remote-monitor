@@ -1,7 +1,24 @@
 "use strict";
 
 var _ = require("lodash");
-var units = require("./units")();
+// delete require.cache[require.resolve("./units")];
+let units;
+try {
+  const unitsInit = require("./units.js");
+  units = unitsInit();
+} catch (err) {
+  console.log("manually defining units", () => null);
+  const consts = require("./constants.json");
+  units = {
+    mgdlToMMOL(mgdl) {
+      return (Math.round((mgdl / consts.MMOL_TO_MGDL) * 10) / 10).toFixed(1);
+    },
+    mmolToMgdl(mgdl) {
+      return Math.round(mgdl * consts.MMOL_TO_MGDL);
+    },
+  };
+}
+
 var times = require("./times");
 
 function init() {
@@ -66,7 +83,7 @@ function init() {
     profile.updateTreatments(
       ctx.ddata.profileTreatments,
       ctx.ddata.tempbasalTreatments,
-      ctx.ddata.combobolusTreatments,
+      ctx.ddata.combobolusTreatments
     );
     sbx.data.profile = profile;
     delete sbx.data.profiles;
@@ -276,7 +293,7 @@ function init() {
   };
 
   sbx.roundInsulinForDisplayFormat = function roundInsulinForDisplayFormat(
-    insulin,
+    insulin
   ) {
     if (insulin === 0) {
       return "0";

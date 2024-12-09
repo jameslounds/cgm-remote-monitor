@@ -225,6 +225,7 @@ daytoday.report = function report_daytoday(
   }
 
   function drawChart(day, data, options) {
+    console.log("-------------- drawing daytoday")
     var tickValues,
       charts,
       context,
@@ -1112,6 +1113,7 @@ daytoday.report = function report_daytoday(
         }
       }
 
+      console.log({carbs: treatment.carbs})
       if (treatment.carbs && options.carbs) {
         var label = " " + treatment.carbs + " g";
         label += treatment.foodType ? " " + treatment.foodType : "";

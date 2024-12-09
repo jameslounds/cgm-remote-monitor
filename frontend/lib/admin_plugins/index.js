@@ -2,8 +2,9 @@
 
 var _find = require("lodash/find");
 var _each = require("lodash/each");
-
-function init(ctx) {
+const moment = window.moment || global.moment || require("moment-timezone");
+function init() {
+  const ctx = { moment };
   var allPlugins = [
     require("./subjects")(ctx),
     require("./roles")(ctx),
@@ -41,7 +42,7 @@ function init(ctx) {
           fs.append(
             $("<b>")
               .css("text-decoration", "underline")
-              .append(translate(a.name)),
+              .append(translate(a.name))
           );
           fs.append("<br>");
         }
@@ -52,10 +53,10 @@ function init(ctx) {
             .addClass("adminButton")
             .attr("plugin", p.name)
             .attr("action", i)
-            .append(translate(a.buttonLabel)),
+            .append(translate(a.buttonLabel))
         );
         fs.append(
-          $("<span>").attr("id", "admin_" + p.name + "_" + i + "_status"),
+          $("<span>").attr("id", "admin_" + p.name + "_" + i + "_status")
         );
         if (a.init) {
           a.init(client);

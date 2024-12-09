@@ -213,7 +213,7 @@ function init(ctx) {
           sbx.roundInsulinForDisplayFormat(lastTreatment.insulin) +
           "U"
         : "") +
-      (lastTreatment.duration
+      (lastTreatment.durationdau
         ? "\n" + translate("Duration") + ": " + lastTreatment.duration + " min"
         : "") +
       (lastTreatment.percent
