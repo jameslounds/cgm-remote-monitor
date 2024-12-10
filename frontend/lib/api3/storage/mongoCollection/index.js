@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Storage implementation using mongoDB
@@ -6,23 +6,16 @@
  * @param {Object} env
  * @param {string} colName - name of the collection in mongo database
  */
-function MongoCollection (ctx, env, colName) {
-
-  const self = this
-    , utils = require('./utils')
-    , find = require('./find')
-    , modify = require('./modify')
-    ;
-
+function MongoCollection(ctx, env, colName) {
+  const self = this,
+    utils = require("./utils"),
+    find = require("./find"),
+    modify = require("./modify");
   self.colName = colName;
 
   self.col = ctx.store.collection(colName);
 
-  ctx.store.ensureIndexes(self.col, [ 'identifier',
-    'srvModified',
-    'isValid'
-  ]);
-
+  ctx.store.ensureIndexes(self.col, ["identifier", "srvModified", "isValid"]);
 
   self.identifyingFilter = utils.identifyingFilter;
 
@@ -42,35 +35,29 @@ function MongoCollection (ctx, env, colName) {
 
   self.deleteManyOr = (...args) => modify.deleteManyOr(self.col, ...args);
 
-
   /**
    * Get server version
    */
-  self.version = function version () {
-
+  self.version = function version() {
     return new Promise(function (resolve, reject) {
-
-      ctx.store.db.admin().buildInfo({}, function mongoDone (err, result) {
-
+      ctx.store.db.admin().buildInfo({}, function mongoDone(err, result) {
         err
           ? reject(err)
           : resolve({
-            storage: 'mongodb',
-            version: result.version
-          });
+              storage: "mongodb",
+              version: result.version,
+            });
       });
     });
   };
 
-
   /**
    * Get timestamp (e.g. srvModified) of the last modified document
    */
-  self.getLastModified = function getLastModified (fieldName) {
-
+  self.getLastModified = function getLastModified(fieldName) {
     return new Promise(function (resolve, reject) {
-
-      self.col.find()
+      self.col
+        .find()
 
         .sort({ [fieldName]: -1 })
 
@@ -78,13 +65,11 @@ function MongoCollection (ctx, env, colName) {
 
         .project({ [fieldName]: 1 })
 
-        .toArray(function mongoDone (err, [ result ]) {
-          err
-            ? reject(err)
-            : resolve(result);
+        .toArray(function mongoDone(err, [result]) {
+          err ? reject(err) : resolve(result);
         });
     });
-  }
+  };
 }
 
 module.exports = MongoCollection;

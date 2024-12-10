@@ -7,13 +7,13 @@ info:
   version: 14.2.3
   license:
     name: AGPL 3
-    url: 'https://www.gnu.org/licenses/agpl.txt'
+    url: "https://www.gnu.org/licenses/agpl.txt"
 security:
   - api_secret: []
     token_in_url: []
     jwtoken: []
 paths:
-  '/entries/{spec}':
+  "/entries/{spec}":
     get:
       summary: All Entries matching query
       description: |
@@ -47,19 +47,19 @@ paths:
       tags:
         - Entries
       responses:
-        '200':
+        "200":
           description: An array of entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Entries'
+                $ref: "#/components/schemas/Entries"
         default:
           description: Entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Entries'
-  '/slice/{storage}/{field}/{type}/{prefix}/{regex}':
+                $ref: "#/components/schemas/Entries"
+  "/slice/{storage}/{field}/{type}/{prefix}/{regex}":
     get:
       summary: All Entries matching query
       description: The Entries endpoint returns information about the Nightscout entries.
@@ -84,7 +84,7 @@ paths:
             default: dateString
         - name: type
           in: path
-          description: 'The type field to search against, default is sgv.'
+          description: "The type field to search against, default is sgv."
           required: true
           schema:
             type: string
@@ -95,7 +95,7 @@ paths:
           required: true
           schema:
             type: string
-            default: '2015'
+            default: "2015"
         - name: regex
           in: path
           description: >
@@ -131,19 +131,19 @@ paths:
       tags:
         - Entries
       responses:
-        '200':
+        "200":
           description: An array of entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Entries'
+                $ref: "#/components/schemas/Entries"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-  '/echo/{storage}/{spec}':
+                $ref: "#/components/schemas/Error"
+  "/echo/{storage}/{spec}":
     get:
       summary: View generated Mongo Query object
       description: |
@@ -186,13 +186,13 @@ paths:
         - Entries
         - Debug
       responses:
-        '200':
+        "200":
           description: An array of entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MongoQuery'
-  '/times/echo/{prefix}/{regex}':
+                $ref: "#/components/schemas/MongoQuery"
+  "/times/echo/{prefix}/{regex}":
     get:
       summary: Echo the query object to be used.
       description: Echo debug information about the query object constructed.
@@ -238,19 +238,19 @@ paths:
         - Entries
         - Debug
       responses:
-        '200':
+        "200":
           description: An array of entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MongoQuery'
+                $ref: "#/components/schemas/MongoQuery"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-  '/times/{prefix}/{regex}':
+                $ref: "#/components/schemas/Error"
+  "/times/{prefix}/{regex}":
     get:
       summary: All Entries matching query
       description: The Entries endpoint returns information about the Nightscout entries.
@@ -295,18 +295,18 @@ paths:
       tags:
         - Entries
       responses:
-        '200':
+        "200":
           description: An array of entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Entries'
+                $ref: "#/components/schemas/Entries"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /entries:
     get:
       summary: All Entries matching query
@@ -330,44 +330,44 @@ paths:
       tags:
         - Entries
       responses:
-        '200':
+        "200":
           description: An array of entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Entries'
+                $ref: "#/components/schemas/Entries"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     post:
       tags:
         - Entries
       summary: Add new entries.
-      description: ''
+      description: ""
       operationId: addEntries
       responses:
-        '200':
+        "200":
           description: Rejected list of entries.  Empty list is success.
-        '405':
+        "405":
           description: Invalid input
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Entries'
+              $ref: "#/components/schemas/Entries"
           text/plain:
             schema:
-              $ref: '#/components/schemas/Entries'
+              $ref: "#/components/schemas/Entries"
         description: Entries to be uploaded.
         required: true
     delete:
       tags:
         - Entries
       summary: Delete entries matching query.
-      description: 'Remove entries, same search syntax as GET.'
+      description: "Remove entries, same search syntax as GET."
       operationId: remove
       parameters:
         - name: find
@@ -386,7 +386,7 @@ paths:
           schema:
             type: number
       responses:
-        '200':
+        "200":
           description: Empty list is success.
   /treatments:
     get:
@@ -414,41 +414,41 @@ paths:
           schema:
             type: number
       responses:
-        '200':
+        "200":
           description: An array of treatments
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Treatments'
+                $ref: "#/components/schemas/Treatments"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     post:
       tags:
         - Treatments
       summary: Add new treatments.
-      description: ''
+      description: ""
       operationId: addTreatments
       responses:
-        '200':
+        "200":
           description: Rejected list of treatments.  Empty list is success.
-        '405':
+        "405":
           description: Invalid input
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Treatments'
+              $ref: "#/components/schemas/Treatments"
         description: Treatments to be uploaded.
         required: true
     delete:
       tags:
         - Treatments
       summary: Delete treatments matching query.
-      description: 'Remove treatments, same search syntax as GET.'
+      description: "Remove treatments, same search syntax as GET."
       operationId: remove
       parameters:
         - name: find
@@ -467,9 +467,9 @@ paths:
           schema:
             type: number
       responses:
-        '200':
+        "200":
           description: Empty list is success.
-  '/treatments/{spec}':
+  "/treatments/{spec}":
     delete:
       summary: Delete treatments record with id provided in spec
       description: |
@@ -486,18 +486,18 @@ paths:
       tags:
         - Treatments
       responses:
-        '200':
+        "200":
           description: A status record of the delete.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeleteStatus'
+                $ref: "#/components/schemas/DeleteStatus"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /profile:
     get:
       summary: Profile
@@ -507,37 +507,37 @@ paths:
       tags:
         - Profile
       responses:
-        '200':
+        "200":
           description: An array of treatments
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Profile'
+                $ref: "#/components/schemas/Profile"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /status:
     get:
       summary: Status
-      description: 'Server side status, default settings and capabilities.'
+      description: "Server side status, default settings and capabilities."
       tags:
         - Status
       responses:
-        '200':
+        "200":
           description: Server capabilities and status.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Status'
+                $ref: "#/components/schemas/Status"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
   /devicestatus/:
     get:
       summary: All Devicestatuses matching query
@@ -563,34 +563,34 @@ paths:
       tags:
         - Devicestatus
       responses:
-        '200':
+        "200":
           description: An array of devicestatus entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Devicestatuses'
+                $ref: "#/components/schemas/Devicestatuses"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     post:
       tags:
         - Devicestatus
       summary: Add new devicestatus records.
-      description: ''
+      description: ""
       operationId: addDevicestatuses
       responses:
-        '200':
+        "200":
           description: Rejected list of device statuses.  Empty list is success.
-        '405':
+        "405":
           description: Invalid input
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Devicestatuses'
+              $ref: "#/components/schemas/Devicestatuses"
         description: Device statuses to be uploaded.
         required: true
     delete:
@@ -611,19 +611,19 @@ paths:
       tags:
         - Devicestatus
       responses:
-        '200':
+        "200":
           description: A status record of the delete.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeleteStatus'
+                $ref: "#/components/schemas/DeleteStatus"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-  '/devicestatus/{spec}':
+                $ref: "#/components/schemas/Error"
+  "/devicestatus/{spec}":
     delete:
       summary: Delete devicestatus record with id provided in spec
       description: |
@@ -640,18 +640,18 @@ paths:
       tags:
         - Devicestatus
       responses:
-        '200':
+        "200":
           description: A status record of the delete.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeleteStatus'
+                $ref: "#/components/schemas/DeleteStatus"
         default:
           description: Unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 components:
   securitySchemes:
     api_secret:
@@ -676,10 +676,10 @@ components:
       properties:
         type:
           type: string
-          description: 'sgv, mbg, cal, etc'
+          description: "sgv, mbg, cal, etc"
         dateString:
           type: string
-          description: 'dateString, MUST be ISO `8601` format date parseable by Javascript Date()'
+          description: "dateString, MUST be ISO `8601` format date parseable by Javascript Date()"
         date:
           type: number
           description: Epoch
@@ -712,7 +712,7 @@ components:
     Entries:
       type: array
       items:
-        $ref: '#/components/schemas/Entry'
+        $ref: "#/components/schemas/Entry"
     Devicestatus:
       required:
         - device
@@ -720,38 +720,38 @@ components:
       properties:
         device:
           type: string
-          description: 'Device type and hostname for example openaps://hostname'
+          description: "Device type and hostname for example openaps://hostname"
         created_at:
           type: string
-          description: 'dateString, MUST be ISO `8601` format date parseable by Javascript Date()'
+          description: "dateString, MUST be ISO `8601` format date parseable by Javascript Date()"
         openaps:
           type: string
-          description: 'OpenAPS devicestatus record - TODO: Fill Out Details'
+          description: "OpenAPS devicestatus record - TODO: Fill Out Details"
         loop:
           type: string
-          description: 'Loop devicestatus record - TODO: Fill Out Details'
+          description: "Loop devicestatus record - TODO: Fill Out Details"
         pump:
-          $ref: '#/components/schemas/pump'
+          $ref: "#/components/schemas/pump"
         uploader:
-          $ref: '#/components/schemas/uploader'
+          $ref: "#/components/schemas/uploader"
         xdripjs:
-          $ref: '#/components/schemas/xdripjs'
+          $ref: "#/components/schemas/xdripjs"
     Devicestatuses:
       type: array
       items:
-        $ref: '#/components/schemas/Devicestatus'
+        $ref: "#/components/schemas/Devicestatus"
     pump:
       properties:
         clock:
           type: string
-          description: 'dateString, MUST be ISO `8601` format date parseable by Javascript Date()'
+          description: "dateString, MUST be ISO `8601` format date parseable by Javascript Date()"
         battery:
-          $ref: '#/components/schemas/pumpbattery'
+          $ref: "#/components/schemas/pumpbattery"
         reservoir:
           type: number
           description: Amount of insulin remaining in pump reservoir
         status:
-          $ref: '#/components/schemas/pumpstatus'
+          $ref: "#/components/schemas/pumpstatus"
     pumpbattery:
       properties:
         status:
@@ -773,7 +773,7 @@ components:
           description: Is Pump Suspended
         timestamp:
           type: string
-          description: 'dateString, MUST be ISO `8601` format date parseable by Javascript Date()'
+          description: "dateString, MUST be ISO `8601` format date parseable by Javascript Date()"
     uploader:
       properties:
         batteryVoltage:
@@ -810,7 +810,7 @@ components:
           description: CGM Transmitter Activation Milliseconds After Epoch
         mode:
           type: string
-          description: 'Mode xdrip-js Application Operationg: expired, not expired, etc.'
+          description: "Mode xdrip-js Application Operationg: expired, not expired, etc."
         timestamp:
           type: number
           description: Last Update Milliseconds After Epoch
@@ -825,7 +825,7 @@ components:
           description: Most Recent Raw Filtered Glucose
         noise:
           type: number
-          description: 'Calculated Noise Value - 1=Clean, 2=Light, 3=Medium, 4=Heavy'
+          description: "Calculated Noise Value - 1=Clean, 2=Light, 3=Medium, 4=Heavy"
         noiseString:
           type: number
           description: Noise Value String
@@ -869,13 +869,13 @@ components:
           description: The type of treatment event.
         created_at:
           type: string
-          description: 'The date of the event, might be set retroactively .'
+          description: "The date of the event, might be set retroactively ."
         glucose:
           type: string
           description: Current glucose.
         glucoseType:
           type: string
-          description: 'Method used to obtain glucose, Finger or Sensor.'
+          description: "Method used to obtain glucose, Finger or Sensor."
         carbs:
           type: number
           description: Amount of carbs consumed in grams.
@@ -887,16 +887,16 @@ components:
           description: Amount of fat consumed in grams.
         insulin:
           type: number
-          description: 'Amount of insulin, if any.'
+          description: "Amount of insulin, if any."
         units:
           type: string
-          description: 'The units for the glucose value, mg/dl or mmol.'
+          description: "The units for the glucose value, mg/dl or mmol."
         transmitterId:
           type: string
-          description: 'The transmitter ID of the transmitter being started.'
+          description: "The transmitter ID of the transmitter being started."
         sensorCode:
           type: string
-          description: 'The code used to start a Dexcom G6 sensor.'
+          description: "The code used to start a Dexcom G6 sensor."
         notes:
           type: string
           description: Description/notes of treatment.
@@ -906,7 +906,7 @@ components:
     Treatments:
       type: array
       items:
-        $ref: '#/components/schemas/Treatment'
+        $ref: "#/components/schemas/Treatment"
     Profile:
       properties:
         sens:
@@ -942,9 +942,9 @@ components:
           type: string
           description: The version label of the app.
         settings:
-          $ref: '#/components/schemas/Settings'
+          $ref: "#/components/schemas/Settings"
         extendedSettings:
-          $ref: '#/components/schemas/ExtendedSettings'
+          $ref: "#/components/schemas/ExtendedSettings"
     Settings:
       properties:
         units:
@@ -985,7 +985,7 @@ components:
           enum:
             - simple
             - predict
-          description: 'Enabled alarm types, can be multiple'
+          description: "Enabled alarm types, can be multiple"
         alarmUrgentHigh:
           type: boolean
           description: >-
@@ -1024,7 +1024,7 @@ components:
             type: string
           description: Enabled features
         thresholds:
-          $ref: '#/components/schemas/Threshold'
+          $ref: "#/components/schemas/Threshold"
     Threshold:
       properties:
         bg_high:
@@ -1054,12 +1054,12 @@ components:
           type: object
     DeleteStatus:
       properties:
-        'n':
+        "n":
           type: integer
           format: int32
           description: Number of records deleted
         optime:
-          $ref: '#/components/schemas/optime'
+          $ref: "#/components/schemas/optime"
         electionId:
           type: string
           description: Election id of operation

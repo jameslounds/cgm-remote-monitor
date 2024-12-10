@@ -1,21 +1,17 @@
-'use strict';
+"use strict";
 
-const apiConst = require('../const.json')
-  , stringTools = require('./stringTools')
-  , uuid = require('uuid')
-  , uuidNamespace = [...Buffer.from("NightscoutRocks!", "ascii")] // official namespace for NS :-)
-  ;
-
-
-function sendJSON ({ res, result, status, fields }) {
-
+const apiConst = require("../const.json"),
+  stringTools = require("./stringTools"),
+  uuid = require("uuid"),
+  uuidNamespace = [...Buffer.from("NightscoutRocks!", "ascii")]; // official namespace for NS :-)
+function sendJSON({ res, result, status, fields }) {
   const json = {
     status: status || apiConst.HTTP.OK,
-    result: result
+    result: result,
   };
 
   if (result) {
-    json.result = result
+    json.result = result;
   }
 
   if (fields) {
@@ -25,26 +21,28 @@ function sendJSON ({ res, result, status, fields }) {
   res.status(json.status).json(json);
 }
 
-
-function sendJSONStatus (res, status, title, description, warning) {
-
+function sendJSONStatus(res, status, title, description, warning) {
   const json = {
-    status: status
+    status: status,
   };
 
-  if (title) { json.message = title }
+  if (title) {
+    json.message = title;
+  }
 
-  if (description) { json.description = description }
+  if (description) {
+    json.description = description;
+  }
 
   // Add optional warning message.
-  if (warning) { json.warning = warning; }
+  if (warning) {
+    json.warning = warning;
+  }
 
-  res.status(status)
-    .json(json);
+  res.status(status).json(json);
 
   return title;
 }
-
 
 /**
  * Validate document's common fields
@@ -53,83 +51,85 @@ function sendJSONStatus (res, status, title, description, warning) {
  * @param {Object} options
  * @returns {any} - string with error message if validation fails, true in case of success
  */
-function validateCommon (doc, res, options) {
-
+function validateCommon(doc, res, options) {
   const { isPatching } = options || {};
 
-
-  if ((!isPatching || typeof(doc.date) !== 'undefined')
-
-    && (typeof(doc.date) !== 'number'
-      || doc.date <= apiConst.MIN_TIMESTAMP)
+  if (
+    (!isPatching || typeof doc.date !== "undefined") &&
+    (typeof doc.date !== "number" || doc.date <= apiConst.MIN_TIMESTAMP)
   ) {
-    return sendJSONStatus(res, apiConst.HTTP.BAD_REQUEST, apiConst.MSG.HTTP_400_BAD_FIELD_DATE);
+    return sendJSONStatus(
+      res,
+      apiConst.HTTP.BAD_REQUEST,
+      apiConst.MSG.HTTP_400_BAD_FIELD_DATE,
+    );
   }
 
-
-  if ((!isPatching || typeof(doc.utcOffset) !== 'undefined')
-
-    && (typeof(doc.utcOffset) !== 'number'
-      || doc.utcOffset < apiConst.MIN_UTC_OFFSET
-      || doc.utcOffset > apiConst.MAX_UTC_OFFSET)
+  if (
+    (!isPatching || typeof doc.utcOffset !== "undefined") &&
+    (typeof doc.utcOffset !== "number" ||
+      doc.utcOffset < apiConst.MIN_UTC_OFFSET ||
+      doc.utcOffset > apiConst.MAX_UTC_OFFSET)
   ) {
-    return sendJSONStatus(res, apiConst.HTTP.BAD_REQUEST, apiConst.MSG.HTTP_400_BAD_FIELD_UTC);
+    return sendJSONStatus(
+      res,
+      apiConst.HTTP.BAD_REQUEST,
+      apiConst.MSG.HTTP_400_BAD_FIELD_UTC,
+    );
   }
 
-
-  if ((!isPatching || typeof(doc.app) !== 'undefined')
-
-    && (typeof(doc.app) !== 'string'
-        || stringTools.isNullOrWhitespace(doc.app))
+  if (
+    (!isPatching || typeof doc.app !== "undefined") &&
+    (typeof doc.app !== "string" || stringTools.isNullOrWhitespace(doc.app))
   ) {
-    return sendJSONStatus(res, apiConst.HTTP.BAD_REQUEST, apiConst.MSG.HTTP_400_BAD_FIELD_APP);
+    return sendJSONStatus(
+      res,
+      apiConst.HTTP.BAD_REQUEST,
+      apiConst.MSG.HTTP_400_BAD_FIELD_APP,
+    );
   }
 
   return true;
 }
-
 
 /**
  * Calculate identifier for the document
  * @param {Object} doc
  * @returns string
  */
-function calculateIdentifier (doc) {
-  if (!doc)
-    return undefined;
+function calculateIdentifier(doc) {
+  if (!doc) return undefined;
 
-  let key = doc.device + '_' + doc.date;
+  let key = doc.device + "_" + doc.date;
   if (doc.eventType) {
-    key += '_' + doc.eventType;
+    key += "_" + doc.eventType;
   }
 
   return uuid.v5(key, uuidNamespace);
 }
 
-
 /**
  * Validate identifier in the document
  * @param {Object} doc
  */
-function resolveIdentifier (doc) {
-
+function resolveIdentifier(doc) {
   let identifier = calculateIdentifier(doc);
   if (doc.identifier) {
     if (doc.identifier !== identifier) {
-      console.warn(`APIv3: Identifier mismatch (expected: ${identifier}, received: ${doc.identifier})`);
+      console.warn(
+        `APIv3: Identifier mismatch (expected: ${identifier}, received: ${doc.identifier})`,
+      );
       console.log(doc);
     }
-  }
-  else {
+  } else {
     doc.identifier = identifier;
   }
 }
-
 
 module.exports = {
   sendJSON,
   sendJSONStatus,
   validateCommon,
   calculateIdentifier,
-  resolveIdentifier
+  resolveIdentifier,
 };

@@ -31,9 +31,7 @@
   "paths": {
     "/{collection}": {
       "get": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "SEARCH: Search documents from the collection",
         "description": "General search operation through documents of one collection, matching the specified filtering criteria. You can apply&#58;\n\n1) filtering - combining any number of filtering parameters\n\n2) ordering - using `sort` or `sort$desc` parameter\n\n3) paging - using `limit` and `skip` parameters\n\nIf successful, HTTP 200 code is returned with JSON array of matching documents as a response content (it may be empty).\n\nThis operation requires `read` permission for the API and the collection (e.g. `*:*:read`, `api:*:read`, `*:treatments:read`, `api:treatments:read`).\n\nThe only exception is the `settings` collection which requires `admin` permission (`api:settings:admin`), because the settings of each application should be isolated and kept secret. You need to know the concrete identifier to access the app's settings.",
         "operationId": "SEARCH",
@@ -211,9 +209,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "CREATE: Inserts a new document into the collection",
         "description": "Using this operation you can insert new documents into collection. Normally the operation ends with 201 HTTP status code, `Last-Modified` and `Location` headers specified. `identifier` is included in response body or it can be parsed from the `Location` response header.\n\nWhen the document to post is marked as a duplicate (using rules described at `API3_DEDUP_FALLBACK_ENABLED` switch), the update operation takes place instead of inserting. In this case the original document in the collection is found and it gets updated by the actual operation POST body. Finally the operation ends with 200 HTTP status code along with `Last-Modified` and correct `Location` headers. The response body then includes `isDeduplication`=`true` and `deduplicatedIdentifier` fields.\n\nThis operation provides autopruning of the collection (if autopruning is enabled).\n\nThis operation requires `create` (and/or `update` for deduplication) permission for the API and the collection (e.g. `api:treatments:create` and `api:treatments:update`)",
         "parameters": [
@@ -337,9 +333,7 @@
     },
     "/{collection}/{identifier}": {
       "get": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "READ: Retrieves a single document from the collection",
         "description": "Basically this operation looks for a document matching the `identifier` field returning 200 or 404 HTTP status code.\n\nIf the document has been found in the collection but it had already been deleted, 410 HTTP status code is to be returned.\n\nWhen `If-Modified-Since` header is used and its value is greater than the timestamp of the document in the collection, 304 HTTP status code with empty response content is returned. It means that the document has not been modified on server since the last retrieval to client side. With `If-Modified-Since` header and less or equal timestamp `srvModified` a normal 200 HTTP status with full response is returned.\n\nThis operation requires `read` permission for the API and the collection (e.g. `api:treatments:read`)",
         "parameters": [
@@ -491,9 +485,7 @@
         ]
       },
       "put": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "UPDATE: Updates a document in the collection",
         "description": "Normally the document with the matching `identifier` will be replaced in the collection by the whole JSON request body and 200 HTTP status code will be returned.\n\nIf the document has been found in the collection but it had already been deleted, 410 HTTP status code is to be returned.\n\nWhen no document with `identifier` has been found in the collection, then an insert operation takes place instead of updating. Finally 201 HTTP status code is returned with only `Last-Modified` header (`identifier` is already known from the path parameter).\n\nYou can also specify `If-Unmodified-Since` request header including your timestamp of document's last modification. If the document has been modified by somebody else on the server afterwards (and you do not know about it), the 412 HTTP status code is returned cancelling the update operation. You can use this feature to prevent race condition problems.\n\nThis operation provides autopruning of the collection (if autopruning is enabled).\n\nThis operation requires `update` (and/or `create`) permission for the API and the collection (e.g. `api:treatments:update` and `api:treatments:create`)",
         "parameters": [
@@ -646,9 +638,7 @@
         ]
       },
       "delete": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "DELETE: Deletes a document from the collection",
         "description": "If the document has already been deleted, the operation will succeed anyway. Normally, documents are not really deleted from the collection but they are only marked as deleted. For special cases the deletion can be irreversible using `permanent` parameter.\n\nThis operation provides autopruning of the collection (if autopruning is enabled).\n\nThis operation requires `delete` permission for the API and the collection (e.g. `api:treatments:delete`)",
         "parameters": [
@@ -745,9 +735,7 @@
         ]
       },
       "patch": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "PATCH: Partially updates document in the collection",
         "description": "Normally the document with the matching `identifier` will be retrieved from the collection and it will be patched by all specified fields from the JSON request body. Finally 200 HTTP status code will be returned.\n\nIf the document has been found in the collection but it had already been deleted, 410 HTTP status code is to be returned.\n\nWhen no document with `identifier` has been found in the collection, then the operation ends with 404 HTTP status code.\n\nYou can also specify `If-Unmodified-Since` request header including your timestamp of document's last modification. If the document has been modified by somebody else on the server afterwards (and you do not know about it), the 412 HTTP status code is returned cancelling the update operation. You can use this feature to prevent race condition problems.\n\n`PATCH` operation can save some bandwidth for incremental document updates in comparison with `GET` - `UPDATE` operation sequence.\n\nWhile patching the document, the field `modifiedBy` is automatically set to the authorized subject's name.\n\nThis operation provides autopruning of the collection (if autopruning is enabled).\n\nThis operation requires `update` permission for the API and the collection (e.g. `api:treatments:update`)",
         "parameters": [
@@ -887,9 +875,7 @@
     },
     "/{collection}/history": {
       "get": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "HISTORY: Retrieves incremental changes since timestamp",
         "description": "HISTORY operation is intended for continuous data synchronization with other systems.\nEvery insertion, update and deletion will be included in the resulting JSON array of documents (since timestamp in `Last-Modified` request header value). All changes are listed chronologically in response with 200 HTTP status code. The maximum listed `srvModified` timestamp is also stored in `Last-Modified` and `ETag` response headers that you can use for future, directly following synchronization. You can also limit the array's length using `limit` parameter.\n\nDeleted documents will appear with `isValid` = `false` field.\n\nHISTORY operation has a fallback mechanism in place for documents, which were not created by API v3. For such documents `srvModified` is virtually assigned from the `date` field (for `entries` collection) or from the `created_at` field (for other collections).\n\nThis operation requires `read` permission for the API and the collection (e.g. `api:treatments:read`)\n\nThe only exception is the `settings` collection which requires `admin` permission (`api:settings:admin`), because the settings of each application should be isolated and kept secret. You need to know the concrete identifier to access the app's settings.",
         "operationId": "HISTORY",
@@ -1041,9 +1027,7 @@
     },
     "/{collection}/history/{lastModified}": {
       "get": {
-        "tags": [
-          "generic"
-        ],
+        "tags": ["generic"],
         "summary": "HISTORY: Retrieves incremental changes since timestamp",
         "description": "This HISTORY operation variant is more precise than the previous one with `Last-Modified` request HTTP header), because it does not loose milliseconds precision.\n\nSince this variant queries for changed documents by timestamp precisely and exclusively, the last modified document does not repeat itself in following calls. That is the reason why is this variant more suitable for continuous synchronization with other systems.\n\nThis variant behaves quite the same as the previous one in all other aspects.",
         "operationId": "HISTORY2",
@@ -1196,9 +1180,7 @@
     },
     "/version": {
       "get": {
-        "tags": [
-          "other"
-        ],
+        "tags": ["other"],
         "summary": "VERSION: Returns actual version information",
         "description": "No authentication is needed for this commnad (it is public)",
         "responses": {
@@ -1217,9 +1199,7 @@
     },
     "/status": {
       "get": {
-        "tags": [
-          "other"
-        ],
+        "tags": ["other"],
         "summary": "STATUS: Returns actual version information and all permissions granted for API",
         "description": "This operation requires authorization in contrast with VERSION operation.",
         "responses": {
@@ -1263,9 +1243,7 @@
     },
     "/lastModified": {
       "get": {
-        "tags": [
-          "other"
-        ],
+        "tags": ["other"],
         "summary": "LAST MODIFIED: Retrieves timestamp of the last modification of every collection",
         "description": "LAST MODIFIED operation inspects collections separately (in parallel) and for each of them it finds the date of any last modification (insertion, update, deletion).\nNot only `srvModified`, but also `date` and `created_at` fields are inspected (as a fallback to previous API).\n\nThis operation requires `read` permission for the API and the collections (e.g. `api:treatments:read`). For each collection the permission is checked separately, you will get timestamps only for those collections that you have access to.",
         "operationId": "LAST-MODIFIED",
@@ -1370,10 +1348,7 @@
         "example": "abc09478-105f-11e9-ab14-d663bd873d93"
       },
       "DocumentBase": {
-        "required": [
-          "app",
-          "date"
-        ],
+        "required": ["app", "date"],
         "properties": {
           "identifier": {
             "type": "string",

@@ -1,171 +1,181 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
-var async = require('async');
-var moment = require('moment');
-var find_options = require('./query');
+var _ = require("lodash");
+var async = require("async");
+var moment = require("moment");
+var find_options = require("./query");
 
-function storage (env, ctx) {
-  var ObjectID = require('mongodb').ObjectID;
+function storage(env, ctx) {
+  var ObjectID = require("mongodb").ObjectID;
 
-  function create (objOrArray, fn) {
-
-    function done (err, result) {
-      ctx.bus.emit('data-received');
+  function create(objOrArray, fn) {
+    function done(err, result) {
+      ctx.bus.emit("data-received");
       fn(err, result);
     }
 
     if (_.isArray(objOrArray)) {
       var allDocs = [];
       var errs = [];
-      async.eachSeries(objOrArray, function (obj, callback) {
-        upsert(obj, function upserted (err, docs) {
-          allDocs = allDocs.concat(docs);
-          errs.push(err);
-          callback(err, docs)
-        });
-      }, function () {
-        errs = _.compact(errs);
-        done(errs.length > 0 ? errs : null, allDocs);
-      });
+      async.eachSeries(
+        objOrArray,
+        function (obj, callback) {
+          upsert(obj, function upserted(err, docs) {
+            allDocs = allDocs.concat(docs);
+            errs.push(err);
+            callback(err, docs);
+          });
+        },
+        function () {
+          errs = _.compact(errs);
+          done(errs.length > 0 ? errs : null, allDocs);
+        },
+      );
     } else {
-      upsert(objOrArray, function upserted (err, docs) {
+      upsert(objOrArray, function upserted(err, docs) {
         done(err, docs);
       });
     }
-
-
   }
 
-  function upsert (obj, fn) {
-
+  function upsert(obj, fn) {
     var results = prepareData(obj);
 
-    var query  = {
-      created_at: results.created_at
-      , eventType: obj.eventType
+    var query = {
+      created_at: results.created_at,
+      eventType: obj.eventType,
     };
 
-    api( ).update(query, obj, {upsert: true}, function complete (err, updateResults) {
+    api().update(
+      query,
+      obj,
+      { upsert: true },
+      function complete(err, updateResults) {
+        if (err) console.error("Problem upserting treatment", err);
 
-      if (err) console.error('Problem upserting treatment', err);
-
-      if (!err) {
-        if (updateResults.result.upserted) {
-          obj._id = updateResults.result.upserted[0]._id
-        }
-      }
-
-      // TODO document this feature
-      if (!err && obj.preBolus) {
-        //create a new object to insert copying only the needed fields
-        var pbTreat = {
-          created_at: (new Date(new Date(results.created_at).getTime() + (obj.preBolus * 60000))).toISOString(),
-          eventType: obj.eventType,
-          carbs: results.preBolusCarbs
-        };
-
-        if (obj.notes) {
-          pbTreat.notes = obj.notes;
+        if (!err) {
+          if (updateResults.result.upserted) {
+            obj._id = updateResults.result.upserted[0]._id;
+          }
         }
 
-        query.created_at = pbTreat.created_at;
-        api( ).update(query, pbTreat, {upsert: true}, function pbComplete (err, updateResults) {
+        // TODO document this feature
+        if (!err && obj.preBolus) {
+          //create a new object to insert copying only the needed fields
+          var pbTreat = {
+            created_at: new Date(
+              new Date(results.created_at).getTime() + obj.preBolus * 60000,
+            ).toISOString(),
+            eventType: obj.eventType,
+            carbs: results.preBolusCarbs,
+          };
 
-          if (!err) {
-            if (updateResults.result.upserted) {
-              pbTreat._id = updateResults.result.upserted[0]._id
-            }
+          if (obj.notes) {
+            pbTreat.notes = obj.notes;
           }
 
-          var treatments = _.compact([obj, pbTreat]);
+          query.created_at = pbTreat.created_at;
+          api().update(
+            query,
+            pbTreat,
+            { upsert: true },
+            function pbComplete(err, updateResults) {
+              if (!err) {
+                if (updateResults.result.upserted) {
+                  pbTreat._id = updateResults.result.upserted[0]._id;
+                }
+              }
 
-          ctx.bus.emit('data-update', {
-            type: 'treatments',
-            op: 'update',
-            changes: ctx.ddata.processRawDataForRuntime(treatments)
+              var treatments = _.compact([obj, pbTreat]);
+
+              ctx.bus.emit("data-update", {
+                type: "treatments",
+                op: "update",
+                changes: ctx.ddata.processRawDataForRuntime(treatments),
+              });
+
+              fn(err, treatments);
+            },
+          );
+        } else {
+          ctx.bus.emit("data-update", {
+            type: "treatments",
+            op: "update",
+            changes: ctx.ddata.processRawDataForRuntime([obj]),
           });
 
-          fn(err, treatments);
-        });
-      } else {
-
-        ctx.bus.emit('data-update', {
-          type: 'treatments',
-          op: 'update',
-          changes: ctx.ddata.processRawDataForRuntime([obj])
-        });
-
-        fn(err, [obj]);
-      }
-
-    });
+          fn(err, [obj]);
+        }
+      },
+    );
   }
 
-  function list (opts, fn) {
-
-    function limit ( ) {
+  function list(opts, fn) {
+    function limit() {
       if (opts && opts.count) {
         return this.limit(parseInt(opts.count));
       }
       return this;
     }
 
-    return limit.call(api()
-      .find(query_for(opts))
-      .sort(opts && opts.sort || {created_at: -1}), opts)
+    return limit
+      .call(
+        api()
+          .find(query_for(opts))
+          .sort((opts && opts.sort) || { created_at: -1 }),
+        opts,
+      )
       .toArray(fn);
   }
 
-  function query_for (opts) {
+  function query_for(opts) {
     return find_options(opts, storage.queryOpts);
   }
 
-  function remove (opts, fn) {
-    return api( ).remove(query_for(opts), function (err, stat) {
-        //TODO: this is triggering a read from Mongo, we can do better
-        //console.log('Treatment removed', opts); // , stat);
+  function remove(opts, fn) {
+    return api().remove(query_for(opts), function (err, stat) {
+      //TODO: this is triggering a read from Mongo, we can do better
+      //console.log('Treatment removed', opts); // , stat);
 
-        ctx.bus.emit('data-update', {
-          type: 'treatments',
-          op: 'remove',
-          count: stat.result.n,
-          changes: opts.find._id
-        });
-
-        ctx.bus.emit('data-received');
-        fn(err, stat);
+      ctx.bus.emit("data-update", {
+        type: "treatments",
+        op: "remove",
+        count: stat.result.n,
+        changes: opts.find._id,
       });
+
+      ctx.bus.emit("data-received");
+      fn(err, stat);
+    });
   }
 
-  function save (obj, fn) {
+  function save(obj, fn) {
     obj._id = new ObjectID(obj._id);
     prepareData(obj);
 
-    function saved (err, created) {
+    function saved(err, created) {
       if (!err) {
         // console.log('Treatment updated', created);
 
         ctx.ddata.processRawDataForRuntime(obj);
 
-        ctx.bus.emit('data-update', {
-          type: 'treatments',
-          op: 'update',
-          changes: ctx.ddata.processRawDataForRuntime([obj])
+        ctx.bus.emit("data-update", {
+          type: "treatments",
+          op: "update",
+          changes: ctx.ddata.processRawDataForRuntime([obj]),
         });
-
       }
-      if (err) console.error('Problem saving treating', err);
+      if (err) console.error("Problem saving treating", err);
 
       fn(err, created);
     }
 
     api().save(obj, saved);
 
-    ctx.bus.emit('data-received');
+    ctx.bus.emit("data-received");
   }
 
-  function api ( ) {
+  function api() {
     return ctx.store.collection(env.treatments_collection);
   }
 
@@ -173,39 +183,40 @@ function storage (env, ctx) {
   api.create = create;
   api.query_for = query_for;
   api.indexedFields = [
-    'created_at'
-    , 'eventType'
-    , 'insulin'
-    , 'carbs'
-    , 'glucose'
-    , 'enteredBy'
-    , 'boluscalc.foods._id'
-    , 'notes'
-    , 'NSCLIENT_ID'
-    , 'percent'
-    , 'absolute'
-    , 'duration'
-    , { 'eventType' : 1, 'duration' : 1, 'created_at' : 1 }
+    "created_at",
+    "eventType",
+    "insulin",
+    "carbs",
+    "glucose",
+    "enteredBy",
+    "boluscalc.foods._id",
+    "notes",
+    "NSCLIENT_ID",
+    "percent",
+    "absolute",
+    "duration",
+    { eventType: 1, duration: 1, created_at: 1 },
   ];
 
   api.remove = remove;
   api.save = save;
-  api.aggregate = require('./aggregate')({ }, api);
+  api.aggregate = require("./aggregate")({}, api);
 
   return api;
 }
 
 function prepareData(obj) {
-
   // Convert all dates to UTC dates
 
   // TODO remove this -> must not create new date if missing
-  const d = moment(obj.created_at).isValid() ? moment.parseZone(obj.created_at) : moment();
+  const d = moment(obj.created_at).isValid()
+    ? moment.parseZone(obj.created_at)
+    : moment();
   obj.created_at = d.toISOString();
 
   var results = {
-    created_at: obj.created_at
-    , preBolusCarbs: ''
+    created_at: obj.created_at,
+    preBolusCarbs: "",
   };
 
   const offset = d.utcOffset();
@@ -236,36 +247,36 @@ function prepareData(obj) {
     delete obj.carbs;
   }
 
-  if (obj.eventType === 'Announcement') {
+  if (obj.eventType === "Announcement") {
     obj.isAnnouncement = true;
   }
 
   // clean data
   delete obj.eventTime;
 
-  function deleteIfEmpty (field) {
+  function deleteIfEmpty(field) {
     if (!obj[field] || obj[field] === 0) {
       delete obj[field];
     }
   }
 
-  function deleteIfNaN (field) {
+  function deleteIfNaN(field) {
     if (isNaN(obj[field])) {
       delete obj[field];
     }
   }
 
-  deleteIfEmpty('targetTop');
-  deleteIfEmpty('targetBottom');
-  deleteIfEmpty('carbs');
-  deleteIfEmpty('insulin');
-  deleteIfEmpty('percent');
-  deleteIfEmpty('relative');
-  deleteIfEmpty('notes');
-  deleteIfEmpty('preBolus');
+  deleteIfEmpty("targetTop");
+  deleteIfEmpty("targetBottom");
+  deleteIfEmpty("carbs");
+  deleteIfEmpty("insulin");
+  deleteIfEmpty("percent");
+  deleteIfEmpty("relative");
+  deleteIfEmpty("notes");
+  deleteIfEmpty("preBolus");
 
-  deleteIfNaN('absolute');
-  deleteIfNaN('duration');
+  deleteIfNaN("absolute");
+  deleteIfNaN("duration");
 
   if (obj.glucose === 0 || isNaN(obj.glucose)) {
     delete obj.glucose;
@@ -278,14 +289,14 @@ function prepareData(obj) {
 
 storage.queryOpts = {
   walker: {
-    insulin: parseInt
-    , carbs: parseInt
-    , glucose: parseInt
-    , notes: find_options.parseRegEx
-    , eventType: find_options.parseRegEx
-    , enteredBy: find_options.parseRegEx
-  }
-  , dateField: 'created_at'
+    insulin: parseInt,
+    carbs: parseInt,
+    glucose: parseInt,
+    notes: find_options.parseRegEx,
+    eventType: find_options.parseRegEx,
+    enteredBy: find_options.parseRegEx,
+  },
+  dateField: "created_at",
 };
 
 module.exports = storage;

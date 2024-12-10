@@ -1,15 +1,14 @@
-'use strict';
+"use strict";
 
 function init() {
-
   var direction = {
-    name: 'direction'
-    , label: 'BG direction'
-    , pluginType: 'bg-status'
+    name: "direction",
+    label: "BG direction",
+    pluginType: "bg-status",
   };
 
-  direction.setProperties = function setProperties (sbx) {
-    sbx.offerProperty('direction', function setDirection ( ) {
+  direction.setProperties = function setProperties(sbx) {
+    sbx.offerProperty("direction", function setDirection() {
       if (!sbx.isCurrent(sbx.lastSGVEntry())) {
         return undefined;
       } else {
@@ -18,22 +17,22 @@ function init() {
     });
   };
 
-  direction.updateVisualisation = function updateVisualisation (sbx) {
+  direction.updateVisualisation = function updateVisualisation(sbx) {
     var prop = sbx.properties.direction;
 
     if (!prop || !prop.value) {
       sbx.pluginBase.updatePillText(direction, {
-        hide: true
+        hide: true,
       });
     } else {
       if (sbx.lastSGVMgdl() < 39) {
-        prop.value = 'CGM ERROR';
-        prop.label = '✖';
+        prop.value = "CGM ERROR";
+        prop.label = "✖";
       }
 
       sbx.pluginBase.updatePillText(direction, {
-        label: prop && prop.label + '&#xfe0e;'
-        , directHTML: true
+        label: prop && prop.label + "&#xfe0e;",
+        directHTML: true,
       });
     }
   };
@@ -41,7 +40,9 @@ function init() {
   direction.info = function info(sgv) {
     var result = { display: null };
 
-    if (!sgv) { return result; }
+    if (!sgv) {
+      return result;
+    }
 
     result.value = sgv.direction;
     result.label = directionToChar(result.value);
@@ -51,30 +52,29 @@ function init() {
   };
 
   var dir2Char = {
-    NONE: '⇼'
-    , TripleUp: '⤊'
-    , DoubleUp: '⇈'
-    , SingleUp: '↑'
-    , FortyFiveUp: '↗'
-    , Flat: '→'
-    , FortyFiveDown: '↘'
-    , SingleDown: '↓'
-    , DoubleDown: '⇊'
-    , TripleDown: '⤋'
-    , 'NOT COMPUTABLE': '-'
-    , 'RATE OUT OF RANGE': '⇕'
+    NONE: "⇼",
+    TripleUp: "⤊",
+    DoubleUp: "⇈",
+    SingleUp: "↑",
+    FortyFiveUp: "↗",
+    Flat: "→",
+    FortyFiveDown: "↘",
+    SingleDown: "↓",
+    DoubleDown: "⇊",
+    TripleDown: "⤋",
+    "NOT COMPUTABLE": "-",
+    "RATE OUT OF RANGE": "⇕",
   };
 
   function charToEntity(char) {
-    return char && char.length && '&#' + char.charCodeAt(0) + ';';
+    return char && char.length && "&#" + char.charCodeAt(0) + ";";
   }
 
   function directionToChar(direction) {
-    return dir2Char[direction] || '-';
+    return dir2Char[direction] || "-";
   }
 
   return direction;
-
 }
 
 module.exports = init;

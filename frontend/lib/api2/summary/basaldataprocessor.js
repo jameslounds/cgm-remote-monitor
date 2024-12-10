@@ -2,20 +2,22 @@ const { data } = require("jquery");
 
 const dataProcessor = {};
 
-function _hhmmAfter (hhmm, mills) {
+function _hhmmAfter(hhmm, mills) {
   var date = new Date(mills);
   var withSameDate = new Date(
-    1900 + date.getYear()
-    , date.getMonth()
-    , date.getDate()
-    , parseInt(hhmm.substr(0, 2), 10)
-    , parseInt(hhmm.substr(3, 5), 10)
+    1900 + date.getYear(),
+    date.getMonth(),
+    date.getDate(),
+    parseInt(hhmm.substr(0, 2), 10),
+    parseInt(hhmm.substr(3, 5), 10),
   ).getTime();
-  return withSameDate > date ? withSameDate : withSameDate + 24 * 60 * 60 * 1000;
+  return withSameDate > date
+    ? withSameDate
+    : withSameDate + 24 * 60 * 60 * 1000;
 }
 
 // Outputs temp basal objects describing the profile temps for the duration
-function _profileBasalsInWindow (basals, start, end) {
+function _profileBasalsInWindow(basals, start, end) {
   if (basals.length === 0) {
     return [];
   }
@@ -23,25 +25,25 @@ function _profileBasalsInWindow (basals, start, end) {
   var i;
   var out = [];
 
-  function nextProfileBasal () {
+  function nextProfileBasal() {
     i = (i + 1) % basals.length;
     var lastStart = out[out.length - 1].start;
     return {
-      start: _hhmmAfter(basals[i]['time'], lastStart)
-      , absolute: parseFloat(basals[i]['value'])
-      , profile: 1
-     };
+      start: _hhmmAfter(basals[i]["time"], lastStart),
+      absolute: parseFloat(basals[i]["value"]),
+      profile: 1,
+    };
   }
 
   i = 0;
   var startHHMM = new Date(start).toTimeString().substr(0, 5);
-  while (i < basals.length - 1 && basals[i + 1]['time'] <= startHHMM) {
+  while (i < basals.length - 1 && basals[i + 1]["time"] <= startHHMM) {
     i++;
   }
   out.push({
-    start: start
-    , absolute: parseFloat(basals[i]['value'])
-  , });
+    start: start,
+    absolute: parseFloat(basals[i]["value"]),
+  });
 
   var next = nextProfileBasal();
   while (next.start < end) {
@@ -52,8 +54,7 @@ function _profileBasalsInWindow (basals, start, end) {
   return out;
 }
 
-dataProcessor.filterSameAbsTemps = function filterSameAbsTemps (tempdata) {
-
+dataProcessor.filterSameAbsTemps = function filterSameAbsTemps(tempdata) {
   var out = [];
   var j = 0;
 
@@ -70,7 +71,7 @@ dataProcessor.filterSameAbsTemps = function filterSameAbsTemps (tempdata) {
 
     const nextTemp = tempdata[i + 1];
 
-    if (temp.duration && (temp.start + temp.duration) >= nextTemp.start) {
+    if (temp.duration && temp.start + temp.duration >= nextTemp.start) {
       if (temp.absolute == nextTemp.absolute) {
         // Merge and skip next
         temp.duration = nextTemp.start - temp.start + nextTemp.duration;
@@ -84,28 +85,50 @@ dataProcessor.filterSameAbsTemps = function filterSameAbsTemps (tempdata) {
     out.push(temp);
   }
   return out;
-}
+};
 
-dataProcessor.processTempBasals = function processTempBasals (profile, tempBasals, dataCap) {
+dataProcessor.processTempBasals = function processTempBasals(
+  profile,
+  tempBasals,
+  dataCap,
+) {
   var profileBasals = profile.basal;
-  var temps = tempBasals.map(function(temp) {
-    return {
-      start: new Date(temp['created_at']).getTime()
-      , duration: temp['duration'] === undefined ? 0 : parseInt(temp['duration'], 10) * 60 * 1000
-      , absolute: temp['absolute'] === undefined ? 0 : parseFloat(temp['absolute'])
-    };
-  }).concat([
-    { start: Date.now() - 24 * 60 * 60 * 1000, duration: 0 }
-    , { start: Date.now(), duration: 0}
-    ]).sort(function(a, b) {
-    return a.start - b.start;
-  });
+  var temps = tempBasals
+    .map(function (temp) {
+      return {
+        start: new Date(temp["created_at"]).getTime(),
+        duration:
+          temp["duration"] === undefined
+            ? 0
+            : parseInt(temp["duration"], 10) * 60 * 1000,
+        absolute:
+          temp["absolute"] === undefined ? 0 : parseFloat(temp["absolute"]),
+      };
+    })
+    .concat([
+      { start: Date.now() - 24 * 60 * 60 * 1000, duration: 0 },
+      { start: Date.now(), duration: 0 },
+    ])
+    .sort(function (a, b) {
+      return a.start - b.start;
+    });
 
   var out = [];
-  temps.forEach(function(temp) {
+  temps.forEach(function (temp) {
     var last = out[out.length - 1];
-    if (last && last.duration !== undefined && last.start + last.duration < temp.start) {
-      Array.prototype.push.apply(out, _profileBasalsInWindow(profileBasals, last.start + last.duration, temp.start));
+    if (
+      last &&
+      last.duration !== undefined &&
+      last.start + last.duration < temp.start
+    ) {
+      Array.prototype.push.apply(
+        out,
+        _profileBasalsInWindow(
+          profileBasals,
+          last.start + last.duration,
+          temp.start,
+        ),
+      );
     }
     if (temp.duration) out.push(temp);
   });
@@ -121,10 +144,10 @@ dataProcessor.processTempBasals = function processTempBasals (profile, tempBasal
   }
 
   var o3 = [];
- 
+
   // Return temps from last hours
   for (var i = 0; i < o2.length; i++) {
-    if ((o2[i].start + o2[i].duration) > dataCap) o3.push(o2[i]);
+    if (o2[i].start + o2[i].duration > dataCap) o3.push(o2[i]);
   }
 
   // Convert durations to seconds
@@ -134,6 +157,6 @@ dataProcessor.processTempBasals = function processTempBasals (profile, tempBasal
   }
 
   return o3;
-}
+};
 
 module.exports = dataProcessor;

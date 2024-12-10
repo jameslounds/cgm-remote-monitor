@@ -1,39 +1,35 @@
-'use strict';
+"use strict";
 
-var should = require('should');
+var should = require("should");
 
-describe('Plugins', function ( ) {
-
-
-  it('should find client plugins, but not server only plugins', function (done) {
-    var plugins = require('../lib/plugins/')({
-      settings: { }
-      , language: require('../lib/language')()
+describe("Plugins", function () {
+  it("should find client plugins, but not server only plugins", function (done) {
+    var plugins = require("../lib/plugins/")({
+      settings: {},
+      language: require("../lib/language")(),
     }).registerClientDefaults();
 
-    plugins('bgnow').name.should.equal('bgnow');
-    plugins('rawbg').name.should.equal('rawbg');
+    plugins("bgnow").name.should.equal("bgnow");
+    plugins("rawbg").name.should.equal("rawbg");
 
     //server only plugin
-    should.not.exist(plugins('treatmentnotify'));
+    should.not.exist(plugins("treatmentnotify"));
 
-    done( );
+    done();
   });
 
-  it('should find sever plugins, but not client only plugins', function (done) {
-    var plugins = require('../lib/plugins/')({
-      settings: { }
-      , language: require('../lib/language')()
+  it("should find sever plugins, but not client only plugins", function (done) {
+    var plugins = require("../lib/plugins/")({
+      settings: {},
+      language: require("../lib/language")(),
     }).registerServerDefaults();
 
-    plugins('rawbg').name.should.equal('rawbg');
-    plugins('treatmentnotify').name.should.equal('treatmentnotify');
+    plugins("rawbg").name.should.equal("rawbg");
+    plugins("treatmentnotify").name.should.equal("treatmentnotify");
 
     //client only plugin
-    should.not.exist(plugins('cannulaage'));
+    should.not.exist(plugins("cannulaage"));
 
-    done( );
+    done();
   });
-
-
 });

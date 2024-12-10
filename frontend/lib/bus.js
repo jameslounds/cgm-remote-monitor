@@ -1,33 +1,33 @@
-'use strict';
-var Stream = require('stream');
+"use strict";
+var Stream = require("stream");
 
-function init (settings) {
+function init(settings) {
   var beats = 0;
-  var started = new Date( );
+  var started = new Date();
   var interval = settings.heartbeat * 1000;
   let busInterval;
 
-  var stream = new Stream;
+  var stream = new Stream();
 
-  function ictus ( ) {
+  function ictus() {
     return {
-      now: new Date( )
-    , type: 'heartbeat'
-    , sig: 'internal://' + ['heartbeat', beats ].join('/')
-    , beat: beats++
-    , interval: interval
-    , started: started
+      now: new Date(),
+      type: "heartbeat",
+      sig: "internal://" + ["heartbeat", beats].join("/"),
+      beat: beats++,
+      interval: interval,
+      started: started,
     };
   }
 
-  function repeat ( ) {
-    stream.emit('tick', ictus( ));
+  function repeat() {
+    stream.emit("tick", ictus());
   }
 
-  stream.teardown = function ( ) {
-    console.log('Initiating server teardown');
+  stream.teardown = function () {
+    console.log("Initiating server teardown");
     clearInterval(busInterval);
-    stream.emit('teardown');
+    stream.emit("teardown");
   };
 
   stream.readable = true;
@@ -36,4 +36,3 @@ function init (settings) {
   return stream;
 }
 module.exports = init;
-

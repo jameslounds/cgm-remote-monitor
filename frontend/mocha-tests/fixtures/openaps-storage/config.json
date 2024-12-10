@@ -2,17 +2,17 @@
   "collections": {
     "entries": {
       "input": [
-        "../../tests/fixtures/openaps-storage/cgm-loop/monitor/glucose-zoned-merge.json"
-        , "../../tests/fixtures/openaps-storage/cgm-loop/monitor/cal-zoned.json"
+        "../../tests/fixtures/openaps-storage/cgm-loop/monitor/glucose-zoned-merge.json",
+        "../../tests/fixtures/openaps-storage/cgm-loop/monitor/cal-zoned.json"
       ]
-    }
-    , "treatments": {
+    },
+    "treatments": {
       "input": "../../tests/fixtures/openaps-storage/loop/nightscout/pump-history-formatted.json"
-    }
-    , "devicestatus": {
+    },
+    "devicestatus": {
       "input": "../../tests/fixtures/openaps-storage/loop/monitor/openaps-status.json"
-    }
-    , "profile": {
+    },
+    "profile": {
       "input": "../../tests/fixtures/openaps-storage/ns-profile.json"
     }
   }

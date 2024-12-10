@@ -56,9 +56,7 @@
             }
           }
         ],
-        "tags": [
-          "Entries"
-        ],
+        "tags": ["Entries"],
         "responses": {
           "200": {
             "description": "An array of entries",
@@ -157,9 +155,7 @@
             }
           }
         ],
-        "tags": [
-          "Entries"
-        ],
+        "tags": ["Entries"],
         "responses": {
           "200": {
             "description": "An array of entries",
@@ -228,10 +224,7 @@
             }
           }
         ],
-        "tags": [
-          "Entries",
-          "Debug"
-        ],
+        "tags": ["Entries", "Debug"],
         "responses": {
           "200": {
             "description": "An array of entries",
@@ -288,10 +281,7 @@
             }
           }
         ],
-        "tags": [
-          "Entries",
-          "Debug"
-        ],
+        "tags": ["Entries", "Debug"],
         "responses": {
           "200": {
             "description": "An array of entries",
@@ -358,9 +348,7 @@
             }
           }
         ],
-        "tags": [
-          "Entries"
-        ],
+        "tags": ["Entries"],
         "responses": {
           "200": {
             "description": "An array of entries",
@@ -409,9 +397,7 @@
             }
           }
         ],
-        "tags": [
-          "Entries"
-        ],
+        "tags": ["Entries"],
         "responses": {
           "200": {
             "description": "An array of entries",
@@ -436,9 +422,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Entries"
-        ],
+        "tags": ["Entries"],
         "summary": "Add new entries.",
         "description": "",
         "operationId": "addEntries",
@@ -468,9 +452,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Entries"
-        ],
+        "tags": ["Entries"],
         "summary": "Delete entries matching query.",
         "description": "Remove entries, same search syntax as GET.",
         "operationId": "remove",
@@ -505,9 +487,7 @@
       "get": {
         "summary": "Treatments",
         "description": "The Treatments endpoint returns information about the Nightscout treatments.",
-        "tags": [
-          "Treatments"
-        ],
+        "tags": ["Treatments"],
         "parameters": [
           {
             "name": "find",
@@ -552,9 +532,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Treatments"
-        ],
+        "tags": ["Treatments"],
         "summary": "Add new treatments.",
         "description": "",
         "operationId": "addTreatments",
@@ -579,9 +557,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Treatments"
-        ],
+        "tags": ["Treatments"],
         "summary": "Delete treatments matching query.",
         "description": "Remove treatments, same search syntax as GET.",
         "operationId": "remove",
@@ -627,9 +603,7 @@
             }
           }
         ],
-        "tags": [
-          "Treatments"
-        ],
+        "tags": ["Treatments"],
         "responses": {
           "200": {
             "description": "A status record of the delete.",
@@ -658,9 +632,7 @@
       "get": {
         "summary": "Profile",
         "description": "The Profile endpoint returns information about the Nightscout Treatment Profiles.",
-        "tags": [
-          "Profile"
-        ],
+        "tags": ["Profile"],
         "responses": {
           "200": {
             "description": "An array of treatments",
@@ -689,9 +661,7 @@
       "get": {
         "summary": "Status",
         "description": "Server side status, default settings and capabilities.",
-        "tags": [
-          "Status"
-        ],
+        "tags": ["Status"],
         "responses": {
           "200": {
             "description": "Server capabilities and status.",
@@ -740,9 +710,7 @@
             }
           }
         ],
-        "tags": [
-          "Devicestatus"
-        ],
+        "tags": ["Devicestatus"],
         "responses": {
           "200": {
             "description": "An array of devicestatus entries",
@@ -767,9 +735,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Devicestatus"
-        ],
+        "tags": ["Devicestatus"],
         "summary": "Add new devicestatus records.",
         "description": "",
         "operationId": "addDevicestatuses",
@@ -807,9 +773,7 @@
             }
           }
         ],
-        "tags": [
-          "Devicestatus"
-        ],
+        "tags": ["Devicestatus"],
         "responses": {
           "200": {
             "description": "A status record of the delete.",
@@ -849,9 +813,7 @@
             }
           }
         ],
-        "tags": [
-          "Devicestatus"
-        ],
+        "tags": ["Devicestatus"],
         "responses": {
           "200": {
             "description": "A status record of the delete.",
@@ -946,10 +908,7 @@
         }
       },
       "Devicestatus": {
-        "required": [
-          "device",
-          "created_at"
-        ],
+        "required": ["device", "created_at"],
         "properties": {
           "device": {
             "type": "string",
@@ -1279,10 +1238,7 @@
           "timeFormat": {
             "type": "string",
             "description": "Default time format",
-            "enum": [
-              12,
-              24
-            ]
+            "enum": [12, 24]
           },
           "customTitle": {
             "type": "string",
@@ -1313,10 +1269,7 @@
             "items": {
               "type": "string"
             },
-            "enum": [
-              "simple",
-              "predict"
-            ],
+            "enum": ["simple", "predict"],
             "description": "Enabled alarm types, can be multiple"
           },
           "alarmUrgentHigh": {

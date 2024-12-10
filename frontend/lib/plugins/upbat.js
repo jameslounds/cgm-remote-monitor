@@ -1,64 +1,73 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
-var times = require('../times');
+var _ = require("lodash");
+var times = require("../times");
 
 function init(ctx) {
   var translate = ctx.language.translate;
 
   var upbat = {
-    name: 'upbat'
-    , label: 'Uploader Battery'
-    , pluginType: 'pill-status'
-    , pillFlip: true
+    name: "upbat",
+    label: "Uploader Battery",
+    pluginType: "pill-status",
+    pillFlip: true,
   };
 
   upbat.getPrefs = function getPrefs(sbx) {
     return {
-      warn: sbx.extendedSettings.warn ? sbx.extendedSettings.warn : 30
-      , urgent: sbx.extendedSettings.urgent ? sbx.extendedSettings.urgent : 20
-      , enableAlerts: sbx.extendedSettings.enableAlerts
+      warn: sbx.extendedSettings.warn ? sbx.extendedSettings.warn : 30,
+      urgent: sbx.extendedSettings.urgent ? sbx.extendedSettings.urgent : 20,
+      enableAlerts: sbx.extendedSettings.enableAlerts,
     };
   };
 
-  upbat.setProperties = function setProperties (sbx) {
-    sbx.offerProperty('upbat', function setUpbat2 ( ) {
+  upbat.setProperties = function setProperties(sbx) {
+    sbx.offerProperty("upbat", function setUpbat2() {
       return upbat.analyzeData(sbx);
     });
   };
 
-  function byBattery (status) {
+  function byBattery(status) {
     return status.uploader.battery;
   }
 
-  upbat.analyzeData = function analyzeData (sbx) {
-
+  upbat.analyzeData = function analyzeData(sbx) {
     var prefs = upbat.getPrefs(sbx);
 
     var recentMins = 30;
     var recentMills = sbx.time - times.mins(recentMins).msecs;
 
-    var recentData = _.filter(sbx.data.devicestatus, function eachStatus (status) {
-      return ('uploader' in status) && sbx.entryMills(status) <= sbx.time && sbx.entryMills(status) >= recentMills;
-    });
+    var recentData = _.filter(
+      sbx.data.devicestatus,
+      function eachStatus(status) {
+        return (
+          "uploader" in status &&
+          sbx.entryMills(status) <= sbx.time &&
+          sbx.entryMills(status) >= recentMills
+        );
+      },
+    );
 
     var result = {
-      level: undefined
-      , display: '?%'
-      , status: undefined
-      , devices: {}
+      level: undefined,
+      display: "?%",
+      status: undefined,
+      devices: {},
     };
 
-    function getDevice (status) {
-      var uri = status.device || 'uploader';
+    function getDevice(status) {
+      var uri = status.device || "uploader";
       var device = result.devices[uri];
 
       if (!device) {
         device = {
           //TODO: regex to look for any uri schemes, such as: xdrip://phone
-          name: uri.indexOf('openaps://') === 0 ? uri.substring('openaps://'.length) : uri
-          , uri: uri
-          , statuses: [ ]
+          name:
+            uri.indexOf("openaps://") === 0
+              ? uri.substring("openaps://".length)
+              : uri,
+          uri: uri,
+          statuses: [],
         };
 
         result.devices[uri] = device;
@@ -66,8 +75,7 @@ function init(ctx) {
       return device;
     }
 
-    function analyzeStatus (status) {
-
+    function analyzeStatus(status) {
       var uploaderStatus = status.uploader;
 
       var battery = uploaderStatus.battery;
@@ -79,7 +87,7 @@ function init(ctx) {
         if (voltage > 1000) {
           voltage = voltage / 1000;
         }
-        voltageDisplay = voltage.toFixed(3) + 'v';
+        voltageDisplay = voltage.toFixed(3) + "v";
       }
 
       if (battery || voltage) {
@@ -94,7 +102,8 @@ function init(ctx) {
           uploaderStatus.voltageDisplay = voltageDisplay;
         }
 
-        uploaderStatus.display = (battery ? battery + '%' : voltageDisplay) + (charging ? "⚡" : "");
+        uploaderStatus.display =
+          (battery ? battery + "%" : voltageDisplay) + (charging ? "⚡" : "");
 
         if (battery >= 95) {
           uploaderStatus.level = 100;
@@ -111,25 +120,26 @@ function init(ctx) {
         } else if (battery <= prefs.urgent) {
           uploaderStatus.notification = ctx.levels.URGENT;
         }
-
       }
     }
 
-    _.forEach(recentData, function eachRecentStatus (status) {
+    _.forEach(recentData, function eachRecentStatus(status) {
       analyzeStatus(status);
       var device = getDevice(status);
-      device.statuses.push(_.pick(status, ['uploader', 'created_at', 'mills', '_id']));
+      device.statuses.push(
+        _.pick(status, ["uploader", "created_at", "mills", "_id"]),
+      );
     });
 
-    var recentLowests = [ ];
-    _.forEach(result.devices, function eachDevice (device) {
+    var recentLowests = [];
+    _.forEach(result.devices, function eachDevice(device) {
       device.statuses = _.sortBy(device.statuses, function (status) {
         return sbx.entryMills(status);
       }).reverse();
       var first = _.first(device.statuses);
       var recent = sbx.entryMills(first) - times.mins(10).msecs;
       var recentLowest = _.chain(device.statuses)
-        .filter(function isRecent (status) {
+        .filter(function isRecent(status) {
           return sbx.entryMills(status) > recent;
         })
         .minBy(byBattery)
@@ -155,84 +165,90 @@ function init(ctx) {
     var prefs = upbat.getPrefs(sbx);
 
     var prop = sbx.properties.upbat;
-    if (!prop || !prefs.enableAlerts) { return; }
+    if (!prop || !prefs.enableAlerts) {
+      return;
+    }
 
-    if (prop.min && prop.min.notification && prop.min.notification >= ctx.levels.WARN) {
-      var message = _.map(_.values(prop.devices), function toMessage (device) {
-        var info = [
-          device.name
-          , device.min.display
-        ];
+    if (
+      prop.min &&
+      prop.min.notification &&
+      prop.min.notification >= ctx.levels.WARN
+    ) {
+      var message = _.map(_.values(prop.devices), function toMessage(device) {
+        var info = [device.name, device.min.display];
 
         if (device.min && device.min.battery && device.min.voltageDisplay) {
-          info.push('(' + device.min.voltageDisplay + ')');
+          info.push("(" + device.min.voltageDisplay + ")");
         }
 
-        return info.join(' ');
-      }).join('; ');
+        return info.join(" ");
+      }).join("; ");
 
       sbx.notifications.requestNotify({
-        level: prop.min.notification
-        , title: ctx.levels.toDisplay(prop.min.notification) + ' Uploader Battery is Low'
-        , message: message
-        , pushoverSound: 'echo'
-        , group: 'Uploader Battery'
-        , plugin: upbat
-        , debug: prop
+        level: prop.min.notification,
+        title:
+          ctx.levels.toDisplay(prop.min.notification) +
+          " Uploader Battery is Low",
+        message: message,
+        pushoverSound: "echo",
+        group: "Uploader Battery",
+        plugin: upbat,
+        debug: prop,
       });
     }
   };
 
-  upbat.updateVisualisation = function updateVisualisation (sbx) {
+  upbat.updateVisualisation = function updateVisualisation(sbx) {
     var prop = sbx.properties.upbat;
 
     var infos = null;
 
     if (_.values(prop.devices).length > 1) {
-      infos = _.map(_.values(prop.devices), function toInfo (device) {
+      infos = _.map(_.values(prop.devices), function toInfo(device) {
         var info = {
-          label: device.name
-          , value: device.min.display
+          label: device.name,
+          value: device.min.display,
         };
 
         if (device.min && device.min.battery && device.min.voltageDisplay) {
-          info.value += ' (' + device.min.voltageDisplay + ')';
+          info.value += " (" + device.min.voltageDisplay + ")";
         }
 
         if (device.min && device.min.temperature) {
-          info.value += ' ' + device.min.temperature;
+          info.value += " " + device.min.temperature;
         }
         return info;
       });
     } else {
       if (prop.min && prop.min.battery && prop.min.voltageDisplay) {
-        infos = [{label: 'Voltage', value: prop.min.voltageDisplay}];
+        infos = [{ label: "Voltage", value: prop.min.voltageDisplay }];
       }
       if (prop.min && prop.min.temperature) {
-        infos.push({label: 'Temp', value : prop.min.temperature});
+        infos.push({ label: "Temp", value: prop.min.temperature });
       }
     }
 
     sbx.pluginBase.updatePillText(upbat, {
-      value: prop && prop.display
-      , labelClass: prop && prop.level && 'icon-battery-' + prop.level
-      , pillClass: prop && prop.status
-      , info: infos
-      , hide: !(prop && prop.min && prop.min.value && prop.min.value >= 0)
+      value: prop && prop.display,
+      labelClass: prop && prop.level && "icon-battery-" + prop.level,
+      pillClass: prop && prop.status,
+      info: infos,
+      hide: !(prop && prop.min && prop.min.value && prop.min.value >= 0),
     });
   };
 
-  function virtAsstUploaderBatteryHandler (next, slots, sbx) {
-    var upBat = _.get(sbx, 'properties.upbat.display');
+  function virtAsstUploaderBatteryHandler(next, slots, sbx) {
+    var upBat = _.get(sbx, "properties.upbat.display");
     if (upBat) {
-      var response = translate('virtAsstUploaderBattery', {
-        params: [
-          upBat
-        ]
+      var response = translate("virtAsstUploaderBattery", {
+        params: [upBat],
       });
-      next(translate('virtAsstTitleUploaderBattery'), response);
+      next(translate("virtAsstTitleUploaderBattery"), response);
     } else {
-      next(translate('virtAsstTitleUploaderBattery'), translate('virtAsstUnknown'));
+      next(
+        translate("virtAsstTitleUploaderBattery"),
+        translate("virtAsstUnknown"),
+      );
     }
   }
 
@@ -240,19 +256,18 @@ function init(ctx) {
     intentHandlers: [
       {
         // for backwards compatibility
-        intent: 'UploaderBattery'
-        , intentHandler: virtAsstUploaderBatteryHandler
-      }
-      , {
-        intent: 'MetricNow'
-        , metrics: ['uploader battery']
-        , intentHandler: virtAsstUploaderBatteryHandler
-      }
-    ]
+        intent: "UploaderBattery",
+        intentHandler: virtAsstUploaderBatteryHandler,
+      },
+      {
+        intent: "MetricNow",
+        metrics: ["uploader battery"],
+        intentHandler: virtAsstUploaderBatteryHandler,
+      },
+    ],
   };
 
   return upbat;
-
 }
 
 module.exports = init;

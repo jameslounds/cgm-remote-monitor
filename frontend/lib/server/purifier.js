@@ -1,21 +1,18 @@
-'use strict';
+"use strict";
 
-const createDOMPurify = require('dompurify');
-const { JSDOM } = require('jsdom');
-const window = new JSDOM('').window;
+const createDOMPurify = require("dompurify");
+const { JSDOM } = require("jsdom");
+const window = new JSDOM("").window;
 const DOMPurify = createDOMPurify(window);
 
-function init (env, ctx) {
-
+function init(env, ctx) {
   const purifier = {};
 
-  function iterate (obj) {
+  function iterate(obj) {
     for (var property in obj) {
       if (obj.hasOwnProperty(property)) {
-        if (typeof obj[property] == 'object')
-          iterate(obj[property]);
-        else
-        if (isNaN(obj[property])) {
+        if (typeof obj[property] == "object") iterate(obj[property]);
+        else if (isNaN(obj[property])) {
           const clean = DOMPurify.sanitize(obj[property]);
           if (obj[property] !== clean) {
             obj[property] = clean;
@@ -25,12 +22,11 @@ function init (env, ctx) {
     }
   }
 
-  purifier.purifyObject = function purifyObject (obj) {
+  purifier.purifyObject = function purifyObject(obj) {
     return iterate(obj);
-  }
+  };
 
   return purifier;
-
 }
 
 module.exports = init;

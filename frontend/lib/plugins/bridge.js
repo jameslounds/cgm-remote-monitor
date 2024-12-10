@@ -1,22 +1,26 @@
-'use strict';
+"use strict";
 
-var engine = require('share2nightscout-bridge');
+var engine = require("share2nightscout-bridge");
 
 // Track the most recently seen record
 var mostRecentRecord;
 
-function init (env, bus) {
-  if (env.extendedSettings.bridge && env.extendedSettings.bridge.userName && env.extendedSettings.bridge.password) {
+function init(env, bus) {
+  if (
+    env.extendedSettings.bridge &&
+    env.extendedSettings.bridge.userName &&
+    env.extendedSettings.bridge.password
+  ) {
     return create(env, bus);
   } else {
-    console.info('Dexcom bridge not enabled');
+    console.info("Dexcom bridge not enabled");
   }
 }
 
-function bridged (entries) {
-  function payload (err, glucose) {
+function bridged(entries) {
+  function payload(err, glucose) {
     if (err) {
-      console.error('Bridge error: ', err);
+      console.error("Bridge error: ", err);
     } else {
       if (glucose) {
         for (var i = 0; i < glucose.length; i++) {
@@ -26,9 +30,9 @@ function bridged (entries) {
         }
         //console.log("DEXCOM: Most recent entry received; "+new Date(mostRecentRecord).toString());
       }
-      entries.create(glucose, function stored (err) {
+      entries.create(glucose, function stored(err) {
         if (err) {
-          console.error('Bridge storage error: ', err);
+          console.error("Bridge storage error: ", err);
         }
       });
     }
@@ -36,47 +40,46 @@ function bridged (entries) {
   return payload;
 }
 
-function options (env) {
+function options(env) {
   var config = {
-    accountName: env.extendedSettings.bridge.userName
-    , password: env.extendedSettings.bridge.password
+    accountName: env.extendedSettings.bridge.userName,
+    password: env.extendedSettings.bridge.password,
   };
 
   var fetch_config = {
-    maxCount: env.extendedSettings.bridge.maxCount || 1
-    , minutes: env.extendedSettings.bridge.minutes || 1440
+    maxCount: env.extendedSettings.bridge.maxCount || 1,
+    minutes: env.extendedSettings.bridge.minutes || 1440,
   };
 
   var interval = env.extendedSettings.bridge.interval || 60000 * 2.6; // Default: 2.6 minutes
 
   if (interval < 1000 || interval > 300000) {
-        // Invalid interval range. Revert to default
-        console.error("Invalid interval set: [" + interval + "ms]. Defaulting to 2.6 minutes.")
-        interval = 60000 * 2.6 // 2.6 minutes
+    // Invalid interval range. Revert to default
+    console.error(
+      "Invalid interval set: [" + interval + "ms]. Defaulting to 2.6 minutes.",
+    );
+    interval = 60000 * 2.6; // 2.6 minutes
   }
 
   return {
-    login: config
-    , interval: interval
-    , fetch: fetch_config
-    , nightscout: { }
-    , maxFailures: env.extendedSettings.bridge.maxFailures || 3
-    , firstFetchCount: env.extendedSettings.bridge.firstFetchCount || 3
+    login: config,
+    interval: interval,
+    fetch: fetch_config,
+    nightscout: {},
+    maxFailures: env.extendedSettings.bridge.maxFailures || 3,
+    firstFetchCount: env.extendedSettings.bridge.firstFetchCount || 3,
   };
 }
 
-function create (env, bus) {
-
-  var bridge = { };
+function create(env, bus) {
+  var bridge = {};
 
   var opts = options(env);
   var interval = opts.interval;
 
   mostRecentRecord = new Date().getTime() - opts.fetch.minutes * 60000;
 
-  bridge.startEngine = function startEngine (entries) {
-
-
+  bridge.startEngine = function startEngine(entries) {
     opts.callback = bridged(entries);
 
     let last_run = new Date(0).getTime();
@@ -84,7 +87,7 @@ function create (env, bus) {
 
     function should_run() {
       // Time we expect to have to collect again
-      const msRUN_AFTER = (300+20) * 1000;
+      const msRUN_AFTER = (300 + 20) * 1000;
       const msNow = new Date().getTime();
 
       const next_entry_expected = mostRecentRecord + msRUN_AFTER;
@@ -114,18 +117,23 @@ function create (env, bus) {
     }
 
     let timer = setInterval(function () {
-      if  (!should_run()) return;
-
+      if (!should_run()) return;
 
       opts.fetch.minutes = parseInt((new Date() - mostRecentRecord) / 60000);
-      opts.fetch.maxCount = parseInt((opts.fetch.minutes / 5) + 1);
+      opts.fetch.maxCount = parseInt(opts.fetch.minutes / 5 + 1);
       opts.firstFetchCount = opts.fetch.maxCount;
-      console.log("Fetching Share Data: ", 'minutes', opts.fetch.minutes, 'maxCount', opts.fetch.maxCount);
+      console.log(
+        "Fetching Share Data: ",
+        "minutes",
+        opts.fetch.minutes,
+        "maxCount",
+        opts.fetch.maxCount,
+      );
       engine(opts);
     }, 1000 /*interval*/);
 
     if (bus) {
-      bus.on('teardown', function serverTeardown () {
+      bus.on("teardown", function serverTeardown() {
         clearInterval(timer);
       });
     }

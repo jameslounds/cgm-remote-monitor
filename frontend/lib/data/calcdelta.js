@@ -1,14 +1,15 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
+var _ = require("lodash");
 
-module.exports = function calcDelta (oldData, newData) {
-
-  var delta = {'delta': true};
+module.exports = function calcDelta(oldData, newData) {
+  var delta = { delta: true };
   var changesFound = false;
 
   // if there's no updates done so far, just return the full set
-  if (!oldData.sgvs) { return newData; }
+  if (!oldData.sgvs) {
+    return newData;
+  }
 
   function nsArrayTreatments(oldArray, newArray) {
     var result = [];
@@ -39,7 +40,7 @@ module.exports = function calcDelta (oldData, newData) {
       }
       if (founddiff) {
         var nno = _.clone(no);
-        nno.action = 'update';
+        nno.action = "update";
         result.push(nno);
       }
       if (!found) {
@@ -59,7 +60,7 @@ module.exports = function calcDelta (oldData, newData) {
         }
       }
       if (!found) {
-        result.push({ _id: oo._id, mills: oo.mills, action: 'remove' });
+        result.push({ _id: oo._id, mills: oo.mills, action: "remove" });
       }
     }
 
@@ -68,8 +69,8 @@ module.exports = function calcDelta (oldData, newData) {
 
   function genKey(o) {
     let r = o.mills;
-    r += o.sgv ? 'sgv' + o.sgv : '';
-    r += o.mgdl ? 'sgv' + o.mgdl : '';
+    r += o.sgv ? "sgv" + o.sgv : "";
+    r += o.mgdl ? "sgv" + o.mgdl : "";
     return r;
   }
 
@@ -97,14 +98,19 @@ module.exports = function calcDelta (oldData, newData) {
 
   function compressArrays(delta, newData) {
     // array compression
-    var compressibleArrays = ['sgvs', 'treatments', 'mbgs', 'cals', 'devicestatus'];
+    var compressibleArrays = [
+      "sgvs",
+      "treatments",
+      "mbgs",
+      "cals",
+      "devicestatus",
+    ];
     var changesFound = false;
 
     for (var array in compressibleArrays) {
       if (Object.prototype.hasOwnProperty.call(compressibleArrays, array)) {
         var a = compressibleArrays[array];
         if (Object.prototype.hasOwnProperty.call(newData, a)) {
-
           // if previous data doesn't have the property (first time delta?), just assign data over
           if (!Object.prototype.hasOwnProperty.call(oldData, a)) {
             delta[a] = newData[a];
@@ -113,7 +119,10 @@ module.exports = function calcDelta (oldData, newData) {
           }
 
           // Calculate delta and assign delta over if changes were found
-          var deltaData = (a === 'treatments' ? nsArrayTreatments(oldData[a], newData[a]) : nsArrayDiff(oldData[a], newData[a]));
+          var deltaData =
+            a === "treatments"
+              ? nsArrayTreatments(oldData[a], newData[a])
+              : nsArrayDiff(oldData[a], newData[a]);
           if (deltaData.length > 0) {
             //console.log('delta changes found on', a);
             changesFound = true;
@@ -123,12 +132,12 @@ module.exports = function calcDelta (oldData, newData) {
         }
       }
     }
-    return {'delta': delta, 'changesFound': changesFound};
+    return { delta: delta, changesFound: changesFound };
   }
 
-  function deleteSkippables(delta,newData) {
+  function deleteSkippables(delta, newData) {
     // objects
-    var skippableObjects = ['profiles'];
+    var skippableObjects = ["profiles"];
     var changesFound = false;
 
     for (var object in skippableObjects) {
@@ -143,20 +152,25 @@ module.exports = function calcDelta (oldData, newData) {
         }
       }
     }
-    return {'delta': delta, 'changesFound': changesFound};
+    return { delta: delta, changesFound: changesFound };
   }
 
   delta.lastUpdated = newData.lastUpdated;
 
   var compressedDelta = compressArrays(delta, newData);
   delta = compressedDelta.delta;
-  if (compressedDelta.changesFound) { changesFound = true; }
+  if (compressedDelta.changesFound) {
+    changesFound = true;
+  }
 
   var skippedDelta = deleteSkippables(delta, newData);
   delta = skippedDelta.delta;
-  if (skippedDelta.changesFound) { changesFound = true; }
+  if (skippedDelta.changesFound) {
+    changesFound = true;
+  }
 
-  if (changesFound) { return delta; }
+  if (changesFound) {
+    return delta;
+  }
   return newData;
-
 };

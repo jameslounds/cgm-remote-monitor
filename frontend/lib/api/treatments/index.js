@@ -1,62 +1,68 @@
-'use strict';
+"use strict";
 
-const _forEach = require('lodash/forEach');
-const _isNil = require('lodash/isNil');
-const _isArray = require('lodash/isArray');
-const _take = require('lodash/take');
+const _forEach = require("lodash/forEach");
+const _isNil = require("lodash/isNil");
+const _isArray = require("lodash/isArray");
+const _take = require("lodash/take");
 
-const constants = require('../../constants');
-const moment = require('moment');
+const constants = require("../../constants");
+const moment = require("moment");
 
-function configure (app, wares, ctx, env) {
-  var express = require('express')
-    , api = express.Router();
+function configure(app, wares, ctx, env) {
+  var express = require("express"),
+    api = express.Router();
 
   api.use(wares.compression());
 
   // text body types get handled as raw buffer stream
   api.use(wares.rawParser);
   // json body types get handled as parsed json
-  api.use(wares.bodyParser.json({
-    limit: '50Mb'
-  }));
+  api.use(
+    wares.bodyParser.json({
+      limit: "50Mb",
+    }),
+  );
   // also support url-encoded content-type
   api.use(wares.urlencodedParser);
 
   // invoke common middleware
   api.use(wares.sendJSONStatus);
 
-  api.use(ctx.authorization.isPermitted('api:treatments:read'));
+  api.use(ctx.authorization.isPermitted("api:treatments:read"));
 
-  function serveTreatments(req,res, err, results) {
-
-    var ifModifiedSince = req.get('If-Modified-Since');
+  function serveTreatments(req, res, err, results) {
+    var ifModifiedSince = req.get("If-Modified-Since");
 
     var d1 = null;
 
     const deNormalizeDates = env.settings.deNormalizeDates;
 
-    _forEach(results, function clean (t) {
+    _forEach(results, function clean(t) {
       t.carbs = Number(t.carbs);
       t.insulin = Number(t.insulin);
 
-      if (deNormalizeDates && Object.prototype.hasOwnProperty.call(t, 'utcOffset')) {
-          const d = moment(t.created_at).utcOffset(t.utcOffset);
-          t.created_at = d.toISOString(true);
-          delete t.utcOffset;
+      if (
+        deNormalizeDates &&
+        Object.prototype.hasOwnProperty.call(t, "utcOffset")
+      ) {
+        const d = moment(t.created_at).utcOffset(t.utcOffset);
+        t.created_at = d.toISOString(true);
+        delete t.utcOffset;
       }
 
       var d2 = null;
 
-      if (Object.prototype.hasOwnProperty.call(t, 'created_at')) {
+      if (Object.prototype.hasOwnProperty.call(t, "created_at")) {
         d2 = new Date(t.created_at);
       } else {
-        if (Object.prototype.hasOwnProperty.call(t, 'timestamp')) {
+        if (Object.prototype.hasOwnProperty.call(t, "timestamp")) {
           d2 = new Date(t.timestamp);
         }
       }
 
-      if (d2 == null) { return; }
+      if (d2 == null) {
+        return;
+      }
 
       if (d1 == null || d2.getTime() > d1.getTime()) {
         d1 = d2;
@@ -64,13 +70,16 @@ function configure (app, wares, ctx, env) {
     });
 
     if (!_isNil(d1)) {
-      res.setHeader('Last-Modified', d1.toUTCString());
+      res.setHeader("Last-Modified", d1.toUTCString());
 
-      if (ifModifiedSince && d1.getTime() <= moment(ifModifiedSince).valueOf()) {
+      if (
+        ifModifiedSince &&
+        d1.getTime() <= moment(ifModifiedSince).valueOf()
+      ) {
         res.status(304).send({
-          status: 304
-          , message: 'Not modified'
-          , type: 'internal'
+          status: 304,
+          message: "Not modified",
+          type: "internal",
         });
         return;
       }
@@ -80,28 +89,32 @@ function configure (app, wares, ctx, env) {
   }
 
   // List treatments available
-  api.get('/treatments', function(req, res) {
+  api.get("/treatments", function (req, res) {
     var query = req.query;
     if (!query.count) {
-        // If there's a date search involved, default to a higher number of objects
-        query.count = query.find ? 1000 : 100;
-      }
+      // If there's a date search involved, default to a higher number of objects
+      query.count = query.find ? 1000 : 100;
+    }
 
     const inMemoryData = ctx.cache.treatments;
-    const canServeFromMemory = inMemoryData && inMemoryData.length >= query.count && Object.keys(query).length == 1 ? true : false;
+    const canServeFromMemory =
+      inMemoryData &&
+      inMemoryData.length >= query.count &&
+      Object.keys(query).length == 1
+        ? true
+        : false;
 
     if (canServeFromMemory) {
-      serveTreatments(req, res, null, _take(inMemoryData,query.count));
+      serveTreatments(req, res, null, _take(inMemoryData, query.count));
     } else {
-      ctx.treatments.list(query, function(err, results) {
-        serveTreatments(req,res,err,results);
+      ctx.treatments.list(query, function (err, results) {
+        serveTreatments(req, res, err, results);
       });
     }
   });
 
-  function config_authed (app, api, wares, ctx) {
-
-    function post_response (req, res) {
+  function config_authed(app, api, wares, ctx) {
+    function post_response(req, res) {
       var treatments = req.body;
 
       if (!_isArray(treatments)) {
@@ -130,37 +143,45 @@ function configure (app, wares, ctx, env) {
           return;
         }
         */
-       
       }
 
-      ctx.treatments.create(treatments, function(err, created) {
+      ctx.treatments.create(treatments, function (err, created) {
         if (err) {
-          console.log('Error adding treatment', err);
-          res.sendJSONStatus(res, constants.HTTP_INTERNAL_ERROR, 'Mongo Error', err);
+          console.log("Error adding treatment", err);
+          res.sendJSONStatus(
+            res,
+            constants.HTTP_INTERNAL_ERROR,
+            "Mongo Error",
+            err,
+          );
         } else {
-          console.log('REST API treatment created', created);
+          console.log("REST API treatment created", created);
           res.json(created);
         }
       });
     }
 
-    api.post('/treatments/', ctx.authorization.isPermitted('api:treatments:create'), post_response);
+    api.post(
+      "/treatments/",
+      ctx.authorization.isPermitted("api:treatments:create"),
+      post_response,
+    );
 
     /**
      * @function delete_records
      * Delete treatments.  The query logic works the same way as find/list.  This
      * endpoint uses same search logic to remove records from the database.
      */
-    function delete_records (req, res, next) {
+    function delete_records(req, res, next) {
       var query = req.query;
       if (!query.count) {
-        query.count = 10
+        query.count = 10;
       }
 
       // remove using the query
-      ctx.treatments.remove(query, function(err, stat) {
+      ctx.treatments.remove(query, function (err, stat) {
         if (err) {
-          console.log('treatments delete error: ', err);
+          console.log("treatments delete error: ", err);
           return next(err);
         }
 
@@ -171,41 +192,59 @@ function configure (app, wares, ctx, env) {
       });
     }
 
-    api.delete('/treatments/:id', ctx.authorization.isPermitted('api:treatments:delete'), function(req, res, next) {
-      if (!req.query.find) {
-        req.query.find = {
-          _id: req.params.id
-        };
-      } else {
-        req.query.find._id = req.params.id;
-      }
+    api.delete(
+      "/treatments/:id",
+      ctx.authorization.isPermitted("api:treatments:delete"),
+      function (req, res, next) {
+        if (!req.query.find) {
+          req.query.find = {
+            _id: req.params.id,
+          };
+        } else {
+          req.query.find._id = req.params.id;
+        }
 
-      if (req.query.find._id === '*') {
-        // match any record id
-        delete req.query.find._id;
-      }
-      next();
-    }, delete_records);
+        if (req.query.find._id === "*") {
+          // match any record id
+          delete req.query.find._id;
+        }
+        next();
+      },
+      delete_records,
+    );
 
     // delete record that match query
-    api.delete('/treatments/', ctx.authorization.isPermitted('api:treatments:delete'), delete_records);
+    api.delete(
+      "/treatments/",
+      ctx.authorization.isPermitted("api:treatments:delete"),
+      delete_records,
+    );
 
     // update record
-    api.put('/treatments/', ctx.authorization.isPermitted('api:treatments:update'), function(req, res) {
-      var data = req.body;
-      ctx.treatments.save(data, function(err, created) {
-        if (err) {
-          res.sendJSONStatus(res, constants.HTTP_INTERNAL_ERROR, 'Mongo Error', err);
-          console.log('Error saving treatment', err);
-        } else {
-          res.json(created);
-          console.log('Treatment saved', data);
-        }
-      });
-    });
+    api.put(
+      "/treatments/",
+      ctx.authorization.isPermitted("api:treatments:update"),
+      function (req, res) {
+        var data = req.body;
+        ctx.treatments.save(data, function (err, created) {
+          if (err) {
+            res.sendJSONStatus(
+              res,
+              constants.HTTP_INTERNAL_ERROR,
+              "Mongo Error",
+              err,
+            );
+            console.log("Error saving treatment", err);
+          } else {
+            res.json(created);
+            console.log("Treatment saved", data);
+          }
+        });
+      },
+    );
   }
 
-  if (app.enabled('api') && app.enabled('careportal')) {
+  if (app.enabled("api") && app.enabled("careportal")) {
     config_authed(app, api, wares, ctx);
   }
 

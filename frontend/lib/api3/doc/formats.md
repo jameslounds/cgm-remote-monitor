@@ -1,18 +1,19 @@
 # APIv3: Output formats
 
 ### Choosing output format
+
 In APIv3, the standard content type is JSON for both HTTP request and HTTP response.  
-However, in HTTP response, the response content type can be changed to XML or CSV 
+However, in HTTP response, the response content type can be changed to XML or CSV
 for READ, SEARCH, and HISTORY operations.
 
 The response content type can be requested in one of the following ways:
-- add a file type extension to the URL, eg. 
+
+- add a file type extension to the URL, eg.
   `/api/v3/entries.csv?...`
-   or `/api/v3/treatments/95e1a6e3-1146-5d6a-a3f1-41567cae0895.xml?...`
+  or `/api/v3/treatments/95e1a6e3-1146-5d6a-a3f1-41567cae0895.xml?...`
 - set `Accept` HTTP request header to `text/csv` or `application/xml`
 
-The server replies with `406 Not Acceptable` HTTP status in case of not supported content type.  
-
+The server replies with `406 Not Acceptable` HTTP status in case of not supported content type.
 
 ### JSON
 

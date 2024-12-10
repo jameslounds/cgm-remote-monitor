@@ -1,27 +1,23 @@
-'use strict';
+"use strict";
 
-const apiConst = require('../../const.json')
-  , security = require('../../security')
-  , validate = require('./validate.js')
-  , path = require('path')
-  , opTools = require('../../shared/operationTools')
-  ;
-
+const apiConst = require("../../const.json"),
+  security = require("../../security"),
+  validate = require("./validate.js"),
+  path = require("path"),
+  opTools = require("../../shared/operationTools");
 /**
  * Insert new document into the collection
  * @param {Object} opCtx
  * @param {Object} doc
  */
-async function insert (opCtx, doc) {
-
+async function insert(opCtx, doc) {
   const { ctx, auth, col, req, res } = opCtx;
 
   await security.demandPermission(opCtx, `api:${col.colName}:create`);
 
-  if (validate(opCtx, doc) !== true)
-    return;
+  if (validate(opCtx, doc) !== true) return;
 
-  const now = new Date;
+  const now = new Date();
   doc.srvModified = now.getTime();
   doc.srvCreated = doc.srvModified;
 
@@ -31,23 +27,20 @@ async function insert (opCtx, doc) {
 
   const identifier = await col.storage.insertOne(doc);
 
-  if (!identifier)
-    throw new Error('empty identifier');
+  if (!identifier) throw new Error("empty identifier");
 
-  res.setHeader('Last-Modified', now.toUTCString());
-  res.setHeader('Location', path.posix.join(req.baseUrl, req.path, identifier));
-
+  res.setHeader("Last-Modified", now.toUTCString());
+  res.setHeader("Location", path.posix.join(req.baseUrl, req.path, identifier));
 
   const fields = {
     identifier: identifier,
-    lastModified: now.getTime()
+    lastModified: now.getTime(),
   };
   opTools.sendJSON({ res, status: apiConst.HTTP.CREATED, fields: fields });
 
-  ctx.bus.emit('storage-socket-create', { colName: col.colName, doc });
+  ctx.bus.emit("storage-socket-create", { colName: col.colName, doc });
   col.autoPrune();
-  ctx.bus.emit('data-received');
+  ctx.bus.emit("data-received");
 }
-
 
 module.exports = insert;

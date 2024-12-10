@@ -1,32 +1,30 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
-var fs = require('fs');
-var crypto = require('crypto');
-var MongoMock = require('mongomock');
+var _ = require("lodash");
+var fs = require("fs");
+var crypto = require("crypto");
+var MongoMock = require("mongomock");
 
 var config = {
-  collections: {}
+  collections: {},
 };
 
-function init (env, callback) {
-
+function init(env, callback) {
   if (!env.storageURI || !_.isString(env.storageURI)) {
-    throw new Error('openaps config uri is missing or invalid');
+    throw new Error("openaps config uri is missing or invalid");
   }
 
-  var configPath = env.storageURI.split('openaps://').pop();
+  var configPath = env.storageURI.split("openaps://").pop();
 
-  function addId (data) {
-    var shasum = crypto.createHash('sha1');
+  function addId(data) {
+    var shasum = crypto.createHash("sha1");
     shasum.update(JSON.stringify(data));
-    data._id = shasum.digest('hex');
+    data._id = shasum.digest("hex");
   }
 
-  function loadData (path) {
-
+  function loadData(path) {
     if (!path || !_.isString(path)) {
-      return [ ];
+      return [];
     }
 
     try {
@@ -39,23 +37,22 @@ function init (env, callback) {
         //console.info('>>>input is an object', path);
         inputData.created_at = new Date(fs.statSync(path).mtime).toISOString();
         addId(inputData);
-        inputData = [ inputData ];
+        inputData = [inputData];
       } else {
         //console.info('>>>input is something else', path, inputData);
-        inputData = [ ];
+        inputData = [];
       }
 
       return inputData;
     } catch (err) {
-      console.error('unable to find input data for', path, err);
-      return [ ];
+      console.error("unable to find input data for", path, err);
+      return [];
     }
-
   }
 
-  function reportAsCollection (name) {
-    var data = { };
-    var input = _.get(config, 'collections.' + name + '.input');
+  function reportAsCollection(name) {
+    var data = {};
+    var input = _.get(config, "collections." + name + ".input");
 
     if (_.isArray(input)) {
       //console.info('>>>input is an array', input);
@@ -69,60 +66,61 @@ function init (env, callback) {
     var collection = mock.collection(name);
 
     var wrapper = {
-      findQuery: null
-      , sortQuery: null
-      , limitCount: null
-      , find: function find (query) {
-        query = _.cloneDeepWith(query, function booleanize (value) {
+      findQuery: null,
+      sortQuery: null,
+      limitCount: null,
+      find: function find(query) {
+        query = _.cloneDeepWith(query, function booleanize(value) {
           //TODO: for some reason we're getting {$exists: NaN} instead of true/false
-          if (value && _.isObject(value) && '$exists' in value) {
-            return {$exists: true};
+          if (value && _.isObject(value) && "$exists" in value) {
+            return { $exists: true };
           }
         });
         wrapper.findQuery = query;
         return wrapper;
-      }
-      , limit: function limit (count) {
+      },
+      limit: function limit(count) {
         wrapper.limitCount = count;
         return wrapper;
-      }
-      , sort: function sort (query) {
+      },
+      sort: function sort(query) {
         wrapper.sortQuery = query;
         return wrapper;
-      }
-      , toArray: function toArray(callback) {
-        collection.find(wrapper.findQuery).toArray(function intercept (err, results) {
-          if (err) {
-            return callback(err, results);
-          }
+      },
+      toArray: function toArray(callback) {
+        collection
+          .find(wrapper.findQuery)
+          .toArray(function intercept(err, results) {
+            if (err) {
+              return callback(err, results);
+            }
 
-          if (wrapper.sortQuery) {
-            var field = _.keys(wrapper.sortQuery).pop();
-            //console.info('>>>sortField', field);
-            if (field) {
-              results = _.sortBy(results, field);
-              if (-1 === wrapper.sortQuery[field]) {
-                //console.info('>>>sort reverse');
-                results = _.reverse(results);
+            if (wrapper.sortQuery) {
+              var field = _.keys(wrapper.sortQuery).pop();
+              //console.info('>>>sortField', field);
+              if (field) {
+                results = _.sortBy(results, field);
+                if (-1 === wrapper.sortQuery[field]) {
+                  //console.info('>>>sort reverse');
+                  results = _.reverse(results);
+                }
               }
             }
-          }
 
-          if (wrapper.limitCount !== null && _.isNumber(wrapper.limitCount)) {
-            //console.info('>>>limit count', wrapper.limitCount);
-            results = _.take(results, wrapper.limitCount);
-          }
+            if (wrapper.limitCount !== null && _.isNumber(wrapper.limitCount)) {
+              //console.info('>>>limit count', wrapper.limitCount);
+              results = _.take(results, wrapper.limitCount);
+            }
 
-          //console.info('>>>toArray', name, wrapper.findQuery, wrapper.sortQuery, wrapper.limitCount, results.length);
+            //console.info('>>>toArray', name, wrapper.findQuery, wrapper.sortQuery, wrapper.limitCount, results.length);
 
-          callback(null, results);
-        });
+            callback(null, results);
+          });
         return wrapper;
-      }
+      },
     };
 
     return wrapper;
-
   }
 
   try {
@@ -131,8 +129,8 @@ function init (env, callback) {
     config = _.merge({}, customConfig, config);
 
     callback(null, {
-      collection: reportAsCollection
-      , ensureIndexes: _.noop
+      collection: reportAsCollection,
+      ensureIndexes: _.noop,
     });
   } catch (err) {
     callback(err);
@@ -153,8 +151,8 @@ function purgeCache(moduleName) {
 
   // Remove cached paths to the module.
   // Thanks to @bentael for pointing this out.
-  Object.keys(module.constructor._pathCache).forEach(function(cacheKey) {
-    if (cacheKey.indexOf(moduleName)>0) {
+  Object.keys(module.constructor._pathCache).forEach(function (cacheKey) {
+    if (cacheKey.indexOf(moduleName) > 0) {
       delete module.constructor._pathCache[cacheKey];
     }
   });
@@ -172,7 +170,7 @@ function searchCache(moduleName, callback) {
 
   // Check if the module has been resolved and found within
   // the cache
-  if (mod && ((mod = require.cache[mod]) !== undefined)) {
+  if (mod && (mod = require.cache[mod]) !== undefined) {
     // Recursively go over the results
     (function traverse(mod) {
       // Go over each of the module's children and
@@ -184,7 +182,7 @@ function searchCache(moduleName, callback) {
       // Call the specified callback providing the
       // found cached module
       callback(mod);
-    }(mod));
+    })(mod);
   }
 }
 

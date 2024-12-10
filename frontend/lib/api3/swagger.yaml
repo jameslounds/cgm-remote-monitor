@@ -1,6 +1,6 @@
 openapi: 3.0.0
 servers:
-  - url: '/api/v3'
+  - url: "/api/v3"
 info:
   version: 3.0.4
   title: Nightscout API
@@ -9,7 +9,7 @@ info:
     url: https://gitter.im/nightscout/public
   license:
     name: AGPL 3
-    url: 'https://www.gnu.org/licenses/agpl.txt'
+    url: "https://www.gnu.org/licenses/agpl.txt"
   description:
     Nightscout API v3 is a component of cgm-remote-monitor project. It aims to provide lightweight, secured and HTTP REST compliant interface for your T1D treatment data exchange.
 
@@ -23,47 +23,46 @@ info:
 
 
     - Maximum limit count of documents retrieved from single query
-      <pre>API3_MAX_LIMIT=1000</pre>
+    <pre>API3_MAX_LIMIT=1000</pre>
 
 
     - Autopruning of obsolete documents (optional, default is only `DEVICESTATUS`=60)
-      <pre>API3_AUTOPRUNE_DEVICESTATUS=60
+    <pre>API3_AUTOPRUNE_DEVICESTATUS=60
 
-      API3_AUTOPRUNE_ENTRIES=365
+    API3_AUTOPRUNE_ENTRIES=365
 
-      API3_AUTOPRUNE_TREATMENTS=120
-      </pre>
-      You can specify for which collections autopruning will be activated and length of retention period in days, e.g. "Hold 60 days of devicestatus, automatically delete older documents, hold 365 days of treatments and entries, automatically delete older documents."
+    API3_AUTOPRUNE_TREATMENTS=120
+    </pre>
+    You can specify for which collections autopruning will be activated and length of retention period in days, e.g. "Hold 60 days of devicestatus, automatically delete older documents, hold 365 days of treatments and entries, automatically delete older documents."
 
 
     - Fallback deduplication switch (optional, default = true)
-      <pre>API3_DEDUP_FALLBACK_ENABLED=true</pre>
-      API3 uses the `identifier` field for document identification and mutual distinction within a single collection. There is automatic deduplication implemented matching the equal `identifier` field. E.g. `CREATE` operation for document having the same `identifier` as another one existing in the database is automatically transformed into `UPDATE` operation of the document found in the database.
+    <pre>API3_DEDUP_FALLBACK_ENABLED=true</pre>
+    API3 uses the `identifier` field for document identification and mutual distinction within a single collection. There is automatic deduplication implemented matching the equal `identifier` field. E.g. `CREATE` operation for document having the same `identifier` as another one existing in the database is automatically transformed into `UPDATE` operation of the document found in the database.
 
-      Documents not created via API v3 usually does not have any `identifier` field, but we would like to have some form of deduplication for them, too. This fallback deduplication is turned on by having set `API3_DEDUP_FALLBACK_ENABLED` to `true`.
-      When searching the collection in database, the document is found to be a duplicate only when either he has equal `identifier` or he has no `identifier` and meets&#58;
-      <pre>`devicestatus` collection&#58; equal combination of `created_at` and `device`
+    Documents not created via API v3 usually does not have any `identifier` field, but we would like to have some form of deduplication for them, too. This fallback deduplication is turned on by having set `API3_DEDUP_FALLBACK_ENABLED` to `true`.
+    When searching the collection in database, the document is found to be a duplicate only when either he has equal `identifier` or he has no `identifier` and meets&#58;
+    <pre>`devicestatus` collection&#58; equal combination of `created_at` and `device`
 
-      `entries` collection&#58;      equal combination of `date` and `type`
+    `entries` collection&#58;      equal combination of `date` and `type`
 
-      `food` collection&#58;         equal `created_at`
+    `food` collection&#58;         equal `created_at`
 
-      `profile` collection&#58;      equal `created_at`
+    `profile` collection&#58;      equal `created_at`
 
-      `treatments` collection&#58;   equal combination of `created_at` and `eventType`
-      </pre>
+    `treatments` collection&#58;   equal combination of `created_at` and `eventType`
+    </pre>
 
 
     - Fallback switch for adding `created_at` field along the `date` field (optional, default = true)
-      <pre>API3_CREATED_AT_FALLBACK_ENABLED=true</pre>
-      Standard APIv3 document model uses only `date` field for storing a timestamp of the event recorded by the document. But there is a fallback option to fill `created_at` field as well automatically on each insert/update, just to keep all older components working.
+    <pre>API3_CREATED_AT_FALLBACK_ENABLED=true</pre>
+    Standard APIv3 document model uses only `date` field for storing a timestamp of the event recorded by the document. But there is a fallback option to fill `created_at` field as well automatically on each insert/update, just to keep all older components working.
 
 tags:
   - name: generic
     description: Generic operations with each database collection (devicestatus, entries, food, profile, settings, treatments)
   - name: other
     description: All other various operations
-
 
 paths:
   /{collection}:
@@ -73,15 +72,16 @@ paths:
         description: Collection to which the operation is targeted
         required: true
         schema:
-          $ref: '#/components/schemas/paramCollection'
+          $ref: "#/components/schemas/paramCollection"
 
     ######################################################################################
     get:
       tags:
         - generic
-      summary: 'SEARCH: Search documents from the collection'
+      summary: "SEARCH: Search documents from the collection"
       operationId: SEARCH
-      description: General search operation through documents of one collection, matching the specified filtering criteria. You can apply&#58;
+      description:
+        General search operation through documents of one collection, matching the specified filtering criteria. You can apply&#58;
 
 
         1) filtering - combining any number of filtering parameters
@@ -101,38 +101,36 @@ paths:
 
         The only exception is the `settings` collection which requires `admin` permission (`api:settings:admin`), because the settings of each application should be isolated and kept secret. You need to know the concrete identifier to access the app's settings.
 
-
       parameters:
-        - $ref: '#/components/parameters/filterParams'
-        - $ref: '#/components/parameters/sortParam'
-        - $ref: '#/components/parameters/sortDescParam'
-        - $ref: '#/components/parameters/limitParam'
-        - $ref: '#/components/parameters/skipParam'
-        - $ref: '#/components/parameters/fieldsParam'
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParam"
+        - $ref: "#/components/parameters/sortDescParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/skipParam"
+        - $ref: "#/components/parameters/fieldsParam"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/search200'
+          $ref: "#/components/responses/search200"
         400:
-          $ref: '#/components/responses/400BadRequest'
+          $ref: "#/components/responses/400BadRequest"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         406:
-          $ref: '#/components/responses/406NotAcceptable'
-
+          $ref: "#/components/responses/406NotAcceptable"
 
     ######################################################################################
     post:
       tags:
         - generic
-      summary: 'CREATE: Inserts a new document into the collection'
+      summary: "CREATE: Inserts a new document into the collection"
       description:
         Using this operation you can insert new documents into collection. Normally the operation ends with 201 HTTP status code, `Last-Modified` and `Location` headers specified.
         `identifier` is included in response body or it can be parsed from the `Location` response header.
@@ -152,30 +150,28 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DocumentToPost'
+              $ref: "#/components/schemas/DocumentToPost"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/200Deduplication'
+          $ref: "#/components/responses/200Deduplication"
         201:
-          $ref: '#/components/responses/201CreatedLocation'
+          $ref: "#/components/responses/201CreatedLocation"
         400:
-          $ref: '#/components/responses/400BadRequest'
+          $ref: "#/components/responses/400BadRequest"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         422:
-          $ref: '#/components/responses/422UnprocessableEntity'
-
+          $ref: "#/components/responses/422UnprocessableEntity"
 
   #return HTTP STATUS 400 for all other verbs (PUT, PATCH, DELETE,...)
-
 
   /{collection}/{identifier}:
     parameters:
@@ -184,19 +180,19 @@ paths:
         description: Collection to which the operation is targeted
         required: true
         schema:
-          $ref: '#/components/schemas/paramCollection'
+          $ref: "#/components/schemas/paramCollection"
       - in: path
         name: identifier
         description: Identifier of the document to which the operation is targeted
         required: true
         schema:
-          $ref: '#/components/schemas/paramIdentifier'
+          $ref: "#/components/schemas/paramIdentifier"
 
     ######################################################################################
     get:
       tags:
         - generic
-      summary: 'READ: Retrieves a single document from the collection'
+      summary: "READ: Retrieves a single document from the collection"
       description:
         Basically this operation looks for a document matching the `identifier` field returning 200 or 404 HTTP status code.
 
@@ -211,34 +207,33 @@ paths:
         This operation requires `read` permission for the API and the collection (e.g. `api:treatments:read`)
 
       parameters:
-        - $ref: '#/components/parameters/ifModifiedSinceHeader'
-        - $ref: '#/components/parameters/fieldsParam'
+        - $ref: "#/components/parameters/ifModifiedSinceHeader"
+        - $ref: "#/components/parameters/fieldsParam"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/read200'
+          $ref: "#/components/responses/read200"
         304:
-          $ref: '#/components/responses/304NotModified'
+          $ref: "#/components/responses/304NotModified"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         406:
-          $ref: '#/components/responses/406NotAcceptable'
+          $ref: "#/components/responses/406NotAcceptable"
         410:
-          $ref: '#/components/responses/410Gone'
-
+          $ref: "#/components/responses/410Gone"
 
     ######################################################################################
     put:
       tags:
         - generic
-      summary: 'UPDATE: Updates a document in the collection'
+      summary: "UPDATE: Updates a document in the collection"
       description:
         Normally the document with the matching `identifier` will be replaced in the collection by the whole JSON request body and 200 HTTP status code will be returned.
 
@@ -258,7 +253,7 @@ paths:
         This operation requires `update` (and/or `create`) permission for the API and the collection (e.g. `api:treatments:update` and `api:treatments:create`)
 
       parameters:
-        - $ref: '#/components/parameters/ifUnmodifiedSinceHeader'
+        - $ref: "#/components/parameters/ifUnmodifiedSinceHeader"
 
       requestBody:
         description: JSON of new version of document (`identifier` in JSON is ignored if present)
@@ -266,37 +261,36 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DocumentToPost'
+              $ref: "#/components/schemas/DocumentToPost"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/200Ok'
+          $ref: "#/components/responses/200Ok"
         201:
-          $ref: '#/components/responses/201Created'
+          $ref: "#/components/responses/201Created"
         400:
-          $ref: '#/components/responses/400BadRequest'
+          $ref: "#/components/responses/400BadRequest"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         412:
-          $ref: '#/components/responses/412PreconditionFailed'
+          $ref: "#/components/responses/412PreconditionFailed"
         410:
-          $ref: '#/components/responses/410Gone'
+          $ref: "#/components/responses/410Gone"
         422:
-          $ref: '#/components/responses/422UnprocessableEntity'
-
+          $ref: "#/components/responses/422UnprocessableEntity"
 
     ######################################################################################
     patch:
       tags:
         - generic
-      summary: 'PATCH: Partially updates document in the collection'
+      summary: "PATCH: Partially updates document in the collection"
       description:
         Normally the document with the matching `identifier` will be retrieved from the collection and it will be patched by all specified fields from the JSON request body. Finally 200 HTTP status code will be returned.
 
@@ -322,7 +316,7 @@ paths:
         This operation requires `update` permission for the API and the collection (e.g. `api:treatments:update`)
 
       parameters:
-        - $ref: '#/components/parameters/ifUnmodifiedSinceHeader'
+        - $ref: "#/components/parameters/ifUnmodifiedSinceHeader"
 
       requestBody:
         description: JSON of new version of document (`identifier` in JSON is ignored if present)
@@ -330,35 +324,34 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DocumentToPost'
+              $ref: "#/components/schemas/DocumentToPost"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/200Ok'
+          $ref: "#/components/responses/200Ok"
         400:
-          $ref: '#/components/responses/400BadRequest'
+          $ref: "#/components/responses/400BadRequest"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         410:
-          $ref: '#/components/responses/410Gone'
+          $ref: "#/components/responses/410Gone"
         412:
-          $ref: '#/components/responses/412PreconditionFailed'
+          $ref: "#/components/responses/412PreconditionFailed"
         422:
-          $ref: '#/components/responses/422UnprocessableEntity'
-
+          $ref: "#/components/responses/422UnprocessableEntity"
 
     ######################################################################################
     delete:
       tags:
         - generic
-      summary: 'DELETE: Deletes a document from the collection'
+      summary: "DELETE: Deletes a document from the collection"
       description:
         If the document has already been deleted, the operation will succeed anyway. Normally, documents are not really deleted from the collection but they are only marked as deleted. For special cases the deletion can be irreversible using `permanent` parameter.
 
@@ -368,25 +361,23 @@ paths:
 
         This operation requires `delete` permission for the API and the collection (e.g. `api:treatments:delete`)
 
-
       parameters:
-        - $ref: '#/components/parameters/permanentParam'
+        - $ref: "#/components/parameters/permanentParam"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/200Ok'
+          $ref: "#/components/responses/200Ok"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         422:
-          $ref: '#/components/responses/422UnprocessableEntity'
-
+          $ref: "#/components/responses/422UnprocessableEntity"
 
   ######################################################################################
   /{collection}/history:
@@ -396,12 +387,12 @@ paths:
         description: Collection to which the operation is targeted
         required: true
         schema:
-          $ref: '#/components/schemas/paramCollection'
+          $ref: "#/components/schemas/paramCollection"
 
     get:
       tags:
         - generic
-      summary: 'HISTORY: Retrieves incremental changes since timestamp'
+      summary: "HISTORY: Retrieves incremental changes since timestamp"
       operationId: HISTORY
       description:
         HISTORY operation is intended for continuous data synchronization with other systems.
@@ -420,29 +411,27 @@ paths:
 
         The only exception is the `settings` collection which requires `admin` permission (`api:settings:admin`), because the settings of each application should be isolated and kept secret. You need to know the concrete identifier to access the app's settings.
 
-
       parameters:
-        - $ref: '#/components/parameters/lastModifiedRequiredHeader'
-        - $ref: '#/components/parameters/limitParam'
-        - $ref: '#/components/parameters/fieldsParam'
+        - $ref: "#/components/parameters/lastModifiedRequiredHeader"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/fieldsParam"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/history200'
+          $ref: "#/components/responses/history200"
         400:
-          $ref: '#/components/responses/400BadRequest'
+          $ref: "#/components/responses/400BadRequest"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         406:
-          $ref: '#/components/responses/406NotAcceptable'
-
+          $ref: "#/components/responses/406NotAcceptable"
 
   ######################################################################################
   /{collection}/history/{lastModified}:
@@ -452,7 +441,7 @@ paths:
         description: Collection to which the operation is targeted
         required: true
         schema:
-          $ref: '#/components/schemas/paramCollection'
+          $ref: "#/components/schemas/paramCollection"
 
       - in: path
         name: lastModified
@@ -465,7 +454,7 @@ paths:
     get:
       tags:
         - generic
-      summary: 'HISTORY: Retrieves incremental changes since timestamp'
+      summary: "HISTORY: Retrieves incremental changes since timestamp"
       operationId: HISTORY2
       description:
         This HISTORY operation variant is more precise than the previous one with `Last-Modified` request HTTP header), because it does not loose milliseconds precision.
@@ -476,36 +465,33 @@ paths:
 
         This variant behaves quite the same as the previous one in all other aspects.
 
-
       parameters:
-        - $ref: '#/components/parameters/limitParam'
-        - $ref: '#/components/parameters/fieldsParam'
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/fieldsParam"
 
       security:
         - jwtoken: []
 
       responses:
         200:
-          $ref: '#/components/responses/history200'
+          $ref: "#/components/responses/history200"
         400:
-          $ref: '#/components/responses/400BadRequest'
+          $ref: "#/components/responses/400BadRequest"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
         404:
-          $ref: '#/components/responses/404NotFound'
+          $ref: "#/components/responses/404NotFound"
         406:
-          $ref: '#/components/responses/406NotAcceptable'
-
+          $ref: "#/components/responses/406NotAcceptable"
 
   ######################################################################################
   /version:
-
     get:
       tags:
         - other
-      summary: 'VERSION: Returns actual version information'
+      summary: "VERSION: Returns actual version information"
       description: No authentication is needed for this commnad (it is public)
       responses:
         200:
@@ -513,18 +499,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Version'
-
+                $ref: "#/components/schemas/Version"
 
   ######################################################################################
   /status:
-
     get:
       tags:
         - other
-      summary: 'STATUS: Returns actual version information and all permissions granted for API'
-      description:
-        This operation requires authorization in contrast with VERSION operation.
+      summary: "STATUS: Returns actual version information and all permissions granted for API"
+      description: This operation requires authorization in contrast with VERSION operation.
 
       security:
         - jwtoken: []
@@ -535,18 +518,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Status'
+                $ref: "#/components/schemas/Status"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
 
   ######################################################################################
   /lastModified:
     get:
       tags:
         - other
-      summary: 'LAST MODIFIED: Retrieves timestamp of the last modification of every collection'
+      summary: "LAST MODIFIED: Retrieves timestamp of the last modification of every collection"
       operationId: LAST-MODIFIED
       description:
         LAST MODIFIED operation inspects collections separately (in parallel) and for each of them it finds the date of any last modification (insertion, update, deletion).
@@ -561,18 +544,15 @@ paths:
 
       responses:
         200:
-          $ref: '#/components/responses/lastModified200'
+          $ref: "#/components/responses/lastModified200"
         401:
-          $ref: '#/components/responses/401Unauthorized'
+          $ref: "#/components/responses/401Unauthorized"
         403:
-          $ref: '#/components/responses/403Forbidden'
+          $ref: "#/components/responses/403Forbidden"
 
 ######################################################################################
 components:
-
   parameters:
-
-
     limitParam:
       in: query
       name: limit
@@ -591,8 +571,7 @@ components:
         minimum: 0
         default: 0
         example: 0
-      description:
-        Number of documents to skip from collection query before
+      description: Number of documents to skip from collection query before
         loading them into result array (used for pagination)
 
     sortParam:
@@ -601,8 +580,7 @@ components:
       schema:
         type: string
       required: false
-      description:
-        Field name by which the sorting of documents is performed. This parameter cannot be combined with `sort$desc` parameter.
+      description: Field name by which the sorting of documents is performed. This parameter cannot be combined with `sort$desc` parameter.
 
     sortDescParam:
       in: query
@@ -610,8 +588,7 @@ components:
       schema:
         type: string
       required: false
-      description:
-        Field name by which the descending (reverse) sorting of documents is performed. This parameter cannot be combined with `sort` parameter.
+      description: Field name by which the descending (reverse) sorting of documents is performed. This parameter cannot be combined with `sort` parameter.
 
     permanentParam:
       in: query
@@ -619,25 +596,24 @@ components:
       schema:
         type: boolean
       required: false
-      description:
-        If true, the deletion will be irreversible and it will not appear in `HISTORY` operation. Normally there is no reason for setting this flag.
-
+      description: If true, the deletion will be irreversible and it will not appear in `HISTORY` operation. Normally there is no reason for setting this flag.
 
     fieldsParam:
       in: query
       name: fields
       schema:
         type: string
-        default: '_all'
+        default: "_all"
       required: false
       examples:
         all:
-          value: '_all'
+          value: "_all"
           summary: All fields will be returned (default behaviour)
         customSet:
-          value: 'date,insulin'
+          value: "date,insulin"
           summary: Only fields date and insulin will be returned
-      description: A chosen set of fields to return in response. Either you can enumerate specific fields of interest or use the predefined set. Sample parameter values&#58;
+      description:
+        A chosen set of fields to return in response. Either you can enumerate specific fields of interest or use the predefined set. Sample parameter values&#58;
 
 
         _all&#58; All fields will be returned (default value)
@@ -645,14 +621,12 @@ components:
 
         date,insulin&#58; Only fields `date` and `insulin` will be returned
 
-
     filterParams:
       in: query
       name: filter_parameters
       schema:
         type: string
-      description:
-        Any number of filtering operators.
+      description: Any number of filtering operators.
 
 
         Each filtering operator has name like `<field-name>$<operator>`, e.g. `carbs$gt=2` which represents filtering rule "The field carbs must be present and greater than 2".
@@ -706,17 +680,16 @@ components:
         type: string
       required: true
       description:
-          Starting timestamp (defined with respect to server's clock) since which the changes in documents are to be listed, formatted as&#58;
+        Starting timestamp (defined with respect to server's clock) since which the changes in documents are to be listed, formatted as&#58;
 
 
         &lt;day-name&gt;, &lt;day&gt; &lt;month&gt; &lt;year&gt; &lt;hour&gt;&#58;&lt;minute&gt;&#58;&lt;second&gt; GMT
 
 
-            Example&#58;
+        Example&#58;
 
 
-            <pre>Last-Modified&#58; Wed, 17 Oct 2018 05&#58;13&#58;00 GMT</pre>
-
+        <pre>Last-Modified&#58; Wed, 17 Oct 2018 05&#58;13&#58;00 GMT</pre>
 
     ifModifiedSinceHeader:
       in: header
@@ -725,20 +698,19 @@ components:
         type: string
       required: false
       description:
-          Timestamp (defined with respect to server's clock) of the last document modification formatted as&#58;
+        Timestamp (defined with respect to server's clock) of the last document modification formatted as&#58;
 
 
         &lt;day-name&gt;, &lt;day&gt; &lt;month&gt; &lt;year&gt; &lt;hour&gt;&#58;&lt;minute&gt;&#58;&lt;second&gt; GMT
 
 
-            If this header is present, the operation will compare its value with the srvModified timestamp of the document at first and the operation result then may differ. The srvModified timestamp was defined by server's clock.
+        If this header is present, the operation will compare its value with the srvModified timestamp of the document at first and the operation result then may differ. The srvModified timestamp was defined by server's clock.
 
 
-            Example&#58;
+        Example&#58;
 
 
-            <pre>If-Modified-Since&#58; Wed, 17 Oct 2018 05&#58;13&#58;00 GMT</pre>
-
+        <pre>If-Modified-Since&#58; Wed, 17 Oct 2018 05&#58;13&#58;00 GMT</pre>
 
     ifUnmodifiedSinceHeader:
       in: header
@@ -747,24 +719,22 @@ components:
         type: string
       required: false
       description:
-          Timestamp (defined with respect to server's clock) of the last document modification formatted as&#58;
+        Timestamp (defined with respect to server's clock) of the last document modification formatted as&#58;
 
 
         &lt;day-name&gt;, &lt;day&gt; &lt;month&gt; &lt;year&gt; &lt;hour&gt;&#58;&lt;minute&gt;&#58;&lt;second&gt; GMT
 
 
-            If this header is present, the operation will compare its value with the srvModified timestamp of the document at first and the operation result then may differ. The srvModified timestamp was defined by server's clock.
+        If this header is present, the operation will compare its value with the srvModified timestamp of the document at first and the operation result then may differ. The srvModified timestamp was defined by server's clock.
 
 
-            Example&#58;
+        Example&#58;
 
 
-            <pre>If-Unmodified-Since&#58; Wed, 17 Oct 2018 05&#58;13&#58;00 GMT</pre>
-
+        <pre>If-Unmodified-Since&#58; Wed, 17 Oct 2018 05&#58;13&#58;00 GMT</pre>
 
   ######################################################################################
   responses:
-
     200Ok:
       description: The request was successfully processed
       content:
@@ -778,10 +748,10 @@ components:
     200Deduplication:
       description: Successfully updated a duplicate document in the collection
       headers:
-        'Last-Modified':
-          $ref: '#/components/schemas/headerLastModified'
-        'Location':
-          $ref: '#/components/schemas/headerLocation'
+        "Last-Modified":
+          $ref: "#/components/schemas/headerLastModified"
+        "Location":
+          $ref: "#/components/schemas/headerLocation"
       content:
         application/json:
           schema:
@@ -790,18 +760,17 @@ components:
                 type: integer
                 example: 200
               identifier:
-                $ref: '#/components/schemas/identifierField'
+                $ref: "#/components/schemas/identifierField"
               isDeduplication:
-                $ref: '#/components/schemas/isDeduplicationField'
+                $ref: "#/components/schemas/isDeduplicationField"
               deduplicatedIdentifier:
-                $ref: '#/components/schemas/deduplicatedIdentifierField'
-
+                $ref: "#/components/schemas/deduplicatedIdentifierField"
 
     201Created:
       description: Successfully created a new document in collection
       headers:
-        'Last-Modified':
-          $ref: '#/components/schemas/headerLastModified'
+        "Last-Modified":
+          $ref: "#/components/schemas/headerLastModified"
       content:
         application/json:
           schema:
@@ -810,17 +779,17 @@ components:
                 type: integer
                 example: 201
               identifier:
-                $ref: '#/components/schemas/identifierField'
+                $ref: "#/components/schemas/identifierField"
               lastModified:
-                $ref: '#/components/schemas/lastModifiedField'
+                $ref: "#/components/schemas/lastModifiedField"
 
     201CreatedLocation:
       description: Successfully created a new document in collection
       headers:
-        'Last-Modified':
-          $ref: '#/components/schemas/headerLastModified'
-        'Location':
-          $ref: '#/components/schemas/headerLocation'
+        "Last-Modified":
+          $ref: "#/components/schemas/headerLastModified"
+        "Location":
+          $ref: "#/components/schemas/headerLocation"
       content:
         application/json:
           schema:
@@ -829,15 +798,15 @@ components:
                 type: integer
                 example: 201
               identifier:
-                $ref: '#/components/schemas/identifierField'
+                $ref: "#/components/schemas/identifierField"
               lastModified:
-                $ref: '#/components/schemas/lastModifiedField'
+                $ref: "#/components/schemas/lastModifiedField"
 
     304NotModified:
       description: The document has not been modified on the server since timestamp specified in If-Modified-Since header
       headers:
-        'Last-Modified':
-          $ref: '#/components/schemas/headerLastModified'
+        "Last-Modified":
+          $ref: "#/components/schemas/headerLastModified"
 
     400BadRequest:
       description: The request is malformed. There may be some required parameters missing or there are unrecognized parameters present.
@@ -929,13 +898,13 @@ components:
                 type: integer
                 example: 200
               result:
-                $ref: '#/components/schemas/DocumentArray'
+                $ref: "#/components/schemas/DocumentArray"
         text/csv:
           schema:
-            $ref: '#/components/schemas/DocumentArray'
+            $ref: "#/components/schemas/DocumentArray"
         application/xml:
           schema:
-            $ref: '#/components/schemas/DocumentArray'
+            $ref: "#/components/schemas/DocumentArray"
 
     read200:
       description: The document has been succesfully found and its JSON form returned in the response content.
@@ -947,20 +916,19 @@ components:
                 type: integer
                 example: 200
               result:
-                $ref: '#/components/schemas/Document'
+                $ref: "#/components/schemas/Document"
         text/csv:
           schema:
-            $ref: '#/components/schemas/Document'
+            $ref: "#/components/schemas/Document"
         application/xml:
           schema:
-            $ref: '#/components/schemas/Document'
+            $ref: "#/components/schemas/Document"
       headers:
-        'Last-Modified':
-          $ref: '#/components/schemas/headerLastModified'
+        "Last-Modified":
+          $ref: "#/components/schemas/headerLastModified"
 
     history200:
-      description:
-        Changed documents since specified timestamp
+      description: Changed documents since specified timestamp
       content:
         application/json:
           schema:
@@ -969,18 +937,18 @@ components:
                 type: integer
                 example: 200
               result:
-                $ref: '#/components/schemas/DocumentArray'
+                $ref: "#/components/schemas/DocumentArray"
         text/csv:
           schema:
-            $ref: '#/components/schemas/DocumentArray'
+            $ref: "#/components/schemas/DocumentArray"
         application/xml:
           schema:
-            $ref: '#/components/schemas/DocumentArray'
+            $ref: "#/components/schemas/DocumentArray"
       headers:
-        'Last-Modified':
-          $ref: '#/components/schemas/headerLastModifiedMaximum'
-        'ETag':
-          $ref: '#/components/schemas/headerEtagLastModifiedMaximum'
+        "Last-Modified":
+          $ref: "#/components/schemas/headerLastModifiedMaximum"
+        "ETag":
+          $ref: "#/components/schemas/headerEtagLastModifiedMaximum"
 
     lastModified200:
       description: Successful operation returning the timestamps
@@ -992,12 +960,10 @@ components:
                 type: integer
                 example: 200
               result:
-                $ref: '#/components/schemas/LastModifiedResult'
-
+                $ref: "#/components/schemas/LastModifiedResult"
 
   ######################################################################################
   schemas:
-
     headerLocation:
       type: string
       description:
@@ -1009,23 +975,23 @@ components:
     headerLastModified:
       type: string
       description:
-          Timestamp of the last document modification on the server, formatted as
+        Timestamp of the last document modification on the server, formatted as
 
-            '<day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT'.
+        '<day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT'.
 
-            This field is relevant only for documents which were somehow modified by API v3
-            (inserted, updated or deleted) and it was generated using server's clock.
+        This field is relevant only for documents which were somehow modified by API v3
+        (inserted, updated or deleted) and it was generated using server's clock.
 
-            Example='Wed, 17 Oct 2018 05:13:00 GMT'
+        Example='Wed, 17 Oct 2018 05:13:00 GMT'
 
     headerLastModifiedMaximum:
       type: string
       description:
-          The latest (maximum) `srvModified` field of all returning documents, formatted as
+        The latest (maximum) `srvModified` field of all returning documents, formatted as
 
-            '<day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT'.
+        '<day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT'.
 
-            Example='Wed, 17 Oct 2018 05:13:00 GMT'
+        Example='Wed, 17 Oct 2018 05:13:00 GMT'
 
     headerEtagLastModifiedMaximum:
       type: string
@@ -1044,19 +1010,16 @@ components:
         - profile
         - settings
         - treatments
-      example: 'treatments'
+      example: "treatments"
 
     paramIdentifier:
       type: string
-      example: '53409478-105f-11e9-ab14-d663bd873d93'
-
+      example: "53409478-105f-11e9-ab14-d663bd873d93"
 
     identifierField:
-      description:
-        Identifier of created or modified document
+      description: Identifier of created or modified document
       type: string
-      example: '53409478-105f-11e9-ab14-d663bd873d93'
-
+      example: "53409478-105f-11e9-ab14-d663bd873d93"
 
     lastModifiedField:
       type: integer
@@ -1074,20 +1037,15 @@ components:
         that are unable to process standard HTTP status code.
       example: 200
 
-
     isDeduplicationField:
       type: boolean
-      description:
-        Flag whether the operation found a duplicate document (to update)
+      description: Flag whether the operation found a duplicate document (to update)
       example: true
-
 
     deduplicatedIdentifierField:
       type: string
-      description:
-        The original document that has been marked as a duplicate document and which has been updated
-      example: 'abc09478-105f-11e9-ab14-d663bd873d93'
-
+      description: The original document that has been marked as a duplicate document and which has been updated
+      example: "abc09478-105f-11e9-ab14-d663bd873d93"
 
     DocumentBase:
       description: Shared base for all documents
@@ -1111,9 +1069,8 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
           type: string
-          example: '53409478-105f-11e9-ab14-d663bd873d93'
+          example: "53409478-105f-11e9-ab14-d663bd873d93"
 
         date:
           type: integer
@@ -1133,7 +1090,6 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
           example: 1525383610088
 
         utcOffset:
@@ -1143,7 +1099,6 @@ components:
 
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
-
 
           example: 120
 
@@ -1155,7 +1110,6 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
           example: xdrip
 
         device:
@@ -1166,13 +1120,12 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
-          example: 'dexcom G5'
+          example: "dexcom G5"
 
         _id:
           description: Internally assigned database id. This field is for internal server purposes only, clients communicate with API by using identifier field.
           type: string
-          example: '58e9dfbc166d88cc18683aac'
+          example: "58e9dfbc166d88cc18683aac"
 
         srvCreated:
           type: integer
@@ -1182,7 +1135,6 @@ components:
 
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
-
 
           example: 1525383610088
 
@@ -1194,8 +1146,7 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
-          example: 'uploader'
+          example: "uploader"
 
         srvModified:
           type: integer
@@ -1206,7 +1157,6 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
           example: 1525383610088
 
         modifiedBy:
@@ -1216,7 +1166,6 @@ components:
 
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
-
 
           example: admin
 
@@ -1229,9 +1178,7 @@ components:
 
             Note&#58; this field is immutable by the client (it cannot be updated or patched)
 
-
           example: false
-
 
         isReadOnly:
           type: boolean
@@ -1241,35 +1188,31 @@ components:
 
             Any attempt to modify the read-only document will end with status 422 UNPROCESSABLE ENTITY.
 
-
           example: true
 
       required:
         - date
         - app
 
-
     DeviceStatus:
       description: State of physical device, which is a technical part of the whole T1D compensation system
       allOf:
-        - $ref: '#/components/schemas/DocumentBase'
+        - $ref: "#/components/schemas/DocumentBase"
         - type: object
           properties:
             some_property:
               type: string
               description: ...
 
-
     Entry:
       description: Blood glucose measurements and CGM calibrations
       allOf:
-        - $ref: '#/components/schemas/DocumentBase'
+        - $ref: "#/components/schemas/DocumentBase"
         - type: object
           properties:
-
             type:
               type: string
-              description: 'sgv, mbg, cal, etc'
+              description: "sgv, mbg, cal, etc"
 
             sgv:
               type: number
@@ -1283,7 +1226,7 @@ components:
             noise:
               type: number
               description: Noise level at time of reading. (only available for sgv types)
-              example: 'xdrip: 0, 1, 2=high, 3=high_for_predict, 4=very high, 5=extreme'
+              example: "xdrip: 0, 1, 2=high, 3=high_for_predict, 4=very high, 5=extreme"
 
             filtered:
               type: number
@@ -1302,17 +1245,15 @@ components:
               example: '"mg", "mmol"'
               description: The units for the glucose value, mg/dl or mmol/l. It is strongly recommended to fill in this field.
 
-
     Food:
       description: Nutritional values of food
       allOf:
-        - $ref: '#/components/schemas/DocumentBase'
+        - $ref: "#/components/schemas/DocumentBase"
         - type: object
           properties:
-
             food:
               type: string
-              description: 'food, quickpick'
+              description: "food, quickpick"
 
             category:
               type: string
@@ -1353,7 +1294,7 @@ components:
 
             gi:
               type: number
-              description: 'Glycemic index (1=low, 2=medium, 3=high)'
+              description: "Glycemic index (1=low, 2=medium, 3=high)"
 
             hideafteruse:
               type: boolean
@@ -1375,19 +1316,17 @@ components:
               type: array
               description: Neighbour documents (from food collection) that together make a quickpick compound
               items:
-                $ref: '#/components/schemas/Food'
-
+                $ref: "#/components/schemas/Food"
 
     Profile:
       description: Parameters describing body functioning relative to T1D + compensation parameters
       allOf:
-        - $ref: '#/components/schemas/DocumentBase'
+        - $ref: "#/components/schemas/DocumentBase"
         - type: object
           properties:
             some_property:
               type: string
               description: ...
-
 
     Settings:
       description:
@@ -1400,18 +1339,17 @@ components:
         `Settings` collection has a more specific authorization required. For the `SEARCH` operation within this collection, you need an `admin` permission, such as `api:settings:admin`. The goal is to isolate individual client application settings.
 
       allOf:
-        - $ref: '#/components/schemas/DocumentBase'
+        - $ref: "#/components/schemas/DocumentBase"
         - type: object
           properties:
             some_property:
               type: string
               description: ...
 
-
     Treatment:
       description: T1D compensation action
       allOf:
-        - $ref: '#/components/schemas/DocumentBase'
+        - $ref: "#/components/schemas/DocumentBase"
         - type: object
           properties:
             eventType:
@@ -1421,7 +1359,6 @@ components:
 
 
                 Note&#58; this field is immutable by the client (it cannot be updated or patched)
-
 
             #           created_at:
             #              type: string
@@ -1486,134 +1423,121 @@ components:
               type: string
               description: Who entered the treatment.
 
-
     DocumentToPost:
       description: Single document
       type: object
       oneOf:
-        - $ref: '#/components/schemas/DeviceStatus'
-        - $ref: '#/components/schemas/Entry'
-        - $ref: '#/components/schemas/Food'
-        - $ref: '#/components/schemas/Profile'
-        - $ref: '#/components/schemas/Settings'
-        - $ref: '#/components/schemas/Treatment'
+        - $ref: "#/components/schemas/DeviceStatus"
+        - $ref: "#/components/schemas/Entry"
+        - $ref: "#/components/schemas/Food"
+        - $ref: "#/components/schemas/Profile"
+        - $ref: "#/components/schemas/Settings"
+        - $ref: "#/components/schemas/Treatment"
       example:
-        'identifier': '53409478-105f-11e9-ab14-d663bd873d93'
-        'date': 1532936118000
-        'utcOffset': 120
-        'carbs': 10
-        'insulin': 1
-        'eventType': 'Snack Bolus'
-        'app': 'xdrip'
-        'subject': 'uploader'
-
+        "identifier": "53409478-105f-11e9-ab14-d663bd873d93"
+        "date": 1532936118000
+        "utcOffset": 120
+        "carbs": 10
+        "insulin": 1
+        "eventType": "Snack Bolus"
+        "app": "xdrip"
+        "subject": "uploader"
 
     Document:
       description: Single document
       xml:
-        name: 'item'
+        name: "item"
       type: object
       oneOf:
-        - $ref: '#/components/schemas/DeviceStatus'
-        - $ref: '#/components/schemas/Entry'
-        - $ref: '#/components/schemas/Food'
-        - $ref: '#/components/schemas/Profile'
-        - $ref: '#/components/schemas/Settings'
-        - $ref: '#/components/schemas/Treatment'
+        - $ref: "#/components/schemas/DeviceStatus"
+        - $ref: "#/components/schemas/Entry"
+        - $ref: "#/components/schemas/Food"
+        - $ref: "#/components/schemas/Profile"
+        - $ref: "#/components/schemas/Settings"
+        - $ref: "#/components/schemas/Treatment"
       example:
-        'identifier': '53409478-105f-11e9-ab14-d663bd873d93'
-        'date': 1532936118000
-        'utcOffset': 120
-        'carbs': 10
-        'insulin': 1
-        'eventType': 'Snack Bolus'
-        'srvCreated': 1532936218000
-        'srvModified': 1532936218000
-        'app': 'xdrip'
-        'subject': 'uploader'
-        'modifiedBy': 'admin'
-
+        "identifier": "53409478-105f-11e9-ab14-d663bd873d93"
+        "date": 1532936118000
+        "utcOffset": 120
+        "carbs": 10
+        "insulin": 1
+        "eventType": "Snack Bolus"
+        "srvCreated": 1532936218000
+        "srvModified": 1532936218000
+        "app": "xdrip"
+        "subject": "uploader"
+        "modifiedBy": "admin"
 
     DeviceStatusArray:
       description: Array of documents
       type: array
       items:
-        $ref: '#/components/schemas/DeviceStatus'
-
+        $ref: "#/components/schemas/DeviceStatus"
 
     EntryArray:
       description: Array of documents
       type: array
       items:
-        $ref: '#/components/schemas/Entry'
-
+        $ref: "#/components/schemas/Entry"
 
     FoodArray:
       description: Array of documents
       type: array
       items:
-        $ref: '#/components/schemas/Food'
-
+        $ref: "#/components/schemas/Food"
 
     ProfileArray:
       description: Array of documents
       type: array
       items:
-        $ref: '#/components/schemas/Profile'
-
+        $ref: "#/components/schemas/Profile"
 
     SettingsArray:
       description: Array of settings
       type: array
       items:
-        $ref: '#/components/schemas/Settings'
-
+        $ref: "#/components/schemas/Settings"
 
     TreatmentArray:
       description: Array of documents
       type: array
       items:
-        $ref: '#/components/schemas/Treatment'
-
+        $ref: "#/components/schemas/Treatment"
 
     DocumentArray:
       type: object
       xml:
-        name: 'items'
+        name: "items"
       oneOf:
-        - $ref: '#/components/schemas/DeviceStatusArray'
-        - $ref: '#/components/schemas/EntryArray'
-        - $ref: '#/components/schemas/FoodArray'
-        - $ref: '#/components/schemas/ProfileArray'
-        - $ref: '#/components/schemas/SettingsArray'
-        - $ref: '#/components/schemas/TreatmentArray'
-
+        - $ref: "#/components/schemas/DeviceStatusArray"
+        - $ref: "#/components/schemas/EntryArray"
+        - $ref: "#/components/schemas/FoodArray"
+        - $ref: "#/components/schemas/ProfileArray"
+        - $ref: "#/components/schemas/SettingsArray"
+        - $ref: "#/components/schemas/TreatmentArray"
 
     Version:
       description: Information about versions
       type: object
       properties:
-
         status:
-          $ref: '#/components/schemas/statusField'
+          $ref: "#/components/schemas/statusField"
 
         result:
-          $ref: '#/components/schemas/VersionResult'
-
+          $ref: "#/components/schemas/VersionResult"
 
     VersionResult:
       type: object
       properties:
-
         version:
           description: The whole Nightscout instance version
           type: string
-          example: '0.10.2-release-20171201'
+          example: "0.10.2-release-20171201"
 
         apiVersion:
           description: API v3 subsystem version
           type: string
-          example: '3.0.0'
+          example: "3.0.0"
 
         srvDate:
           description: Actual server date and time in UNIX epoch format
@@ -1623,96 +1547,85 @@ components:
         storage:
           type: object
           properties:
-
             type:
               description: Type of storage engine used
               type: string
-              example: 'mongodb'
+              example: "mongodb"
 
             version:
               description: Version of the storage engine
               type: string
-              example: '4.0.6'
-
+              example: "4.0.6"
 
     Status:
       description: Information about versions and API permissions
       properties:
         status:
-          $ref: '#/components/schemas/statusField'
+          $ref: "#/components/schemas/statusField"
 
         result:
-          $ref: '#/components/schemas/StatusResult'
-
+          $ref: "#/components/schemas/StatusResult"
 
     StatusResult:
       allOf:
-        - $ref: '#/components/schemas/VersionResult'
+        - $ref: "#/components/schemas/VersionResult"
         - type: object
           properties:
-
             apiPermissions:
               type: object
               properties:
                 devicestatus:
                   type: string
-                  example: 'crud'
+                  example: "crud"
                 entries:
                   type: string
-                  example: 'r'
+                  example: "r"
                 food:
                   type: string
-                  example: 'crud'
+                  example: "crud"
                 profile:
                   type: string
-                  example: 'r'
+                  example: "r"
                 treatments:
                   type: string
-                  example: 'crud'
+                  example: "crud"
 
     LastModifiedResult:
       description: Result of LAST MODIFIED operation
       properties:
         srvDate:
-          description:
-            Actual storage server date (Unix epoch in ms).
+          description: Actual storage server date (Unix epoch in ms).
           type: integer
           format: int64
           example: 1556260878776
 
         collections:
           type: object
-          description:
-            Collections which the user have read access to.
+          description: Collections which the user have read access to.
           properties:
             devicestatus:
-              description:
-                Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
+              description: Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
               type: integer
               format: int64
               example: 1556260760974
             treatments:
-              description:
-                Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
+              description: Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
               type: integer
               format: int64
               example: 1553374184169
             entries:
-              description:
-                Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
+              description: Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
               type: integer
               format: int64
               example: 1556260758768
             profile:
-              description:
-                Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
+              description: Timestamp of the last modification (Unix epoch in ms), `null` when there is no timestamp found.
               type: integer
               format: int64
               example: 1548524042744
 
   ######################################################################################
   securitySchemes:
-
     jwtoken:
       type: http
       scheme: bearer

@@ -1,134 +1,133 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
-var constants = require('./constants.json');
+var _ = require("lodash");
+var constants = require("./constants.json");
 
-function init () {
-
+function init() {
   var settings = {
-    units: 'mg/dl'
-    , timeFormat: 12
-    , dayStart: 7.0
-    , dayEnd: 21.0
-    , nightMode: false
-    , editMode: true
-    , showRawbg: 'never'
-    , customTitle: 'Nightscout'
-    , theme: 'default'
-    , alarmUrgentHigh: true
-    , alarmUrgentHighMins: [30, 60, 90, 120]
-    , alarmHigh: true
-    , alarmHighMins: [30, 60, 90, 120]
-    , alarmLow: true
-    , alarmLowMins: [15, 30, 45, 60]
-    , alarmUrgentLow: true
-    , alarmUrgentLowMins: [15, 30, 45]
-    , alarmUrgentMins: [30, 60, 90, 120]
-    , alarmWarnMins: [30, 60, 90, 120]
-    , alarmTimeagoWarn: true
-    , alarmTimeagoWarnMins: 15
-    , alarmTimeagoUrgent: true
-    , alarmTimeagoUrgentMins: 30
-    , alarmPumpBatteryLow: false
-    , language: 'en'
-    , scaleY: 'log'
-    , showPlugins: 'dbsize'
-    , showForecast: 'ar2'
-    , focusHours: 3
-    , heartbeat: 60
-    , baseURL: ''
-    , authDefaultRoles: 'readable'
-    , thresholds: {
-      bgHigh: 260
-      , bgTargetTop: 180
-      , bgTargetBottom: 80
-      , bgLow: 55
-    }
-    , insecureUseHttp: false
-    , secureHstsHeader: true
-    , secureHstsHeaderIncludeSubdomains: false
-    , secureHstsHeaderPreload: false
-    , secureCsp: false
-    , deNormalizeDates: false
-    , showClockDelta: false
-    , showClockLastTime: false
-    , frameUrl1: ''
-    , frameUrl2: ''
-    , frameUrl3: ''
-    , frameUrl4: ''
-    , frameUrl5: ''
-    , frameUrl6: ''
-    , frameUrl7: ''
-    , frameUrl8: ''
-    , frameName1: ''
-    , frameName2: ''
-    , frameName3: ''
-    , frameName4: ''
-    , frameName5: ''
-    , frameName6: ''
-    , frameName7: ''
-    , frameName8: ''
-    , authFailDelay: 5000
-    , adminNotifiesEnabled: true
-    , obscured: ''
-    , obscureDeviceProvenance: ''
-    , authenticationPromptOnLoad: false
+    units: "mg/dl",
+    timeFormat: 12,
+    dayStart: 7.0,
+    dayEnd: 21.0,
+    nightMode: false,
+    editMode: true,
+    showRawbg: "never",
+    customTitle: "Nightscout",
+    theme: "default",
+    alarmUrgentHigh: true,
+    alarmUrgentHighMins: [30, 60, 90, 120],
+    alarmHigh: true,
+    alarmHighMins: [30, 60, 90, 120],
+    alarmLow: true,
+    alarmLowMins: [15, 30, 45, 60],
+    alarmUrgentLow: true,
+    alarmUrgentLowMins: [15, 30, 45],
+    alarmUrgentMins: [30, 60, 90, 120],
+    alarmWarnMins: [30, 60, 90, 120],
+    alarmTimeagoWarn: true,
+    alarmTimeagoWarnMins: 15,
+    alarmTimeagoUrgent: true,
+    alarmTimeagoUrgentMins: 30,
+    alarmPumpBatteryLow: false,
+    language: "en",
+    scaleY: "log",
+    showPlugins: "dbsize",
+    showForecast: "ar2",
+    focusHours: 3,
+    heartbeat: 60,
+    baseURL: "",
+    authDefaultRoles: "readable",
+    thresholds: {
+      bgHigh: 260,
+      bgTargetTop: 180,
+      bgTargetBottom: 80,
+      bgLow: 55,
+    },
+    insecureUseHttp: false,
+    secureHstsHeader: true,
+    secureHstsHeaderIncludeSubdomains: false,
+    secureHstsHeaderPreload: false,
+    secureCsp: false,
+    deNormalizeDates: false,
+    showClockDelta: false,
+    showClockLastTime: false,
+    frameUrl1: "",
+    frameUrl2: "",
+    frameUrl3: "",
+    frameUrl4: "",
+    frameUrl5: "",
+    frameUrl6: "",
+    frameUrl7: "",
+    frameUrl8: "",
+    frameName1: "",
+    frameName2: "",
+    frameName3: "",
+    frameName4: "",
+    frameName5: "",
+    frameName6: "",
+    frameName7: "",
+    frameName8: "",
+    authFailDelay: 5000,
+    adminNotifiesEnabled: true,
+    obscured: "",
+    obscureDeviceProvenance: "",
+    authenticationPromptOnLoad: false,
   };
 
   var secureSettings = [
-    'apnsKey'
-    , 'apnsKeyId'
-    , 'developerTeamId'
-    , 'userName'
-    , 'password'
-    , 'obscured'
-    , 'obscureDeviceProvenance'
+    "apnsKey",
+    "apnsKeyId",
+    "developerTeamId",
+    "userName",
+    "password",
+    "obscured",
+    "obscureDeviceProvenance",
   ];
 
   var valueMappers = {
-    nightMode: mapTruthy
-    , alarmUrgentHigh: mapTruthy
-    , alarmUrgentHighMins: mapNumberArray
-    , alarmHigh: mapTruthy
-    , alarmHighMins: mapNumberArray
-    , alarmLow: mapTruthy
-    , alarmLowMins: mapNumberArray
-    , alarmUrgentLow: mapTruthy
-    , alarmUrgentLowMins: mapNumberArray
-    , alarmUrgentMins: mapNumberArray
-    , alarmTimeagoWarn: mapTruthy
-    , alarmTimeagoUrgent: mapTruthy
-    , alarmWarnMins: mapNumberArray
-    , timeFormat: mapNumber
-    , insecureUseHttp: mapTruthy
-    , secureHstsHeader: mapTruthy
-    , secureCsp: mapTruthy
-    , deNormalizeDates: mapTruthy
-    , showClockDelta: mapTruthy
-    , showClockLastTime: mapTruthy
-    , bgHigh: mapNumber
-    , bgLow: mapNumber
-    , bgTargetTop: mapNumber
-    , bgTargetBottom: mapNumber
-    , authFailDelay: mapNumber
-    , adminNotifiesEnabled: mapTruthy
-    , authenticationPromptOnLoad: mapTruthy
+    nightMode: mapTruthy,
+    alarmUrgentHigh: mapTruthy,
+    alarmUrgentHighMins: mapNumberArray,
+    alarmHigh: mapTruthy,
+    alarmHighMins: mapNumberArray,
+    alarmLow: mapTruthy,
+    alarmLowMins: mapNumberArray,
+    alarmUrgentLow: mapTruthy,
+    alarmUrgentLowMins: mapNumberArray,
+    alarmUrgentMins: mapNumberArray,
+    alarmTimeagoWarn: mapTruthy,
+    alarmTimeagoUrgent: mapTruthy,
+    alarmWarnMins: mapNumberArray,
+    timeFormat: mapNumber,
+    insecureUseHttp: mapTruthy,
+    secureHstsHeader: mapTruthy,
+    secureCsp: mapTruthy,
+    deNormalizeDates: mapTruthy,
+    showClockDelta: mapTruthy,
+    showClockLastTime: mapTruthy,
+    bgHigh: mapNumber,
+    bgLow: mapNumber,
+    bgTargetTop: mapNumber,
+    bgTargetBottom: mapNumber,
+    authFailDelay: mapNumber,
+    adminNotifiesEnabled: mapTruthy,
+    authenticationPromptOnLoad: mapTruthy,
   };
 
   function filterObj(obj, secureKeys) {
-    if (obj && typeof obj === 'object') {
-        var allKeys = Object.keys(obj);
-        for (var i = 0 ; i < allKeys.length ; i++) {
-            var k = allKeys[i];
-            if (secureKeys.includes(k)) {
-              delete obj[k];
-            } else {
-             var value = obj[k];
-             if ( typeof value === 'object') {
-              filterObj(value, secureKeys);
-             }
+    if (obj && typeof obj === "object") {
+      var allKeys = Object.keys(obj);
+      for (var i = 0; i < allKeys.length; i++) {
+        var k = allKeys[i];
+        if (secureKeys.includes(k)) {
+          delete obj[k];
+        } else {
+          var value = obj[k];
+          if (typeof value === "object") {
+            filterObj(value, secureKeys);
           }
         }
+      }
     }
     return obj;
   }
@@ -141,14 +140,14 @@ function init () {
     return filterObj(so, secureSettings);
   }
 
-  function mapNumberArray (value) {
+  function mapNumberArray(value) {
     if (!value || _.isArray(value)) {
       return value;
     }
 
     if (isNaN(value)) {
-      var rawValues = value && value.split(' ') || [];
-      return _.map(rawValues, function(num) {
+      var rawValues = (value && value.split(" ")) || [];
+      return _.map(rawValues, function (num) {
         return isNaN(num) ? null : Number(num);
       });
     } else {
@@ -156,14 +155,16 @@ function init () {
     }
   }
 
-  function mapNumber (value) {
+  function mapNumber(value) {
     if (!value) {
       return value;
     }
 
-    if (typeof value === 'string' && isNaN(value)) {
-      const decommaed = value.replace(',','.');
-      if (!isNaN(decommaed)) { value = decommaed; }
+    if (typeof value === "string" && isNaN(value)) {
+      const decommaed = value.replace(",", ".");
+      if (!isNaN(decommaed)) {
+        value = decommaed;
+      }
     }
 
     if (isNaN(value)) {
@@ -173,29 +174,55 @@ function init () {
     }
   }
 
-  function mapTruthy (value) {
-    if (typeof value === 'string' && (value.toLowerCase() === 'on' || value.toLowerCase() === 'true')) { value = true; }
-    if (typeof value === 'string' && (value.toLowerCase() === 'off' || value.toLowerCase() === 'false')) { value = false; }
+  function mapTruthy(value) {
+    if (
+      typeof value === "string" &&
+      (value.toLowerCase() === "on" || value.toLowerCase() === "true")
+    ) {
+      value = true;
+    }
+    if (
+      typeof value === "string" &&
+      (value.toLowerCase() === "off" || value.toLowerCase() === "false")
+    ) {
+      value = false;
+    }
     return value;
   }
 
   //TODO: getting sent in status.json, shouldn't be
-  settings.DEFAULT_FEATURES = ['bgnow', 'delta', 'direction', 'timeago', 'devicestatus', 'upbat', 'errorcodes', 'profile', 'bolus', 'dbsize', 'runtimestate', 'basal', 'careportal'];
+  settings.DEFAULT_FEATURES = [
+    "bgnow",
+    "delta",
+    "direction",
+    "timeago",
+    "devicestatus",
+    "upbat",
+    "errorcodes",
+    "profile",
+    "bolus",
+    "dbsize",
+    "runtimestate",
+    "basal",
+    "careportal",
+  ];
 
   var wasSet = [];
 
-  function isSimple (value) {
-    return _.isArray(value) || (typeof value !== 'function' && typeof value !== 'object');
+  function isSimple(value) {
+    return (
+      _.isArray(value) ||
+      (typeof value !== "function" && typeof value !== "object")
+    );
   }
 
-  function nameFromKey (key, nameType) {
-    return nameType === 'env' ? _.snakeCase(key).toUpperCase() : key;
+  function nameFromKey(key, nameType) {
+    return nameType === "env" ? _.snakeCase(key).toUpperCase() : key;
   }
 
-  function eachSettingAs (nameType) {
-
-    function mapKeys (accessor, keys) {
-      _.forIn(keys, function each (value, key) {
+  function eachSettingAs(nameType) {
+    function mapKeys(accessor, keys) {
+      _.forIn(keys, function each(value, key) {
         if (isSimple(value)) {
           var newValue = accessor(nameFromKey(key, nameType));
           if (newValue !== undefined) {
@@ -207,71 +234,81 @@ function init () {
       });
     }
 
-    return function allKeys (accessor) {
+    return function allKeys(accessor) {
       mapKeys(accessor, settings);
       mapKeys(accessor, settings.thresholds);
       enableAndDisableFeatures(accessor, nameType);
     };
   }
 
-  function enableAndDisableFeatures (accessor, nameType) {
-
-    function getAndPrepare (key) {
-      var raw = accessor(nameFromKey(key, nameType)) || '';
+  function enableAndDisableFeatures(accessor, nameType) {
+    function getAndPrepare(key) {
+      var raw = accessor(nameFromKey(key, nameType)) || "";
       var cleaned = decodeURIComponent(raw).toLowerCase();
-      cleaned = cleaned ? cleaned.split(' ') : [];
-      cleaned = _.filter(cleaned, function(e) { return e !== ""; } );
+      cleaned = cleaned ? cleaned.split(" ") : [];
+      cleaned = _.filter(cleaned, function (e) {
+        return e !== "";
+      });
       return cleaned;
     }
 
-    function enableIf (feature, condition) {
+    function enableIf(feature, condition) {
       if (condition) {
         enable.push(feature);
       }
     }
 
-    function anyEnabled (features) {
-      return _.findIndex(features, function(feature) {
-        return enable.indexOf(feature) > -1;
-      }) > -1;
+    function anyEnabled(features) {
+      return (
+        _.findIndex(features, function (feature) {
+          return enable.indexOf(feature) > -1;
+        }) > -1
+      );
     }
 
-    function prepareAlarmTypes () {
-      var alarmTypes = _.filter(getAndPrepare('alarmTypes'), function onlyKnownTypes (type) {
-        return type === 'predict' || type === 'simple';
-      });
+    function prepareAlarmTypes() {
+      var alarmTypes = _.filter(
+        getAndPrepare("alarmTypes"),
+        function onlyKnownTypes(type) {
+          return type === "predict" || type === "simple";
+        },
+      );
 
       if (alarmTypes.length === 0) {
-        var thresholdWasSet = _.findIndex(wasSet, function(name) {
-          return name.indexOf('bg') === 0;
-        }) > -1;
-        alarmTypes = thresholdWasSet ? ['simple'] : ['predict'];
+        var thresholdWasSet =
+          _.findIndex(wasSet, function (name) {
+            return name.indexOf("bg") === 0;
+          }) > -1;
+        alarmTypes = thresholdWasSet ? ["simple"] : ["predict"];
       }
 
       return alarmTypes;
     }
 
-    var enable = getAndPrepare('enable');
-    var disable = getAndPrepare('disable');
-    var obscured = getAndPrepare('obscured');
+    var enable = getAndPrepare("enable");
+    var disable = getAndPrepare("disable");
+    var obscured = getAndPrepare("obscured");
 
     settings.alarmTypes = prepareAlarmTypes();
 
     //don't require pushover to be enabled to preserve backwards compatibility if there are extendedSettings for it
-    enableIf('pushover', accessor(nameFromKey('pushoverApiToken', nameType)));
+    enableIf("pushover", accessor(nameFromKey("pushoverApiToken", nameType)));
 
-    enableIf('treatmentnotify', anyEnabled(['careportal', 'pushover', 'maker']));
+    enableIf(
+      "treatmentnotify",
+      anyEnabled(["careportal", "pushover", "maker"]),
+    );
 
-    _.each(settings.DEFAULT_FEATURES, function eachDefault (feature) {
+    _.each(settings.DEFAULT_FEATURES, function eachDefault(feature) {
       enableIf(feature, enable.indexOf(feature) < 0);
     });
 
     //TODO: maybe get rid of ALARM_TYPES and only use enable?
-    enableIf('simplealarms', settings.alarmTypes.indexOf('simple') > -1);
-    enableIf('ar2', settings.alarmTypes.indexOf('predict') > -1);
+    enableIf("simplealarms", settings.alarmTypes.indexOf("simple") > -1);
+    enableIf("ar2", settings.alarmTypes.indexOf("predict") > -1);
 
     if (disable.length > 0) {
-      console.info('disabling', disable);
+      console.info("disabling", disable);
     }
 
     //all enabled feature, without any that have been disabled
@@ -286,10 +323,19 @@ function init () {
     thresholds.bgLow = Number(thresholds.bgLow);
 
     // Do not convert for old installs that have these set in mg/dl
-    if (settings.units.toLowerCase().includes('mmol') && thresholds.bgHigh < 50) {
-      thresholds.bgHigh = Math.round(thresholds.bgHigh * constants.MMOL_TO_MGDL);
-      thresholds.bgTargetTop = Math.round(thresholds.bgTargetTop * constants.MMOL_TO_MGDL);
-      thresholds.bgTargetBottom = Math.round(thresholds.bgTargetBottom * constants.MMOL_TO_MGDL);
+    if (
+      settings.units.toLowerCase().includes("mmol") &&
+      thresholds.bgHigh < 50
+    ) {
+      thresholds.bgHigh = Math.round(
+        thresholds.bgHigh * constants.MMOL_TO_MGDL,
+      );
+      thresholds.bgTargetTop = Math.round(
+        thresholds.bgTargetTop * constants.MMOL_TO_MGDL,
+      );
+      thresholds.bgTargetBottom = Math.round(
+        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL,
+      );
       thresholds.bgLow = Math.round(thresholds.bgLow * constants.MMOL_TO_MGDL);
     }
 
@@ -297,57 +343,87 @@ function init () {
     adjustShownPlugins();
   }
 
-  function verifyThresholds () {
+  function verifyThresholds() {
     var thresholds = settings.thresholds;
 
     if (thresholds.bgTargetBottom >= thresholds.bgTargetTop) {
-      console.warn('BG_TARGET_BOTTOM(' + thresholds.bgTargetBottom + ') was >= BG_TARGET_TOP(' + thresholds.bgTargetTop + ')');
+      console.warn(
+        "BG_TARGET_BOTTOM(" +
+          thresholds.bgTargetBottom +
+          ") was >= BG_TARGET_TOP(" +
+          thresholds.bgTargetTop +
+          ")",
+      );
       thresholds.bgTargetBottom = thresholds.bgTargetTop - 1;
-      console.warn('BG_TARGET_BOTTOM is now ' + thresholds.bgTargetBottom);
+      console.warn("BG_TARGET_BOTTOM is now " + thresholds.bgTargetBottom);
     }
     if (thresholds.bgTargetTop <= thresholds.bgTargetBottom) {
-      console.warn('BG_TARGET_TOP(' + thresholds.bgTargetTop + ') was <= BG_TARGET_BOTTOM(' + thresholds.bgTargetBottom + ')');
+      console.warn(
+        "BG_TARGET_TOP(" +
+          thresholds.bgTargetTop +
+          ") was <= BG_TARGET_BOTTOM(" +
+          thresholds.bgTargetBottom +
+          ")",
+      );
       thresholds.bgTargetTop = thresholds.bgTargetBottom + 1;
-      console.warn('BG_TARGET_TOP is now ' + thresholds.bgTargetTop);
+      console.warn("BG_TARGET_TOP is now " + thresholds.bgTargetTop);
     }
     if (thresholds.bgLow >= thresholds.bgTargetBottom) {
-      console.warn('BG_LOW(' + thresholds.bgLow + ') was >= BG_TARGET_BOTTOM(' + thresholds.bgTargetBottom + ')');
+      console.warn(
+        "BG_LOW(" +
+          thresholds.bgLow +
+          ") was >= BG_TARGET_BOTTOM(" +
+          thresholds.bgTargetBottom +
+          ")",
+      );
       thresholds.bgLow = thresholds.bgTargetBottom - 1;
-      console.warn('BG_LOW is now ' + thresholds.bgLow);
+      console.warn("BG_LOW is now " + thresholds.bgLow);
     }
     if (thresholds.bgHigh <= thresholds.bgTargetTop) {
-      console.warn('BG_HIGH(' + thresholds.bgHigh + ') was <= BG_TARGET_TOP(' + thresholds.bgTargetTop + ')');
+      console.warn(
+        "BG_HIGH(" +
+          thresholds.bgHigh +
+          ") was <= BG_TARGET_TOP(" +
+          thresholds.bgTargetTop +
+          ")",
+      );
       thresholds.bgHigh = thresholds.bgTargetTop + 1;
-      console.warn('BG_HIGH is now ' + thresholds.bgHigh);
+      console.warn("BG_HIGH is now " + thresholds.bgHigh);
     }
   }
 
-  function adjustShownPlugins () {
-    var showPluginsUnset = settings.showPlugins && 0 === settings.showPlugins.length;
+  function adjustShownPlugins() {
+    var showPluginsUnset =
+      settings.showPlugins && 0 === settings.showPlugins.length;
 
-    settings.showPlugins += ' delta direction upbat';
-    if (settings.showRawbg === 'always' || settings.showRawbg === 'noise') {
-      settings.showPlugins += ' rawbg';
+    settings.showPlugins += " delta direction upbat";
+    if (settings.showRawbg === "always" || settings.showRawbg === "noise") {
+      settings.showPlugins += " rawbg";
     }
 
     if (showPluginsUnset) {
       //assume all enabled features are plugins and they should be shown for now
       //it would be better to use the registered plugins, but it's not loaded yet...
-      _.forEach(settings.enable, function showFeature (feature) {
+      _.forEach(settings.enable, function showFeature(feature) {
         if (isEnabled(feature)) {
-          settings.showPlugins += ' ' + feature;
+          settings.showPlugins += " " + feature;
         }
       });
     }
   }
 
-  function isEnabled (feature) {
+  function isEnabled(feature) {
     var enabled = false;
 
-    if (settings.enable && typeof feature === 'object' && feature.length !== undefined) {
-      enabled = _.find(feature, function eachFeature (f) {
-        return settings.enable.indexOf(f) > -1;
-      }) !== undefined;
+    if (
+      settings.enable &&
+      typeof feature === "object" &&
+      feature.length !== undefined
+    ) {
+      enabled =
+        _.find(feature, function eachFeature(f) {
+          return settings.enable.indexOf(f) > -1;
+        }) !== undefined;
     } else {
       enabled = settings.enable && settings.enable.indexOf(feature) > -1;
     }
@@ -356,30 +432,40 @@ function init () {
   }
 
   function isUrgentHighAlarmEnabled(notify) {
-    return notify.eventName === 'high' && notify.level === constants.LEVEL_URGENT && settings.alarmUrgentHigh;
+    return (
+      notify.eventName === "high" &&
+      notify.level === constants.LEVEL_URGENT &&
+      settings.alarmUrgentHigh
+    );
   }
 
   function isHighAlarmEnabled(notify) {
-    return notify.eventName === 'high' && settings.alarmHigh;
+    return notify.eventName === "high" && settings.alarmHigh;
   }
 
   function isUrgentLowAlarmEnabled(notify) {
-    return notify.eventName === 'low' && notify.level === constants.LEVEL_URGENT && settings.alarmUrgentLow;
+    return (
+      notify.eventName === "low" &&
+      notify.level === constants.LEVEL_URGENT &&
+      settings.alarmUrgentLow
+    );
   }
 
   function isLowAlarmEnabled(notify) {
-    return notify.eventName === 'low' && settings.alarmLow;
+    return notify.eventName === "low" && settings.alarmLow;
   }
 
-  function isAlarmEventEnabled (notify) {
-    return ('high' !== notify.eventName && 'low' !== notify.eventName)
-     || isUrgentHighAlarmEnabled(notify)
-     || isHighAlarmEnabled(notify)
-     || isUrgentLowAlarmEnabled(notify)
-     || isLowAlarmEnabled(notify);
+  function isAlarmEventEnabled(notify) {
+    return (
+      ("high" !== notify.eventName && "low" !== notify.eventName) ||
+      isUrgentHighAlarmEnabled(notify) ||
+      isHighAlarmEnabled(notify) ||
+      isUrgentLowAlarmEnabled(notify) ||
+      isLowAlarmEnabled(notify)
+    );
   }
 
-  function snoozeMinsForAlarmEvent (notify) {
+  function snoozeMinsForAlarmEvent(notify) {
     var snoozeTime;
 
     if (isUrgentHighAlarmEnabled(notify)) {
@@ -399,12 +485,12 @@ function init () {
     return snoozeTime;
   }
 
-  function snoozeFirstMinsForAlarmEvent (notify) {
+  function snoozeFirstMinsForAlarmEvent(notify) {
     return _.first(snoozeMinsForAlarmEvent(notify));
   }
 
   settings.eachSetting = eachSettingAs();
-  settings.eachSettingAsEnv = eachSettingAs('env');
+  settings.eachSettingAsEnv = eachSettingAs("env");
   settings.isEnabled = isEnabled;
   settings.isAlarmEventEnabled = isAlarmEventEnabled;
   settings.snoozeMinsForAlarmEvent = snoozeMinsForAlarmEvent;
@@ -412,7 +498,6 @@ function init () {
   settings.filteredSettings = filteredSettings;
 
   return settings;
-
 }
 
 module.exports = init;

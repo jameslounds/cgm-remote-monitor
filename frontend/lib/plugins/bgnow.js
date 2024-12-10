@@ -1,24 +1,23 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
-var times = require('../times');
+var _ = require("lodash");
+var times = require("../times");
 
 var offset = times.mins(2.5).msecs;
-var bucketFields = ['index', 'fromMills', 'toMills'];
+var bucketFields = ["index", "fromMills", "toMills"];
 
-function init (ctx) {
-
+function init(ctx) {
   var moment = ctx.moment;
   var translate = ctx.language.translate;
-  var utils = require('../utils')(ctx);
+  var utils = require("../utils")(ctx);
 
   var bgnow = {
-    name: 'bgnow'
-    , label: 'BG Now'
-    , pluginType: 'pill-primary'
+    name: "bgnow",
+    label: "BG Now",
+    pluginType: "pill-primary",
   };
 
-  bgnow.mostRecentBucket = function mostRecentBucket (buckets) {
+  bgnow.mostRecentBucket = function mostRecentBucket(buckets) {
     return _.find(buckets, function notEmpty(bucket) {
       return bucket && !bucket.isEmpty;
     });
@@ -28,59 +27,59 @@ function init (ctx) {
     var previous = null;
 
     if (_.isObject(recent)) {
-      previous = _.chain(buckets).find(function afterFirstNotEmpty(bucket) {
-        return bucket.mills < recent.mills && !bucket.isEmpty;
-      }).value();
+      previous = _.chain(buckets)
+        .find(function afterFirstNotEmpty(bucket) {
+          return bucket.mills < recent.mills && !bucket.isEmpty;
+        })
+        .value();
     }
 
     return previous;
   };
 
-  bgnow.setProperties = function setProperties (sbx) {
+  bgnow.setProperties = function setProperties(sbx) {
     var buckets = bgnow.fillBuckets(sbx);
     var recent = bgnow.mostRecentBucket(buckets);
     var previous = bgnow.previousBucket(recent, buckets);
     var delta = bgnow.calcDelta(recent, previous, sbx);
 
-    sbx.offerProperty('bgnow', function setBGNow ( ) {
+    sbx.offerProperty("bgnow", function setBGNow() {
       return _.omit(recent, bucketFields);
     });
 
-    sbx.offerProperty('delta', function setBGNow ( ) {
+    sbx.offerProperty("delta", function setBGNow() {
       return delta;
     });
 
-    sbx.offerProperty('buckets', function setBGNow ( ) {
+    sbx.offerProperty("buckets", function setBGNow() {
       return buckets;
     });
   };
 
-  bgnow.fillBuckets = function fillBuckets (sbx, opts) {
-
+  bgnow.fillBuckets = function fillBuckets(sbx, opts) {
     var bucketCount = (opts && opts.bucketCount) || 4;
     var bucketMins = (opts && opts.bucketMins) || 5;
     var bucketMsecs = times.mins(bucketMins).msecs;
 
     var lastSGVMills = sbx.lastSGVMills();
 
-    var buckets = _.times(bucketCount, function createBucket (index) {
-      var fromMills = lastSGVMills - offset - (index * bucketMsecs);
+    var buckets = _.times(bucketCount, function createBucket(index) {
+      var fromMills = lastSGVMills - offset - index * bucketMsecs;
       return {
-        index: index
-        , fromMills: fromMills
-        , toMills: fromMills + bucketMsecs
-        , sgvs: [ ]
+        index: index,
+        fromMills: fromMills,
+        toMills: fromMills + bucketMsecs,
+        sgvs: [],
       };
     });
 
-    _.takeRightWhile(sbx.data.sgvs, function addToBucket (sgv) {
-
+    _.takeRightWhile(sbx.data.sgvs, function addToBucket(sgv) {
       //if in the future, return true and keep taking right
       if (sgv.mills > sbx.time) {
         return true;
       }
 
-      var bucket = _.find(buckets, function containsSGV (bucket) {
+      var bucket = _.find(buckets, function containsSGV(bucket) {
         return sgv.mills >= bucket.fromMills && sgv.mills <= bucket.toMills;
       });
 
@@ -95,28 +94,27 @@ function init (ctx) {
     return _.map(buckets, bgnow.analyzeBucket);
   };
 
-  function notError (entry) {
+  function notError(entry) {
     return entry && entry.mgdl > 39; //TODO maybe lower instead of expecting dexcom?
   }
 
-  function isError (entry) {
+  function isError(entry) {
     return !entry || !entry.mgdl || entry.mgdl < 39;
   }
 
-  bgnow.analyzeBucket = function analyzeBucket (bucket) {
-
+  bgnow.analyzeBucket = function analyzeBucket(bucket) {
     if (_.isEmpty(bucket.sgvs)) {
       bucket.isEmpty = true;
       return bucket;
     }
 
-    var details = { };
+    var details = {};
 
     var sgvs = _.filter(bucket.sgvs, notError);
 
-    function calcMean ( ) {
+    function calcMean() {
       var sum = 0;
-      _.forEach(sgvs, function eachSGV (sgv) {
+      _.forEach(sgvs, function eachSGV(sgv) {
         sum += Number(sgv.mgdl);
       });
 
@@ -129,7 +127,7 @@ function init (ctx) {
       details.mean = mean;
     }
 
-    var mostRecent = _.maxBy(sgvs, 'mills');
+    var mostRecent = _.maxBy(sgvs, "mills");
 
     if (mostRecent) {
       details.last = mostRecent.mgdl;
@@ -144,8 +142,7 @@ function init (ctx) {
     return _.merge(details, bucket);
   };
 
-  bgnow.calcDelta = function calcDelta (recent, previous, sbx) {
-
+  bgnow.calcDelta = function calcDelta(recent, previous, sbx) {
     if (_.isEmpty(recent)) {
       //console.info('No recent CGM data is available');
       return null;
@@ -157,34 +154,38 @@ function init (ctx) {
     }
 
     var delta = {
-      absolute: recent.mean - previous.mean
-      , elapsedMins: (recent.mills - previous.mills) / times.min().msecs
+      absolute: recent.mean - previous.mean,
+      elapsedMins: (recent.mills - previous.mills) / times.min().msecs,
     };
 
     delta.interpolated = delta.elapsedMins > 9;
 
-    delta.mean5MinsAgo = delta.interpolated ?
-      recent.mean - delta.absolute / delta.elapsedMins * 5 : recent.mean - delta.absolute;
+    delta.mean5MinsAgo = delta.interpolated
+      ? recent.mean - (delta.absolute / delta.elapsedMins) * 5
+      : recent.mean - delta.absolute;
 
     delta.times = {
-      recent: recent.mills
-      , previous: previous.mills
+      recent: recent.mills,
+      previous: previous.mills,
     };
 
     delta.mgdl = Math.round(recent.mean - delta.mean5MinsAgo);
 
-    delta.scaled = sbx.settings.units === 'mmol' ?
-      sbx.roundBGToDisplayFormat(sbx.scaleMgdl(recent.mean) - sbx.scaleMgdl(delta.mean5MinsAgo)) : delta.mgdl;
+    delta.scaled =
+      sbx.settings.units === "mmol"
+        ? sbx.roundBGToDisplayFormat(
+            sbx.scaleMgdl(recent.mean) - sbx.scaleMgdl(delta.mean5MinsAgo),
+          )
+        : delta.mgdl;
 
-    delta.display = (delta.scaled >= 0 ? '+' : '') + delta.scaled;
+    delta.display = (delta.scaled >= 0 ? "+" : "") + delta.scaled;
 
     delta.previous = _.omit(previous, bucketFields);
 
     return delta;
-
   };
 
-  bgnow.updateVisualisation = function updateVisualisation (sbx) {
+  bgnow.updateVisualisation = function updateVisualisation(sbx) {
     var prop = sbx.properties.bgnow;
     var delta = sbx.properties.delta;
 
@@ -192,21 +193,36 @@ function init (ctx) {
     var display = delta && delta.display;
 
     if (delta && delta.interpolated) {
-      display += ' *';
-      info.push({label: translate('Elapsed Time'), value: Math.round(delta.elapsedMins) + ' ' + translate('mins')});
-      info.push({label: translate('Absolute Delta'), value: sbx.roundBGToDisplayFormat(sbx.scaleMgdl(delta.absolute)) + ' ' + sbx.unitsLabel});
-      info.push({label: translate('Interpolated'), value: sbx.roundBGToDisplayFormat(sbx.scaleMgdl(delta.mean5MinsAgo)) + ' ' + sbx.unitsLabel});
+      display += " *";
+      info.push({
+        label: translate("Elapsed Time"),
+        value: Math.round(delta.elapsedMins) + " " + translate("mins"),
+      });
+      info.push({
+        label: translate("Absolute Delta"),
+        value:
+          sbx.roundBGToDisplayFormat(sbx.scaleMgdl(delta.absolute)) +
+          " " +
+          sbx.unitsLabel,
+      });
+      info.push({
+        label: translate("Interpolated"),
+        value:
+          sbx.roundBGToDisplayFormat(sbx.scaleMgdl(delta.mean5MinsAgo)) +
+          " " +
+          sbx.unitsLabel,
+      });
     }
 
-    var deviceInfos = { };
+    var deviceInfos = {};
 
     if (prop.sgvs) {
       _.forEach(prop.sgvs, function deviceAndValue(entry) {
         var device = utils.deviceName(entry.device);
         deviceInfos[device] = {
-          time: utils.timeFormat(moment(entry.mills), sbx)
-          , value: sbx.scaleEntry(entry)
-          , recent: entry
+          time: utils.timeFormat(moment(entry.mills), sbx),
+          value: sbx.scaleEntry(entry),
+          recent: entry,
         };
       });
     }
@@ -217,18 +233,18 @@ function init (ctx) {
         var deviceInfo = deviceInfos[device];
         if (deviceInfo && deviceInfo.recent) {
           var deviceDelta = bgnow.calcDelta(
-            { mills: deviceInfo.recent.mills , mean: deviceInfo.recent.mgdl}
-            , { mills: entry.mills, mean: entry.mgdl}
-            , sbx
+            { mills: deviceInfo.recent.mills, mean: deviceInfo.recent.mgdl },
+            { mills: entry.mills, mean: entry.mgdl },
+            sbx,
           );
 
           if (deviceDelta) {
-            deviceInfo.delta = deviceDelta.display
+            deviceInfo.delta = deviceDelta.display;
           }
         } else {
           deviceInfos[device] = {
-            time: utils.timeFormat(moment(entry.mills), sbx)
-            , value: sbx.scaleEntry(entry)
+            time: utils.timeFormat(moment(entry.mills), sbx),
+            value: sbx.scaleEntry(entry),
           };
         }
       });
@@ -237,55 +253,60 @@ function init (ctx) {
         _.forIn(deviceInfos, function addInfo(deviceInfo, name) {
           var display = deviceInfo.value;
           if (deviceInfo.delta) {
-            display += ' ' + deviceInfo.delta;
+            display += " " + deviceInfo.delta;
           }
 
-          display += ' (' + deviceInfo.time + ')';
+          display += " (" + deviceInfo.time + ")";
 
-          info.push({label: name, value: display});
+          info.push({ label: name, value: display });
         });
       }
     }
 
-    sbx.pluginBase.updatePillText({
-      name: 'delta'
-      , label: translate('BG Delta')
-      , pluginType: 'pill-major'
-      , pillFlip: true
-    }, {
-      value: display
-      , label: sbx.unitsLabel
-      , info: _.isEmpty(info) ? null : info
-    });
+    sbx.pluginBase.updatePillText(
+      {
+        name: "delta",
+        label: translate("BG Delta"),
+        pluginType: "pill-major",
+        pillFlip: true,
+      },
+      {
+        value: display,
+        label: sbx.unitsLabel,
+        info: _.isEmpty(info) ? null : info,
+      },
+    );
   };
 
   function virtAsstDelta(next, slots, sbx) {
     var delta = sbx.properties.delta;
 
     next(
-      translate('virtAsstTitleDelta')
-      , translate(delta.interpolated ? 'virtAsstDeltaEstimated' : 'virtAsstDelta'
-      , {
+      translate("virtAsstTitleDelta"),
+      translate(
+        delta.interpolated ? "virtAsstDeltaEstimated" : "virtAsstDelta",
+        {
           params: [
-            delta.display == '+0' ? '0' : delta.display
-            , moment(delta.times.recent).from(moment(sbx.time))
-            , moment(delta.times.previous).from(moment(sbx.time))
-          ]
-        }
-      )
+            delta.display == "+0" ? "0" : delta.display,
+            moment(delta.times.recent).from(moment(sbx.time)),
+            moment(delta.times.previous).from(moment(sbx.time)),
+          ],
+        },
+      ),
     );
   }
 
   bgnow.virtAsst = {
-    intentHandlers: [{
-      intent: "MetricNow"
-      , metrics: ["delta"]
-      , intentHandler: virtAsstDelta
-    }]
+    intentHandlers: [
+      {
+        intent: "MetricNow",
+        metrics: ["delta"],
+        intentHandler: virtAsstDelta,
+      },
+    ],
   };
 
   return bgnow;
-
 }
 
 module.exports = init;

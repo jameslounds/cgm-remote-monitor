@@ -1,9 +1,6 @@
-'use strict';
+"use strict";
 
-const updateValidate = require('../update/validate')
-  ;
-
-
+const updateValidate = require("../update/validate");
 /**
  * Validate document to patch
  * @param {Object} opCtx
@@ -11,8 +8,7 @@ const updateValidate = require('../update/validate')
  * @param {Object} storageDoc
  * @returns string - null if validation fails
  */
-function validate (opCtx, doc, storageDoc) {
-
+function validate(opCtx, doc, storageDoc) {
   return updateValidate(opCtx, doc, storageDoc, { isPatching: true });
 }
 

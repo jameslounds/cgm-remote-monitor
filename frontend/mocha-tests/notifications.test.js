@@ -1,91 +1,89 @@
-var should = require('should');
-var Stream = require('stream');
+var should = require("should");
+var Stream = require("stream");
 
-var levels = require('../lib/levels');
+var levels = require("../lib/levels");
 
-describe('notifications', function ( ) {
-
-  var env = {testMode: true};
+describe("notifications", function () {
+  var env = { testMode: true };
 
   var ctx = {
-    bus: new Stream
-    , ddata: {
-      lastUpdated: Date.now()
-    }
-    , levels: levels
+    bus: new Stream(),
+    ddata: {
+      lastUpdated: Date.now(),
+    },
+    levels: levels,
   };
 
-  var notifications = require('../lib/notifications')(env, ctx);
+  var notifications = require("../lib/notifications")(env, ctx);
 
-  function examplePlugin () {}
+  function examplePlugin() {}
 
   var exampleInfo = {
-    title: 'test'
-    , message: 'testing'
-    , level: levels.INFO
-    , plugin: examplePlugin
+    title: "test",
+    message: "testing",
+    level: levels.INFO,
+    plugin: examplePlugin,
   };
 
   var exampleWarn = {
-    title: 'test'
-    , message: 'testing'
-    , level: levels.WARN
-    , plugin: examplePlugin
+    title: "test",
+    message: "testing",
+    level: levels.WARN,
+    plugin: examplePlugin,
   };
 
   var exampleUrgent = {
-    title: 'test'
-    , message: 'testing'
-    , level: levels.URGENT
-    , plugin: examplePlugin
+    title: "test",
+    message: "testing",
+    level: levels.URGENT,
+    plugin: examplePlugin,
   };
 
   var exampleSnooze = {
-    level: levels.WARN
-    , title: 'exampleSnooze'
-    , message: 'exampleSnooze message'
-    , lengthMills: 10000
+    level: levels.WARN,
+    title: "exampleSnooze",
+    message: "exampleSnooze message",
+    lengthMills: 10000,
   };
 
   var exampleSnoozeNone = {
-    level: levels.WARN
-    , title: 'exampleSnoozeNone'
-    , message: 'exampleSnoozeNone message'
-    , lengthMills: 1
+    level: levels.WARN,
+    title: "exampleSnoozeNone",
+    message: "exampleSnoozeNone message",
+    lengthMills: 1,
   };
 
   var exampleSnoozeUrgent = {
-    level: levels.URGENT
-    , title: 'exampleSnoozeUrgent'
-    , message: 'exampleSnoozeUrgent message'
-    , lengthMills: 10000
+    level: levels.URGENT,
+    title: "exampleSnoozeUrgent",
+    message: "exampleSnoozeUrgent message",
+    lengthMills: 10000,
   };
 
-
-  function expectNotification (check, done) {
+  function expectNotification(check, done) {
     //start fresh to we don't pick up other notifications
-    ctx.bus = new Stream;
+    ctx.bus = new Stream();
     //if notification doesn't get called test will time out
-    ctx.bus.on('notification', function callback (notify) {
+    ctx.bus.on("notification", function callback(notify) {
       if (check(notify)) {
         done();
       }
     });
   }
 
-  function clearToDone (done) {
-    expectNotification(function expectClear (notify) {
+  function clearToDone(done) {
+    expectNotification(function expectClear(notify) {
       return notify.clear;
     }, done);
   }
 
-  function notifyToDone (done) {
-    expectNotification(function expectNotClear (notify) {
-      return ! notify.clear;
+  function notifyToDone(done) {
+    expectNotification(function expectNotClear(notify) {
+      return !notify.clear;
     }, done);
   }
 
-  it('initAndReInit', function (done) {
+  it("initAndReInit", function (done) {
     notifications.initRequests();
     notifications.requestNotify(exampleWarn);
     notifications.findHighestAlarm().should.equal(exampleWarn);
@@ -94,12 +92,11 @@ describe('notifications', function ( ) {
     done();
   });
 
-
-  it('emitAWarning', function (done) {
+  it("emitAWarning", function (done) {
     //start fresh to we don't pick up other notifications
-    ctx.bus = new Stream;
+    ctx.bus = new Stream();
     //if notification doesn't get called test will time out
-    ctx.bus.on('notification', function callback ( ) {
+    ctx.bus.on("notification", function callback() {
       done();
     });
 
@@ -110,7 +107,7 @@ describe('notifications', function ( ) {
     notifications.process();
   });
 
-  it('emitAnInfo', function (done) {
+  it("emitAnInfo", function (done) {
     notifyToDone(done);
 
     notifications.resetStateForTests();
@@ -121,7 +118,7 @@ describe('notifications', function ( ) {
     notifications.process();
   });
 
-  it('emitAllClear 1 time after alarm is auto acked', function (done) {
+  it("emitAllClear 1 time after alarm is auto acked", function (done) {
     clearToDone(done);
 
     notifications.resetStateForTests();
@@ -151,7 +148,7 @@ describe('notifications', function ( ) {
     notifications.process();
   });
 
-  it('Can be snoozed', function (done) {
+  it("Can be snoozed", function (done) {
     notifyToDone(done); //shouldn't get called
 
     notifications.resetStateForTests();
@@ -164,7 +161,7 @@ describe('notifications', function ( ) {
     done();
   });
 
-  it('Can be snoozed by last snooze', function (done) {
+  it("Can be snoozed by last snooze", function (done) {
     notifyToDone(done); //shouldn't get called
 
     notifications.resetStateForTests();
@@ -178,7 +175,7 @@ describe('notifications', function ( ) {
     done();
   });
 
-  it('Urgent alarms can\'t be snoozed by warn', function (done) {
+  it("Urgent alarms can't be snoozed by warn", function (done) {
     clearToDone(done); //shouldn't get called
 
     notifications.resetStateForTests();
@@ -191,7 +188,7 @@ describe('notifications', function ( ) {
     done();
   });
 
-  it('Warnings can be snoozed by urgent', function (done) {
+  it("Warnings can be snoozed by urgent", function (done) {
     notifyToDone(done); //shouldn't get called
 
     notifications.resetStateForTests();
@@ -203,5 +200,4 @@ describe('notifications', function ( ) {
 
     done();
   });
-
 });

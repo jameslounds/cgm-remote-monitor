@@ -1,14 +1,14 @@
-'use strict;'
+"use strict;";
 
-function clearRequireCache () {
-  Object.keys(require.cache).forEach(function(key) {
+function clearRequireCache() {
+  Object.keys(require.cache).forEach(function (key) {
     delete require.cache[key];
   });
 }
 
 exports.mochaHooks = {
-  afterEach (done) {
+  afterEach(done) {
     clearRequireCache();
     done();
-  }
+  },
 };

@@ -3,7 +3,7 @@ body {
   margin: 0 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Open Sans', Arial, Helvetica, sans-serif;
+  font-family: "Open Sans", Arial, Helvetica, sans-serif;
   color: grey;
   background-color: black;
 }
@@ -51,7 +51,7 @@ main {
 
 .close {
   color: white;
-  font: 4em 'Open Sans';
+  font: 4em "Open Sans";
   position: absolute;
   top: 0;
   right: 20px;
@@ -60,7 +60,7 @@ main {
 }
 
 .close:after {
-  content: '\00D7';
+  content: "\00D7";
 }
 
 .hidden {

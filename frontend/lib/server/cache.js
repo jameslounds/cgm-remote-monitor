@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /* This is a simple cache intended to reduce the amount of load
  * Nightscout puts on MongoDB. The cache is based on identifying
@@ -12,31 +12,35 @@
  * altogether.
  */
 
-const _ = require('lodash');
-const constants = require('../constants');
+const _ = require("lodash");
+const constants = require("../constants");
 
-function cache (env, ctx) {
-
+function cache(env, ctx) {
   const data = {
-    treatments: []
-    , devicestatus: []
-    , entries: []
+    treatments: [],
+    devicestatus: [],
+    entries: [],
   };
 
   const retentionPeriods = {
-    treatments: constants.ONE_HOUR * 60
-    , devicestatus: env.extendedSettings.devicestatus && env.extendedSettings.devicestatus.days && env.extendedSettings.devicestatus.days == 2 ? constants.TWO_DAYS : constants.ONE_DAY
-    , entries: constants.TWO_DAYS
+    treatments: constants.ONE_HOUR * 60,
+    devicestatus:
+      env.extendedSettings.devicestatus &&
+      env.extendedSettings.devicestatus.days &&
+      env.extendedSettings.devicestatus.days == 2
+        ? constants.TWO_DAYS
+        : constants.ONE_DAY,
+    entries: constants.TWO_DAYS,
   };
 
   function getObjectAge(object) {
     let age = object.mills || object.date;
-    if (isNaN(age) && object.created_at) age = Date.parse(object.created_at).valueOf();
+    if (isNaN(age) && object.created_at)
+      age = Date.parse(object.created_at).valueOf();
     return age;
   }
 
-  function mergeCacheArrays (oldData, newData, retentionPeriod) {
-
+  function mergeCacheArrays(oldData, newData, retentionPeriod) {
     const ageLimit = Date.now() - retentionPeriod;
 
     var filteredOld = filterForAge(oldData, ageLimit);
@@ -44,7 +48,7 @@ function cache (env, ctx) {
 
     const merged = ctx.ddata.idMergePreferNew(filteredOld, filteredNew);
 
-    return _.sortBy(merged, function(item) {
+    return _.sortBy(merged, function (item) {
       const age = getObjectAge(item);
       return -age;
     });
@@ -57,26 +61,29 @@ function cache (env, ctx) {
         return isFresh && hasId;
       });
     }
-
   }
 
   data.isEmpty = (datatype) => {
     return data[datatype].length < 20;
-  }
+  };
 
   data.getData = (datatype) => {
     return _.cloneDeep(data[datatype]);
-  }
+  };
 
   data.insertData = (datatype, newData) => {
-    data[datatype] = mergeCacheArrays(data[datatype], newData, retentionPeriods[datatype]);
+    data[datatype] = mergeCacheArrays(
+      data[datatype],
+      newData,
+      retentionPeriods[datatype],
+    );
     return data.getData(datatype);
-  }
+  };
 
-  function dataChanged (operation) {
+  function dataChanged(operation) {
     if (!data[operation.type]) return;
 
-    if (operation.op == 'remove') {
+    if (operation.op == "remove") {
       // if multiple items were deleted, flush entire cache
       if (!operation.changes) {
         data.treatments = [];
@@ -87,14 +94,18 @@ function cache (env, ctx) {
       }
     }
 
-    if (operation.op == 'update') {
-      data[operation.type] = mergeCacheArrays(data[operation.type], operation.changes, retentionPeriods[operation.type]);
+    if (operation.op == "update") {
+      data[operation.type] = mergeCacheArrays(
+        data[operation.type],
+        operation.changes,
+        retentionPeriods[operation.type],
+      );
     }
   }
 
-  ctx.bus.on('data-update', dataChanged);
+  ctx.bus.on("data-update", dataChanged);
 
-  function removeFromArray (array, id) {
+  function removeFromArray(array, id) {
     for (let i = 0; i < array.length; i++) {
       const o = array[i];
       if (o._id == id) {

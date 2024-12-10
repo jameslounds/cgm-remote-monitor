@@ -1,66 +1,67 @@
+"use strict";
 
-'use strict';
-
-require('should');
-var language = require('../lib/language')();
+require("should");
+var language = require("../lib/language")();
 
 const ctx = {};
 
 ctx.bus = {};
-ctx.bus.on = function mockOn(channel, f) { };
+ctx.bus.on = function mockOn(channel, f) {};
 ctx.settings = {};
 ctx.settings.adminNotifiesEnabled = true;
 
 const mockJqueryResults = {};
 const mockButton = {};
 
-mockButton.click = function() {};
-mockButton.css = function() {};
-mockButton.show = function() {};
+mockButton.click = function () {};
+mockButton.css = function () {};
+mockButton.show = function () {};
 
 const mockDrawer = {};
 
 const mockJQuery = function mockJquery(p) {
-    if (p == '#adminnotifies') return mockButton;
-    if (p == '#adminNotifiesDrawer') return mockDrawer;
-    return mockJqueryResults;
+  if (p == "#adminnotifies") return mockButton;
+  if (p == "#adminNotifiesDrawer") return mockDrawer;
+  return mockJqueryResults;
 };
 
 const mockClient = {};
 
 mockClient.translate = language.translate;
-mockClient.headers = function () {return {};}
+mockClient.headers = function () {
+  return {};
+};
 
-const adminnotifies = require('../lib/adminnotifies')(ctx);
+const adminnotifies = require("../lib/adminnotifies")(ctx);
 
 var window = {};
 //global.window = window;
 
-window.setTimeout = function () { return; }
+window.setTimeout = function () {
+  return;
+};
 
-describe('adminnotifies', function ( ) {
+describe("adminnotifies", function () {
+  after(function tearDown(done) {
+    delete global.window;
+    done();
+  });
 
-    after( function tearDown(done) {
-        delete global.window;
-        done();
-    });
+  it("should aggregate a message", function () {
+    const notify = {
+      title: "Foo",
+      message: "Bar",
+    };
 
-    it('should aggregate a message', function () {
+    adminnotifies.addNotify(notify);
+    adminnotifies.addNotify(notify);
 
-        const notify = {
-            title: 'Foo'
-            , message: 'Bar'
-        };
+    const notifies = adminnotifies.getNotifies();
 
-        adminnotifies.addNotify(notify);
-        adminnotifies.addNotify(notify);
+    notifies.length.should.equal(1);
+  });
 
-        const notifies = adminnotifies.getNotifies();
-
-        notifies.length.should.equal(1);
-      });
-
-      /*
+  /*
       it('should display a message', function (done) {
 
         const notify2 = {
@@ -105,5 +106,4 @@ describe('adminnotifies', function ( ) {
 
       });
 */
-
 });

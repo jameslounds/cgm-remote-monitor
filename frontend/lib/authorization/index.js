@@ -1,43 +1,41 @@
-'use strict';
+"use strict";
 
-const _ = require('lodash');
-const jwt = require('jsonwebtoken');
-const shiroTrie = require('shiro-trie');
+const _ = require("lodash");
+const jwt = require("jsonwebtoken");
+const shiroTrie = require("shiro-trie");
 
-const consts = require('./../constants');
-const sleep = require('util').promisify(setTimeout);
-const forwarded = require('forwarded-for');
+const consts = require("./../constants");
+const sleep = require("util").promisify(setTimeout);
+const forwarded = require("forwarded-for");
 
-function getRemoteIP (req) {
+function getRemoteIP(req) {
   const address = forwarded(req, req.headers);
   return address.ip;
 }
 
-function init (env, ctx) {
-
-  const ipdelaylist = require('./delaylist')(env, ctx);
+function init(env, ctx) {
+  const ipdelaylist = require("./delaylist")(env, ctx);
   const addFailedRequest = ipdelaylist.addFailedRequest;
   const shouldDelayRequest = ipdelaylist.shouldDelayRequest;
   const requestSucceeded = ipdelaylist.requestSucceeded;
 
   var authorization = {};
-  var storage = authorization.storage = require('./storage')(env, ctx);
-  var defaultRoles = (env.settings.authDefaultRoles || '').split(/[, :]/);
+  var storage = (authorization.storage = require("./storage")(env, ctx));
+  var defaultRoles = (env.settings.authDefaultRoles || "").split(/[, :]/);
 
   /**
    * Loads JWT from request
-   * 
-   * @param {*} req 
+   *
+   * @param {*} req
    */
-  function extractJWTfromRequest (req) {
-
+  function extractJWTfromRequest(req) {
     if (req.auth_token) return req.auth_token;
 
     let token;
 
-    if (req.header('Authorization')) {
-      const parts = req.header('Authorization').split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer') {
+    if (req.header("Authorization")) {
+      const parts = req.header("Authorization").split(" ");
+      if (parts.length === 2 && parts[0] === "Bearer") {
         token = parts[1];
       }
     }
@@ -63,7 +61,9 @@ function init (env, ctx) {
       }
     }
 
-    if (token) { req.auth_token = token; }
+    if (token) {
+      req.auth_token = token;
+    }
 
     return token;
   }
@@ -72,14 +72,16 @@ function init (env, ctx) {
 
   /**
    * Fetches the API_SECRET from the request
-   * 
+   *
    * @param {*} req Express request object
    */
-  function apiSecretFromRequest (req) {
-
+  function apiSecretFromRequest(req) {
     if (req.api_secret) return req.api_secret;
 
-    let secret = req.query && req.query.secret ? req.query.secret : req.header('api-secret');
+    let secret =
+      req.query && req.query.secret
+        ? req.query.secret
+        : req.header("api-secret");
 
     if (!secret && req.body) {
       // try to get the secret from the body, but don't leave it there
@@ -93,42 +95,47 @@ function init (env, ctx) {
     }
 
     // store the secret hash on the request since the req may get processed again
-    if (secret) { req.api_secret = secret; }
+    if (secret) {
+      req.api_secret = secret;
+    }
     return secret;
   }
 
-  function authorizeAdminSecret (secret) {
+  function authorizeAdminSecret(secret) {
     return env.enclave.isApiKey(secret);
   }
 
   authorization.seenPermissions = [];
 
-  authorization.expandedPermissions = function expandedPermissions () {
+  authorization.expandedPermissions = function expandedPermissions() {
     var permissions = shiroTrie.new();
     permissions.add(authorization.seenPermissions);
     return permissions;
   };
 
-  authorization.resolveWithRequest = function resolveWithRequest (req, callback) {
+  authorization.resolveWithRequest = function resolveWithRequest(
+    req,
+    callback,
+  ) {
     const resolveData = {
-      api_secret: apiSecretFromRequest(req)
-      , token: extractJWTfromRequest(req)
-      , ip: getRemoteIP(req)
+      api_secret: apiSecretFromRequest(req),
+      token: extractJWTfromRequest(req),
+      ip: getRemoteIP(req),
     };
     authorization.resolve(resolveData, callback);
   };
 
   /**
    * Check if the Apache Shiro-style permission object includes the permission.
-   * 
+   *
    * Returns a boolean true / false depending on if the permission is found.
-   * 
+   *
    * @param {*} permission Desired permission
    * @param {*} shiros Shiros
    */
 
-  authorization.checkMultiple = function checkMultiple (permission, shiros) {
-    var found = _.find(shiros, function checkEach (shiro) {
+  authorization.checkMultiple = function checkMultiple(permission, shiros) {
+    var found = _.find(shiros, function checkEach(shiro) {
       return shiro && shiro.check(permission);
     });
     return _.isObject(found);
@@ -137,20 +144,20 @@ function init (env, ctx) {
   /**
    * Resolve an API secret or token and return the permissions associated with
    * the secret / token
-   * 
-   * @param {*} data 
-   * @param {*} callback 
+   *
+   * @param {*} data
+   * @param {*} callback
    */
-  authorization.resolve = async function resolve (data, callback) {
-
+  authorization.resolve = async function resolve(data, callback) {
     if (!data.ip) {
-      console.error('Trying to authorize without IP information');
+      console.error("Trying to authorize without IP information");
       return callback(null, { shiros: [] });
     }
 
     data.api_secret = data.api_secret || null;
 
-    if (data.api_secret == 'null') { // TODO find what's sending this anomaly
+    if (data.api_secret == "null") {
+      // TODO find what's sending this anomaly
       data.api_secret = null;
     }
 
@@ -160,13 +167,15 @@ function init (env, ctx) {
       await sleep(requestDelay);
     }
 
-    const authAttempted = (data.api_secret || data.token) ? true : false;
+    const authAttempted = data.api_secret || data.token ? true : false;
     const defaultShiros = storage.rolesToShiros(defaultRoles);
 
     // If there is no token or secret, return default permissions
     if (!authAttempted) {
       const result = { shiros: defaultShiros, defaults: true };
-      if (callback) { callback(null, result); }
+      if (callback) {
+        callback(null, result);
+      }
       return result;
     }
 
@@ -175,9 +184,11 @@ function init (env, ctx) {
     if (data.api_secret && authorizeAdminSecret(data.api_secret)) {
       requestSucceeded(data.ip);
       var admin = shiroTrie.new();
-      admin.add(['*']);
+      admin.add(["*"]);
       const result = { shiros: [admin] };
-      if (callback) { callback(null, result); }
+      if (callback) {
+        callback(null, result);
+      }
       return result;
     }
 
@@ -201,60 +212,75 @@ function init (env, ctx) {
 
     if (token) {
       requestSucceeded(data.ip);
-      const results = authorization.resolveAccessToken(token, null, defaultShiros);
-      if (callback) { callback(null, results); }
+      const results = authorization.resolveAccessToken(
+        token,
+        null,
+        defaultShiros,
+      );
+      if (callback) {
+        callback(null, results);
+      }
       return results;
     }
 
-    console.error('Resolving secret/token to permissions failed');
+    console.error("Resolving secret/token to permissions failed");
     addFailedRequest(data.ip);
 
-    ctx.bus.emit('admin-notify', {
-      title: ctx.language.translate('Failed authentication')
-      , message: ctx.language.translate('A device at IP address %1 attempted authenticating with Nightscout with wrong credentials. Check if you have an uploader setup with wrong API_SECRET or token?', data.ip)
+    ctx.bus.emit("admin-notify", {
+      title: ctx.language.translate("Failed authentication"),
+      message: ctx.language.translate(
+        "A device at IP address %1 attempted authenticating with Nightscout with wrong credentials. Check if you have an uploader setup with wrong API_SECRET or token?",
+        data.ip,
+      ),
     });
 
-    if (callback) { callback('All validation failed', {}); }
+    if (callback) {
+      callback("All validation failed", {});
+    }
     return {};
-
   };
 
-  authorization.resolveAccessToken = function resolveAccessToken (accessToken, callback, defaultShiros) {
-
+  authorization.resolveAccessToken = function resolveAccessToken(
+    accessToken,
+    callback,
+    defaultShiros,
+  ) {
     if (!defaultShiros) {
       defaultShiros = storage.rolesToShiros(defaultRoles);
     }
 
     let resolved = storage.resolveSubjectAndPermissions(accessToken);
     if (!resolved || !resolved.subject) {
-      if (callback) { callback('Subject not found', null); }
+      if (callback) {
+        callback("Subject not found", null);
+      }
       return null;
     }
 
     let shiros = resolved.shiros.concat(defaultShiros);
     const result = { shiros, subject: resolved.subject };
-    if (callback) { callback(null, result); }
+    if (callback) {
+      callback(null, result);
+    }
     return result;
   };
 
   /**
    * Check if the client has a permission execute an action,
    * based on an API KEY or JWT in the request.
-   * 
+   *
    * Used to authorize API calls
-   * 
+   *
    * @param {*} permission Permission being checked
    */
-  authorization.isPermitted = function isPermitted (permission) {
-
+  authorization.isPermitted = function isPermitted(permission) {
     authorization.seenPermissions = _.chain(authorization.seenPermissions)
       .push(permission)
       .sort()
       .uniq()
       .value();
 
-    async function check (req, res, next) {
-
+    async function check(req, res, next) {
       var remoteIP = getRemoteIP(req);
       var secret = apiSecretFromRequest(req);
       var token = extractJWTfromRequest(req);
@@ -262,28 +288,33 @@ function init (env, ctx) {
       const data = { api_secret: secret, token, ip: remoteIP };
 
       const permissions = await authorization.resolve(data);
-      const permitted = authorization.checkMultiple(permission, permissions.shiros);
+      const permitted = authorization.checkMultiple(
+        permission,
+        permissions.shiros,
+      );
 
       if (permitted) {
         next();
         return;
       }
 
-      res.sendJSONStatus(res, consts.HTTP_UNAUTHORIZED, 'Unauthorized', 'Invalid/Missing');
+      res.sendJSONStatus(
+        res,
+        consts.HTTP_UNAUTHORIZED,
+        "Unauthorized",
+        "Invalid/Missing",
+      );
     }
 
     return check;
-
   };
 
   /**
    * Generates a JWT based on an access token / authorizes an existing token
-   * 
+   *
    * @param {*} accessToken token to be used for generating a JWT for the client
    */
-  authorization.authorize = function authorize (accessToken) {
-
-
+  authorization.authorize = function authorize(accessToken) {
     let userToken = accessToken;
     const decodedToken = env.enclave.verifyJWT(accessToken);
 
@@ -298,21 +329,23 @@ function init (env, ctx) {
       const token = env.enclave.signJWT({ accessToken: subject.accessToken });
       const decoded = env.enclave.verifyJWT(token);
 
-      var roles = subject.roles ? _.uniq(subject.roles.concat(defaultRoles)) : defaultRoles;
+      var roles = subject.roles
+        ? _.uniq(subject.roles.concat(defaultRoles))
+        : defaultRoles;
 
       authorized = {
-        token
-        , sub: subject.name
-        , permissionGroups: _.map(roles, storage.roleToPermissions)
-        , iat: decoded.iat
-        , exp: decoded.exp
+        token,
+        sub: subject.name,
+        permissionGroups: _.map(roles, storage.roleToPermissions),
+        iat: decoded.iat,
+        exp: decoded.exp,
       };
     }
 
     return authorized;
   };
 
-  authorization.endpoints = require('./endpoints')(env, authorization);
+  authorization.endpoints = require("./endpoints")(env, authorization);
 
   return authorization;
 }

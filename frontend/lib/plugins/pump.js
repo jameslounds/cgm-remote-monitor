@@ -1,96 +1,110 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
-var times = require('../times');
+var _ = require("lodash");
+var times = require("../times");
 
-var ALL_STATUS_FIELDS = ['reservoir', 'battery', 'clock', 'status', 'device'];
+var ALL_STATUS_FIELDS = ["reservoir", "battery", "clock", "status", "device"];
 
-function init (ctx) {
+function init(ctx) {
   var moment = ctx.moment;
   var translate = ctx.language.translate;
-  var timeago = require('./timeago')(ctx);
-  var openaps = require('./openaps')(ctx);
+  var timeago = require("./timeago")(ctx);
+  var openaps = require("./openaps")(ctx);
   var levels = ctx.levels;
 
   var pump = {
-    name: 'pump'
-    , label: 'Pump'
-    , pluginType: 'pill-status'
+    name: "pump",
+    label: "Pump",
+    pluginType: "pill-status",
   };
 
-  pump.getPrefs = function getPrefs (sbx) {
-
-    function cleanList (value) {
-      return decodeURIComponent(value || '').toLowerCase().split(' ');
+  pump.getPrefs = function getPrefs(sbx) {
+    function cleanList(value) {
+      return decodeURIComponent(value || "")
+        .toLowerCase()
+        .split(" ");
     }
 
-    function isEmpty (list) {
+    function isEmpty(list) {
       return _.isEmpty(list) || _.isEmpty(list[0]);
     }
 
     var fields = cleanList(sbx.extendedSettings.fields);
-    fields = isEmpty(fields) ? ['reservoir'] : fields;
+    fields = isEmpty(fields) ? ["reservoir"] : fields;
 
     var retroFields = cleanList(sbx.extendedSettings.retroFields);
-    retroFields = isEmpty(retroFields) ? ['reservoir', 'battery'] : retroFields;
+    retroFields = isEmpty(retroFields) ? ["reservoir", "battery"] : retroFields;
 
     var profile = sbx.data.profile;
     var warnBattQuietNight = sbx.extendedSettings.warnBattQuietNight;
 
-    if (warnBattQuietNight && (!profile || !profile.hasData() || !profile.getTimezone())) {
-      console.warn('PUMP_WARN_BATT_QUIET_NIGHT requires a treatment profile with time zone set to obtain user time zone');
+    if (
+      warnBattQuietNight &&
+      (!profile || !profile.hasData() || !profile.getTimezone())
+    ) {
+      console.warn(
+        "PUMP_WARN_BATT_QUIET_NIGHT requires a treatment profile with time zone set to obtain user time zone",
+      );
       warnBattQuietNight = false;
     }
 
     return {
-      fields: fields
-      , retroFields: retroFields
-      , warnClock: sbx.extendedSettings.warnClock || 30
-      , urgentClock: sbx.extendedSettings.urgentClock || 60
-      , warnRes: sbx.extendedSettings.warnRes || 10
-      , urgentRes: sbx.extendedSettings.urgentRes || 5
-      , warnBattV: sbx.extendedSettings.warnBattV || 1.35
-      , urgentBattV: sbx.extendedSettings.urgentBattV || 1.3
-      , warnBattP: sbx.extendedSettings.warnBattP || 30
-      , urgentBattP: sbx.extendedSettings.urgentBattP || 20
-      , warnOnSuspend: sbx.extendedSettings.warnOnSuspend || false
-      , enableAlerts: sbx.extendedSettings.enableAlerts || false
-      , warnBattQuietNight: warnBattQuietNight || false
-      , dayStart: sbx.settings.dayStart
-      , dayEnd: sbx.settings.dayEnd
+      fields: fields,
+      retroFields: retroFields,
+      warnClock: sbx.extendedSettings.warnClock || 30,
+      urgentClock: sbx.extendedSettings.urgentClock || 60,
+      warnRes: sbx.extendedSettings.warnRes || 10,
+      urgentRes: sbx.extendedSettings.urgentRes || 5,
+      warnBattV: sbx.extendedSettings.warnBattV || 1.35,
+      urgentBattV: sbx.extendedSettings.urgentBattV || 1.3,
+      warnBattP: sbx.extendedSettings.warnBattP || 30,
+      urgentBattP: sbx.extendedSettings.urgentBattP || 20,
+      warnOnSuspend: sbx.extendedSettings.warnOnSuspend || false,
+      enableAlerts: sbx.extendedSettings.enableAlerts || false,
+      warnBattQuietNight: warnBattQuietNight || false,
+      dayStart: sbx.settings.dayStart,
+      dayEnd: sbx.settings.dayEnd,
     };
   };
 
-  pump.setProperties = function setProperties (sbx) {
-    sbx.offerProperty('pump', function setPump ( ) {
-
+  pump.setProperties = function setProperties(sbx) {
+    sbx.offerProperty("pump", function setPump() {
       var prefs = pump.getPrefs(sbx);
       var recentMills = sbx.time - times.mins(prefs.urgentClock * 2).msecs;
 
       var filtered = _.filter(sbx.data.devicestatus, function (status) {
-        return ('pump' in status) && sbx.entryMills(status) <= sbx.time && sbx.entryMills(status) >= recentMills;
+        return (
+          "pump" in status &&
+          sbx.entryMills(status) <= sbx.time &&
+          sbx.entryMills(status) >= recentMills
+        );
       });
 
       var pumpStatus = null;
 
-      _.forEach(filtered, function each (status) {
-        status.clockMills = status.pump && status.pump.clock ? moment(status.pump.clock).valueOf() : status.mills;
+      _.forEach(filtered, function each(status) {
+        status.clockMills =
+          status.pump && status.pump.clock
+            ? moment(status.pump.clock).valueOf()
+            : status.mills;
         if (!pumpStatus || status.clockMills > pumpStatus.clockMills) {
           pumpStatus = status;
         }
       });
 
-      pumpStatus = pumpStatus || { };
+      pumpStatus = pumpStatus || {};
       pumpStatus.data = prepareData(pumpStatus, prefs, sbx);
 
       return pumpStatus;
     });
   };
 
-  pump.checkNotifications = function checkNotifications (sbx) {
+  pump.checkNotifications = function checkNotifications(sbx) {
     var prefs = pump.getPrefs(sbx);
 
-    if (!prefs.enableAlerts) { return; }
+    if (!prefs.enableAlerts) {
+      return;
+    }
 
     pump.warnOnSuspend = prefs.warnOnSuspend;
 
@@ -98,158 +112,158 @@ function init (ctx) {
 
     if (data.level >= levels.WARN) {
       sbx.notifications.requestNotify({
-        level: data.level
-        , title: data.title
-        , message: data.message
-        , pushoverSound: 'echo'
-        , group: 'Pump'
-        , plugin: pump
+        level: data.level,
+        title: data.title,
+        message: data.message,
+        pushoverSound: "echo",
+        group: "Pump",
+        plugin: pump,
       });
     }
   };
 
-  pump.updateVisualisation = function updateVisualisation (sbx) {
+  pump.updateVisualisation = function updateVisualisation(sbx) {
     var prop = sbx.properties.pump;
 
     var prefs = pump.getPrefs(sbx);
     var result = prepareData(prop, prefs, sbx);
 
-    var values = [ ];
-    var info = [ ];
+    var values = [];
+    var info = [];
 
-    var selectedFields = sbx.data.inRetroMode ? prefs.retroFields : prefs.fields;
+    var selectedFields = sbx.data.inRetroMode
+      ? prefs.retroFields
+      : prefs.fields;
 
-    _.forEach(ALL_STATUS_FIELDS, function eachField (fieldName) {
+    _.forEach(ALL_STATUS_FIELDS, function eachField(fieldName) {
       var field = result[fieldName];
       if (field) {
         var selected = _.indexOf(selectedFields, fieldName) > -1;
         if (selected) {
           values.push(field.display);
         } else {
-          info.push({label: field.label, value: field.display});
+          info.push({ label: field.label, value: field.display });
         }
       }
     });
 
     if (result.extended) {
-      info.push({label: '------------', value: ''});
-      _.forOwn(result.extended, function(value, key) {
-         info.push({ label: key, value: value });
+      info.push({ label: "------------", value: "" });
+      _.forOwn(result.extended, function (value, key) {
+        info.push({ label: key, value: value });
       });
     }
 
     sbx.pluginBase.updatePillText(pump, {
-      value: values.join(' ')
-      , info: info
-      , label: translate('Pump')
-      , pillClass: statusClass(result.level)
+      value: values.join(" "),
+      info: info,
+      label: translate("Pump"),
+      pillClass: statusClass(result.level),
     });
   };
 
-  function virtAsstReservoirHandler (next, slots, sbx) {
-    var reservoir = _.get(sbx, 'properties.pump.pump.reservoir');
+  function virtAsstReservoirHandler(next, slots, sbx) {
+    var reservoir = _.get(sbx, "properties.pump.pump.reservoir");
     if (reservoir || reservoir === 0) {
-      var response = translate('virtAsstReservoir', {
-        params: [
-            reservoir
-        ]
+      var response = translate("virtAsstReservoir", {
+        params: [reservoir],
       });
-      next(translate('virtAsstTitlePumpReservoir'), response);
+      next(translate("virtAsstTitlePumpReservoir"), response);
     } else {
-      next(translate('virtAsstTitlePumpReservoir'), translate('virtAsstUnknown'));
+      next(
+        translate("virtAsstTitlePumpReservoir"),
+        translate("virtAsstUnknown"),
+      );
     }
   }
 
-  function virtAsstBatteryHandler (next, slots, sbx) {
-    var battery = _.get(sbx, 'properties.pump.data.battery');
+  function virtAsstBatteryHandler(next, slots, sbx) {
+    var battery = _.get(sbx, "properties.pump.data.battery");
     if (battery) {
-      var response = translate('virtAsstPumpBattery', {
-              params: [
-                  battery.value,
-                  battery.unit
-              ]
-          });
-      next(translate('virtAsstTitlePumpBattery'), response);
+      var response = translate("virtAsstPumpBattery", {
+        params: [battery.value, battery.unit],
+      });
+      next(translate("virtAsstTitlePumpBattery"), response);
     } else {
-      next(translate('virtAsstTitlePumpBattery'), translate('virtAsstUnknown'));
+      next(translate("virtAsstTitlePumpBattery"), translate("virtAsstUnknown"));
     }
   }
 
   pump.virtAsst = {
-    intentHandlers:[
+    intentHandlers: [
       {
         // backwards compatibility
-        intent: 'InsulinRemaining',
-        intentHandler: virtAsstReservoirHandler
-      }
-      , {
+        intent: "InsulinRemaining",
+        intentHandler: virtAsstReservoirHandler,
+      },
+      {
         // backwards compatibility
-        intent: 'PumpBattery',
-        intentHandler: virtAsstBatteryHandler
-      }
-      , {
-        intent: 'MetricNow'
-        , metrics: ['pump reservoir']
-        , intentHandler: virtAsstReservoirHandler
-      }
-      , {
-        intent: 'MetricNow'
-        , metrics: ['pump battery']
-        , intentHandler: virtAsstBatteryHandler
-      }
-    ]
+        intent: "PumpBattery",
+        intentHandler: virtAsstBatteryHandler,
+      },
+      {
+        intent: "MetricNow",
+        metrics: ["pump reservoir"],
+        intentHandler: virtAsstReservoirHandler,
+      },
+      {
+        intent: "MetricNow",
+        metrics: ["pump battery"],
+        intentHandler: virtAsstBatteryHandler,
+      },
+    ],
   };
 
-  function statusClass (level) {
-    var cls = 'current';
+  function statusClass(level) {
+    var cls = "current";
 
     if (level === levels.WARN) {
-      cls = 'warn';
+      cls = "warn";
     } else if (level === levels.URGENT) {
-      cls = 'urgent';
+      cls = "urgent";
     }
 
     return cls;
   }
 
-
-  function updateClock (prefs, result, sbx) {
+  function updateClock(prefs, result, sbx) {
     if (result.clock) {
-      result.clock.label = 'Last Clock';
+      result.clock.label = "Last Clock";
       result.clock.display = timeFormat(result.clock.value, sbx);
 
-      var urgent = moment(sbx.time).subtract(prefs.urgentClock, 'minutes');
-      var warn = moment(sbx.time).subtract(prefs.warnClock, 'minutes');
+      var urgent = moment(sbx.time).subtract(prefs.urgentClock, "minutes");
+      var warn = moment(sbx.time).subtract(prefs.warnClock, "minutes");
 
       if (urgent.isAfter(result.clock.value)) {
         result.clock.level = levels.URGENT;
-        result.clock.message = 'URGENT: Pump data stale';
+        result.clock.message = "URGENT: Pump data stale";
       } else if (warn.isAfter(result.clock.value)) {
         result.clock.level = levels.WARN;
-        result.clock.message = 'Warning, Pump data stale';
+        result.clock.message = "Warning, Pump data stale";
       } else {
         result.clock.level = levels.NONE;
       }
     }
   }
 
-  function updateReservoir (prefs, result) {
+  function updateReservoir(prefs, result) {
     if (result.reservoir) {
-      result.reservoir.label = 'Reservoir';
-      result.reservoir.display = result.reservoir.value.toPrecision(3) + 'U';
+      result.reservoir.label = "Reservoir";
+      result.reservoir.display = result.reservoir.value.toPrecision(3) + "U";
       if (result.reservoir.value < prefs.urgentRes) {
         result.reservoir.level = levels.URGENT;
-        result.reservoir.message = 'URGENT: Pump Reservoir Low';
+        result.reservoir.message = "URGENT: Pump Reservoir Low";
       } else if (result.reservoir.value < prefs.warnRes) {
         result.reservoir.level = levels.WARN;
-        result.reservoir.message = 'Warning, Pump Reservoir Low';
+        result.reservoir.message = "Warning, Pump Reservoir Low";
       } else {
         result.reservoir.level = levels.NONE;
       }
-    } else if (result.manufacturer === 'Insulet') {
+    } else if (result.manufacturer === "Insulet") {
       result.reservoir = {
-        label: 'Reservoir', display: '50+ U'
-      }
+        label: "Reservoir",
+        display: "50+ U",
+      };
     }
     if (result.reservoir_display_override) {
       result.reservoir.display = result.reservoir_display_override;
@@ -259,72 +273,84 @@ function init (ctx) {
     }
   }
 
-  function updateBattery (type, prefs, result, batteryWarn) {
+  function updateBattery(type, prefs, result, batteryWarn) {
     if (result.battery) {
-      result.battery.label = 'Battery';
+      result.battery.label = "Battery";
       result.battery.display = result.battery.value + type;
-      var urgent = type === 'v' ? prefs.urgentBattV : prefs.urgentBattP;
-      var warn = type === 'v' ? prefs.warnBattV : prefs.warnBattP;
+      var urgent = type === "v" ? prefs.urgentBattV : prefs.urgentBattP;
+      var warn = type === "v" ? prefs.warnBattV : prefs.warnBattP;
 
       if (result.battery.value < urgent && batteryWarn) {
         result.battery.level = levels.URGENT;
-        result.battery.message = 'URGENT: Pump Battery Low';
+        result.battery.message = "URGENT: Pump Battery Low";
       } else if (result.battery.value < warn && batteryWarn) {
         result.battery.level = levels.WARN;
-        result.battery.message = 'Warning, Pump Battery Low';
+        result.battery.message = "Warning, Pump Battery Low";
       } else {
         result.battery.level = levels.NONE;
       }
     }
   }
 
-
-  function buildMessage (result) {
+  function buildMessage(result) {
     if (result.level > levels.NONE) {
       var message = [];
 
       if (result.battery) {
-        message.push('Pump Battery: ' + result.battery.display);
+        message.push("Pump Battery: " + result.battery.display);
       }
 
       if (result.reservoir) {
-        message.push('Pump Reservoir: ' + result.reservoir.display);
+        message.push("Pump Reservoir: " + result.reservoir.display);
       }
 
-      result.message = message.join('\n');
+      result.message = message.join("\n");
     }
   }
 
   function updateStatus(pump, result) {
     if (pump.status) {
-      var status = pump.status.status || 'normal';
+      var status = pump.status.status || "normal";
       if (pump.status.bolusing) {
-        status = 'bolusing';
+        status = "bolusing";
       } else if (pump.status.suspended) {
-        status = 'suspended';
+        status = "suspended";
         if (pump.warnOnSuspend && pump.status.suspended) {
           result.status.level = levels.WARN;
-          result.status.message = 'Pump Suspended';
+          result.status.message = "Pump Suspended";
         }
       }
-      result.status = { value: status, display: status, label: translate('Status') };
+      result.status = {
+        value: status,
+        display: status,
+        label: translate("Status"),
+      };
     }
   }
 
-  function prepareData (prop, prefs, sbx) {
-    var pump = (prop && prop.pump) || { };
-    var time = (sbx.data.profile && sbx.data.profile.getTimezone()) ? moment(sbx.time).tz(sbx.data.profile.getTimezone()) : moment(sbx.time);
+  function prepareData(prop, prefs, sbx) {
+    var pump = (prop && prop.pump) || {};
+    var time =
+      sbx.data.profile && sbx.data.profile.getTimezone()
+        ? moment(sbx.time).tz(sbx.data.profile.getTimezone())
+        : moment(sbx.time);
     var now = time.hours() + time.minutes() / 60.0 + time.seconds() / 3600.0;
-    var batteryWarn = !(prefs.warnBattQuietNight && (now < prefs.dayStart || now > prefs.dayEnd));
+    var batteryWarn = !(
+      prefs.warnBattQuietNight &&
+      (now < prefs.dayStart || now > prefs.dayEnd)
+    );
     var result = {
-      level: levels.NONE
-      , clock: pump.clock ? { value: moment(pump.clock) } : null
-      , reservoir: pump.reservoir || pump.reservoir === 0 ? { value: pump.reservoir } : null
-      , reservoir_display_override: pump.reservoir_display_override || null
-      , reservoir_level_override: pump.reservoir_level_override || null
-      , manufacturer: pump.manufacturer
-      , model: pump.model
-      , extended: pump.extended || null
+      level: levels.NONE,
+      clock: pump.clock ? { value: moment(pump.clock) } : null,
+      reservoir:
+        pump.reservoir || pump.reservoir === 0
+          ? { value: pump.reservoir }
+          : null,
+      reservoir_display_override: pump.reservoir_display_override || null,
+      reservoir_level_override: pump.reservoir_level_override || null,
+      manufacturer: pump.manufacturer,
+      model: pump.model,
+      extended: pump.extended || null,
     };
 
     updateClock(prefs, result, sbx);
@@ -332,21 +358,21 @@ function init (ctx) {
     updateStatus(pump, result);
 
     if (pump.battery && pump.battery.percent) {
-      result.battery = { value: pump.battery.percent, unit: 'percent' };
-      updateBattery('%', prefs, result, batteryWarn);
+      result.battery = { value: pump.battery.percent, unit: "percent" };
+      updateBattery("%", prefs, result, batteryWarn);
     } else if (pump.battery && pump.battery.voltage) {
-      result.battery = { value: pump.battery.voltage, unit: 'volts'};
-      updateBattery('v', prefs, result, batteryWarn);
+      result.battery = { value: pump.battery.voltage, unit: "volts" };
+      updateBattery("v", prefs, result, batteryWarn);
     }
 
-    result.device = { label: translate('Device'), display: prop.device };
+    result.device = { label: translate("Device"), display: prop.device };
 
-    result.title = 'Pump Status';
+    result.title = "Pump Status";
     result.level = levels.NONE;
 
     //TODO: A new Pump Offline marker?  Something generic?  Use something new instead of a treatment?
     if (openaps.findOfflineMarker(sbx)) {
-      console.info('OpenAPS known offline, not checking for alerts');
+      console.info("OpenAPS known offline, not checking for alerts");
     } else {
       _.forEach(ALL_STATUS_FIELDS, function eachField(fieldName) {
         var field = result[fieldName];
@@ -362,23 +388,25 @@ function init (ctx) {
     return result;
   }
 
-  function timeFormat (m, sbx) {
-
+  function timeFormat(m, sbx) {
     var when;
     if (m && sbx.data.inRetroMode) {
-      when = m.format('LT');
+      when = m.format("LT");
     } else if (m) {
       when = formatAgo(m, sbx.time);
     } else {
-      when = 'unknown';
+      when = "unknown";
     }
 
     return when;
   }
 
-  function formatAgo (m, nowMills) {
-    var ago = timeago.calcDisplay({mills: m.valueOf()}, nowMills);
-    return translate('%1' + ago.shortLabel + (ago.shortLabel.length === 1 ? ' ago' : ''), { params: [(ago.value ? ago.value : '')]});
+  function formatAgo(m, nowMills) {
+    var ago = timeago.calcDisplay({ mills: m.valueOf() }, nowMills);
+    return translate(
+      "%1" + ago.shortLabel + (ago.shortLabel.length === 1 ? " ago" : ""),
+      { params: [ago.value ? ago.value : ""] },
+    );
   }
 
   return pump;

@@ -1,21 +1,21 @@
-'use strict';
+"use strict";
 
-var _find = require('lodash/find');
-var _each = require('lodash/each');
+var _find = require("lodash/find");
+var _each = require("lodash/each");
 
 function init(ctx) {
-    var allPlugins = [
-        require('./subjects')(ctx)
-      , require('./roles')(ctx)
-      , require('./cleanstatusdb')(ctx)
-      , require('./cleantreatmentsdb')(ctx)
-      , require('./cleanentriesdb')(ctx)
-      , require('./futureitems')(ctx)
-    ];
+  var allPlugins = [
+    require("./subjects")(ctx),
+    require("./roles")(ctx),
+    require("./cleanstatusdb")(ctx),
+    require("./cleantreatmentsdb")(ctx),
+    require("./cleanentriesdb")(ctx),
+    require("./futureitems")(ctx),
+  ];
 
   function plugins(name) {
     if (name) {
-      return _find(allPlugins, {name: name});
+      return _find(allPlugins, { name: name });
     } else {
       return plugins;
     }
@@ -28,53 +28,62 @@ function init(ctx) {
   plugins.createHTML = function createHTML(client) {
     var translate = client.translate;
     plugins.eachPlugin(function addHtml(p) {
-      var fs = $('<fieldset>');
-      $('#admin_placeholder').append(fs);
-      fs.append($('<legend>').append(translate(p.label)));
+      var fs = $("<fieldset>");
+      $("#admin_placeholder").append(fs);
+      fs.append($("<legend>").append(translate(p.label)));
       for (var i = 0; i < p.actions.length; i++) {
         if (i !== 0) {
-          fs.append('<hr>');
+          fs.append("<hr>");
         }
         var a = p.actions[i];
         // add main plugin html
         if (a.name) {
-          fs.append($('<b>').css('text-decoration','underline').append(translate(a.name)));
-          fs.append('<br>');
+          fs.append(
+            $("<b>")
+              .css("text-decoration", "underline")
+              .append(translate(a.name)),
+          );
+          fs.append("<br>");
         }
-        fs.append($('<i>').append(translate(a.description)));
-        fs.append($('<div>').attr('id','admin_' + p.name + '_' + i + '_html'));
-        fs.append($('<button>').addClass('adminButton').attr('plugin',p.name).attr('action',i).append(translate(a.buttonLabel)));
-        fs.append($('<span>').attr('id','admin_' + p.name + '_' + i + '_status'));
+        fs.append($("<i>").append(translate(a.description)));
+        fs.append($("<div>").attr("id", "admin_" + p.name + "_" + i + "_html"));
+        fs.append(
+          $("<button>")
+            .addClass("adminButton")
+            .attr("plugin", p.name)
+            .attr("action", i)
+            .append(translate(a.buttonLabel)),
+        );
+        fs.append(
+          $("<span>").attr("id", "admin_" + p.name + "_" + i + "_status"),
+        );
         if (a.init) {
           a.init(client);
         }
       }
       // add css
       if (p.css) {
-        $('<style>')
-          .prop('type', 'text/css')
-          .html(p.css)
-          .appendTo('head');
+        $("<style>").prop("type", "text/css").html(p.css).appendTo("head");
       }
     });
-    $('.adminButton').click(plugins.doAction);
+    $(".adminButton").click(plugins.doAction);
   };
 
   plugins.doAction = function doAction(event) {
     var Nightscout = window.Nightscout;
-    var plugin = $(this).attr('plugin');
-    var action = $(this).attr('action');
+    var plugin = $(this).attr("plugin");
+    var action = $(this).attr("action");
     var a = plugins(plugin).actions[action];
     var ok = true;
     if (a.confirmText) {
       ok = window.confirm(Nightscout.client.translate(a.confirmText));
     }
     if (ok) {
-      console.log('Running action', action, 'on plugin', plugin);
+      console.log("Running action", action, "on plugin", plugin);
       a.code(Nightscout.client);
 
       if (!a.preventClose) {
-        $(this).css('display', 'none');
+        $(this).css("display", "none");
       }
     }
     if (event) {
@@ -83,7 +92,6 @@ function init(ctx) {
   };
 
   return plugins();
-
 }
 
 module.exports = init;

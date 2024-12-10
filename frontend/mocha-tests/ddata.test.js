@@ -1,27 +1,25 @@
+"use strict";
 
-'use strict';
+var should = require("should");
 
-var should = require('should');
-
-
-describe('ddata', function ( ) {
+describe("ddata", function () {
   // var sandbox = require('../lib/sandbox')();
   // var env = require('../lib/server/env')();
   var ctx = {};
-  ctx.ddata = require('../lib/data/ddata')();
+  ctx.ddata = require("../lib/data/ddata")();
 
-  it('should be a module', function (done) {
-    var libddata = require('../lib/data/ddata');
-    var ddata = libddata( );
+  it("should be a module", function (done) {
+    var libddata = require("../lib/data/ddata");
+    var ddata = libddata();
     should.exist(ddata);
     should.exist(libddata);
     should.exist(libddata.call);
-    ddata = ctx.ddata.clone( );
+    ddata = ctx.ddata.clone();
     should.exist(ddata);
-    done( );
+    done();
   });
 
-  it('has #clone( )', function (done) {
+  it("has #clone( )", function (done) {
     should.exist(ctx.ddata.treatments);
     should.exist(ctx.ddata.sgvs);
     should.exist(ctx.ddata.mbgs);
@@ -29,7 +27,7 @@ describe('ddata', function ( ) {
     should.exist(ctx.ddata.profiles);
     should.exist(ctx.ddata.devicestatus);
     should.exist(ctx.ddata.lastUpdated);
-    var ddata = ctx.ddata.clone( );
+    var ddata = ctx.ddata.clone();
     should.exist(ddata);
     should.exist(ddata.treatments);
     should.exist(ddata.sgvs);
@@ -38,7 +36,7 @@ describe('ddata', function ( ) {
     should.exist(ddata.profiles);
     should.exist(ddata.devicestatus);
     should.exist(ddata.lastUpdated);
-    done( );
+    done();
   });
 
   // TODO: ensure partition function gets called via:
@@ -54,7 +52,4 @@ describe('ddata', function ( ) {
   // * ddata.processDurations
   // * ddata.clone
   // * ddata.split
- 
-
 });
-

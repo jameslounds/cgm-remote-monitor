@@ -1,6 +1,7 @@
 # APIv3: Socket.IO alarm channel
 
 ### Complete sample client code
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -17,61 +18,65 @@
   <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
 
-	<script>
-      const socket = io('https://nsapiv3.herokuapp.com/alarm');
+    <script>
+      const socket = io("https://nsapiv3.herokuapp.com/alarm");
 
-      socket.on('connect', function () {
-        socket.emit('subscribe', { 
-          accessToken: 'testadmin-ad3b1f9d7b3f59d5'
-        }, function (data) {
-          if (data.success) {
-            console.log('subscribed for alarms', data.message);
-          }
-          else {
-            console.error(data.message);
-          }
-        });
+      socket.on("connect", function () {
+        socket.emit(
+          "subscribe",
+          {
+            accessToken: "testadmin-ad3b1f9d7b3f59d5",
+          },
+          function (data) {
+            if (data.success) {
+              console.log("subscribed for alarms", data.message);
+            } else {
+              console.error(data.message);
+            }
+          },
+        );
       });
 
-      socket.on('announcement', function (data) {
+      socket.on("announcement", function (data) {
         console.log(data);
       });
 
-      socket.on('alarm', function (data) {
+      socket.on("alarm", function (data) {
         console.log(data);
       });
 
-      socket.on('urgent_alarm', function (data) {
+      socket.on("urgent_alarm", function (data) {
         console.log(data);
       });
 
-      socket.on('clear_alarm', function (data) {
+      socket.on("clear_alarm", function (data) {
         console.log(data);
       });
-	</script>
+    </script>
   </body>
 </html>
 ```
 
 ### Subscription (authorization)
+
 The client must first subscribe to the channel that is exposed at `alarm` namespace, ie the `/alarm` subadress of the base Nightscout's web address (without `/api/v3` subaddress).
+
 ```javascript
-const socket = io('https://nsapiv3.herokuapp.com/alarm');
+const socket = io("https://nsapiv3.herokuapp.com/alarm");
 ```
 
-
 Subscription is requested by emitting `subscribe` event to the server, while including document with parameter:
-* `accessToken`: required valid accessToken of the security subject, which has been prepared in *Admin Tools* of Nightscout. 
+
+- `accessToken`: required valid accessToken of the security subject, which has been prepared in _Admin Tools_ of Nightscout.
 
 ```javascript
 socket.on('connect', function () {
-  socket.emit('subscribe', { 
+  socket.emit('subscribe', {
     accessToken: 'testadmin-ad3b1f9d7b3f59d5'
   }, ...
 ```
 
-
-On the server, the subject is identified and authenticated (by the accessToken). Ne special rights are required. 
+On the server, the subject is identified and authenticated (by the accessToken). Ne special rights are required.
 
 If the authentication was successful `success` = `true` is set in the response object and the field `message` contains a text response.
 In other case `success` = `false` is set in the response object and the field `message` contains an error message.
@@ -89,17 +94,18 @@ function (data) {
 ```
 
 ### Acking alarms and announcements
+
 If the client is successfully subscribed it can ack alarms and announcements by emitting `ack` message.
 
 ```javascript
-  socket.emit('ack', level, group, silenceTimeInMilliseconds); 
+socket.emit("ack", level, group, silenceTimeInMilliseconds);
 ```
 
 where `level` and `group` are values from alarm being acked and `silenceTimeInMilliseconds` is duration. During this time alarms of the same type are not emmited.
 
 ### Receiving events
-After the successful subscription the client can start listening to `announcement`, `alarm` , `urgent_alarm` and/or `clear_alarm` events of the socket.
 
+After the successful subscription the client can start listening to `announcement`, `alarm` , `urgent_alarm` and/or `clear_alarm` events of the socket.
 
 ##### announcement
 
@@ -116,7 +122,6 @@ The received object contains similiar json:
         "key":"9ac46ad9a1dcda79dd87dae418fce0e7955c68da"
       }
 ```
-
 
 ##### alarm, urgent_alarm
 
@@ -135,7 +140,6 @@ The received object contains similiar json:
         "key":"simplealarms_1"
       }
 ```
-
 
 ##### clear_alarm
 

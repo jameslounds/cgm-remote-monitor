@@ -1,25 +1,27 @@
-'use strict';
+"use strict";
 
-const _ = require('lodash');
+const _ = require("lodash");
 
-function init (ctx) {
-
+function init(ctx) {
   const adminnotifies = {};
 
-  adminnotifies.addNotify = function addnotify (notify) {
+  adminnotifies.addNotify = function addnotify(notify) {
     if (!ctx.settings.adminNotifiesEnabled) {
-      console.log('Admin notifies disabled, skipping notify', notify);
+      console.log("Admin notifies disabled, skipping notify", notify);
       return;
     }
 
     if (!notify) return;
 
-    notify.title = notify.title || 'No title';
-    notify.message = notify.message || 'No message';
+    notify.title = notify.title || "No title";
+    notify.message = notify.message || "No message";
 
-    const existingMessage = _.find(adminnotifies.notifies, function findExisting (obj) {
-      return obj.message == notify.message;
-    });
+    const existingMessage = _.find(
+      adminnotifies.notifies,
+      function findExisting(obj) {
+        return obj.message == notify.message;
+      },
+    );
 
     if (existingMessage) {
       existingMessage.count += 1;
@@ -29,27 +31,32 @@ function init (ctx) {
       notify.lastRecorded = Date.now();
       adminnotifies.notifies.push(notify);
     }
-  }
+  };
 
-  adminnotifies.getNotifies = function getNotifies () {
+  adminnotifies.getNotifies = function getNotifies() {
     return adminnotifies.notifies;
-  }
+  };
 
-  ctx.bus.on('admin-notify', adminnotifies.addNotify);
+  ctx.bus.on("admin-notify", adminnotifies.addNotify);
 
-  adminnotifies.clean = function cleanNotifies () {
-    adminnotifies.notifies = _.filter(adminnotifies.notifies, function findExisting (obj) {
-      return obj.persistent || ((Date.now() - obj.lastRecorded) < 1000 * 60 * 60 * 12);
-    });
-  }
+  adminnotifies.clean = function cleanNotifies() {
+    adminnotifies.notifies = _.filter(
+      adminnotifies.notifies,
+      function findExisting(obj) {
+        return (
+          obj.persistent || Date.now() - obj.lastRecorded < 1000 * 60 * 60 * 12
+        );
+      },
+    );
+  };
 
   adminnotifies.cleanAll = function cleanAll() {
     adminnotifies.notifies = [];
-  }
+  };
 
   adminnotifies.cleanAll();
 
-  ctx.bus.on('tick', adminnotifies.clean);
+  ctx.bus.on("tick", adminnotifies.clean);
 
   return adminnotifies;
 }

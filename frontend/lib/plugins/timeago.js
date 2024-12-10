@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-var times = require('../times');
+var times = require("../times");
 var lastChecked = new Date();
 var lastRecoveryTimeFromSuspend = new Date("1900-01-01");
 
@@ -9,14 +9,13 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var timeago = {
-    name: 'timeago',
-    label: 'Timeago',
-    pluginType: 'pill-status',
-    pillFlip: true
+    name: "timeago",
+    label: "Timeago",
+    pluginType: "pill-status",
+    pillFlip: true,
   };
 
   timeago.checkNotifications = function checkNotifications(sbx) {
-
     if (!sbx.extendedSettings.enableAlerts) {
       return;
     }
@@ -29,8 +28,12 @@ function init(ctx) {
 
     function buildMessage(agoDisplay) {
       var lines = sbx.prepareDefaultLines();
-      lines.unshift(translate('Last received:') + ' ' + [agoDisplay.value, agoDisplay.label].join(' '));
-      return lines.join('\n');
+      lines.unshift(
+        translate("Last received:") +
+          " " +
+          [agoDisplay.value, agoDisplay.label].join(" "),
+      );
+      return lines.join("\n");
     }
 
     function sendAlarm(opts) {
@@ -38,29 +41,28 @@ function init(ctx) {
 
       sbx.notifications.requestNotify({
         level: opts.level,
-        title: translate('Stale data, check rig?'),
+        title: translate("Stale data, check rig?"),
         message: buildMessage(agoDisplay),
         eventName: timeago.name,
         plugin: timeago,
-        group: 'Time Ago',
+        group: "Time Ago",
         pushoverSound: opts.pushoverSound,
-        debug: agoDisplay
+        debug: agoDisplay,
       });
     }
 
     var status = timeago.checkStatus(sbx);
-    if (status === 'urgent') {
+    if (status === "urgent") {
       sendAlarm({
         level: levels.URGENT,
-        pushoverSound: 'echo'
+        pushoverSound: "echo",
       });
-    } else if (status === 'warn') {
+    } else if (status === "warn") {
       sendAlarm({
         level: levels.WARN,
-        pushoverSound: 'echo'
+        pushoverSound: "echo",
       });
     }
-
   };
 
   timeago.checkStatus = function checkStatus(sbx) {
@@ -70,22 +72,23 @@ function init(ctx) {
     lastChecked = now;
 
     function isHibernationDetected() {
-      if (sbx.runtimeEnvironment === 'client') {
-        if (delta > 20 * 1000) { // Looks like we've been hibernating
+      if (sbx.runtimeEnvironment === "client") {
+        if (delta > 20 * 1000) {
+          // Looks like we've been hibernating
           lastRecoveryTimeFromSuspend = now;
         }
-        var timeSinceLastRecovered = now.getTime() - lastRecoveryTimeFromSuspend.getTime();
-        return timeSinceLastRecovered < (10 * 1000);
+        var timeSinceLastRecovered =
+          now.getTime() - lastRecoveryTimeFromSuspend.getTime();
+        return timeSinceLastRecovered < 10 * 1000;
       }
 
       // Assume server never hibernates, or if it does, it's alarm-worthy
       return false;
-
     }
 
     if (isHibernationDetected()) {
-      console.log('Hibernation detected, suspending timeago alarm');
-      return 'current';
+      console.log("Hibernation detected, suspending timeago alarm");
+      return "current";
     }
 
     var lastSGVEntry = sbx.lastSGVEntry(),
@@ -98,25 +101,30 @@ function init(ctx) {
       return sbx.time - lastSGVEntry.mills > times.mins(mins).msecs;
     }
 
-    var status = 'current';
+    var status = "current";
 
     if (!lastSGVEntry) {
       //assume current
     } else if (urgent && isStale(urgentMins)) {
-      status = 'urgent';
+      status = "urgent";
     } else if (warn && isStale(warnMins)) {
-      status = 'warn';
+      status = "warn";
     }
 
     return status;
-
   };
 
   timeago.isMissing = function isMissing(opts) {
-    if (!opts || !opts.entry || isNaN(opts.entry.mills) || isNaN(opts.time) || isNaN(opts.timeSince)) {
+    if (
+      !opts ||
+      !opts.entry ||
+      isNaN(opts.entry.mills) ||
+      isNaN(opts.time) ||
+      isNaN(opts.timeSince)
+    ) {
       return {
-        label: translate('time ago'),
-        shortLabel: translate('ago')
+        label: translate("time ago"),
+        shortLabel: translate("ago"),
       };
     }
   };
@@ -124,8 +132,8 @@ function init(ctx) {
   timeago.inTheFuture = function inTheFuture(opts) {
     if (opts.entry.mills - times.mins(5).msecs > opts.time) {
       return {
-        label: translate('in the future'),
-        shortLabel: translate('future')
+        label: translate("in the future"),
+        shortLabel: translate("future"),
       };
     }
   };
@@ -134,8 +142,8 @@ function init(ctx) {
     if (opts.entry.mills > opts.time) {
       return {
         value: 1,
-        label: translate('min ago'),
-        shortLabel: 'm'
+        label: translate("min ago"),
+        shortLabel: "m",
       };
     }
   };
@@ -146,26 +154,39 @@ function init(ctx) {
         return {
           value: Math.max(1, Math.round(opts.timeSince / divisor)),
           label: label,
-          shortLabel: shortLabel
+          shortLabel: shortLabel,
         };
       }
     };
   };
 
   timeago.resolvers = [
-    timeago.isMissing, timeago.inTheFuture, timeago.almostInTheFuture, timeago.isLessThan(times.mins(2).msecs, times.min().msecs, 'min ago', 'm'), timeago.isLessThan(times.hour().msecs, times.min().msecs, 'mins ago', 'm'), timeago.isLessThan(times.hours(2).msecs, times.hour().msecs, 'hour ago', 'h'), timeago.isLessThan(times.day().msecs, times.hour().msecs, 'hours ago', 'h'), timeago.isLessThan(times.days(2).msecs, times.day().msecs, 'day ago', 'd'), timeago.isLessThan(times.week().msecs, times.day().msecs, 'days ago', 'd'),
+    timeago.isMissing,
+    timeago.inTheFuture,
+    timeago.almostInTheFuture,
+    timeago.isLessThan(times.mins(2).msecs, times.min().msecs, "min ago", "m"),
+    timeago.isLessThan(times.hour().msecs, times.min().msecs, "mins ago", "m"),
+    timeago.isLessThan(
+      times.hours(2).msecs,
+      times.hour().msecs,
+      "hour ago",
+      "h",
+    ),
+    timeago.isLessThan(times.day().msecs, times.hour().msecs, "hours ago", "h"),
+    timeago.isLessThan(times.days(2).msecs, times.day().msecs, "day ago", "d"),
+    timeago.isLessThan(times.week().msecs, times.day().msecs, "days ago", "d"),
     function () {
       return {
-        label: 'long ago',
-        shortLabel: 'ago'
-      }
-    }
+        label: "long ago",
+        shortLabel: "ago",
+      };
+    },
   ];
 
   timeago.calcDisplay = function calcDisplay(entry, time) {
     var opts = {
       time: time,
-      entry: entry
+      entry: entry,
     };
 
     if (time && entry && entry.mills) {
@@ -186,15 +207,13 @@ function init(ctx) {
 
     sbx.pluginBase.updatePillText(timeago, {
       value: inRetroMode ? null : agoDisplay.value,
-      label: inRetroMode ? translate('RETRO') : translate(agoDisplay.label)
-        //no warning/urgent class when in retro mode
-        ,
-      pillClass: inRetroMode ? 'current' : timeago.checkStatus(sbx)
+      label: inRetroMode ? translate("RETRO") : translate(agoDisplay.label),
+      //no warning/urgent class when in retro mode
+      pillClass: inRetroMode ? "current" : timeago.checkStatus(sbx),
     });
   };
 
   return timeago;
-
 }
 
 module.exports = init;

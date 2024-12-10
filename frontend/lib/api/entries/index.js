@@ -1,20 +1,20 @@
-'use strict';
+"use strict";
 
-const _last = require('lodash/last');
-const _isNil = require('lodash/isNil');
-const _first = require('lodash/first');
-const _includes = require('lodash/includes');
-const _ = require('lodash');
-const moment = require('moment');
+const _last = require("lodash/last");
+const _isNil = require("lodash/isNil");
+const _first = require("lodash/first");
+const _includes = require("lodash/includes");
+const _ = require("lodash");
+const moment = require("moment");
 
-const consts = require('../../constants');
-const es = require('event-stream');
-const braces = require('braces');
+const consts = require("../../constants");
+const es = require("event-stream");
+const braces = require("braces");
 const expand = braces.expand;
 
 const ID_PATTERN = /^[a-f\d]{24}$/;
 
-function isId (value) {
+function isId(value) {
   return ID_PATTERN.test(value);
 }
 
@@ -32,41 +32,43 @@ function isId (value) {
  * @param Object ctx The global ctx with all modules, storage, and event buses
  * configured.
  */
-function configure (app, wares, ctx, env) {
+function configure(app, wares, ctx, env) {
   // default storage biased towards entries.
   const entries = ctx.entries;
-  const express = require('express')
-    , api = express.Router();
+  const express = require("express"),
+    api = express.Router();
 
   // invoke common middleware
   api.use(wares.sendJSONStatus);
   // text body types get handled as raw buffer stream
   api.use(wares.rawParser);
   // json body types get handled as parsed json
-  api.use(wares.bodyParser.json({
-    limit: '50Mb'
-  }));
+  api.use(
+    wares.bodyParser.json({
+      limit: "50Mb",
+    }),
+  );
   // also support url-encoded content-type
   api.use(wares.urlencodedParser);
   // text body types get handled as raw buffer stream
   // shortcut to use extension to specify output content-type
-  api.use(wares.extensions([
-        'json', 'svg', 'csv', 'txt', 'png', 'html', 'tsv'
-    ]));
+  api.use(
+    wares.extensions(["json", "svg", "csv", "txt", "png", "html", "tsv"]),
+  );
 
-  api.use(ctx.authorization.isPermitted('api:entries:read'));
+  api.use(ctx.authorization.isPermitted("api:entries:read"));
   /**
    * @method force_typed_data
    * @returns {Stream} Creates a through stream which validates that all
    * elements on the stream have a `type` field.
    * Generate a stream that ensures elements have a `type` field.
    */
-  function force_typed_data (opts) {
+  function force_typed_data(opts) {
     /**
      * @function sync
      * Iterate over every element in the stream, enforcing some data type.
      */
-    function sync (data, next) {
+    function sync(data, next) {
       // if element has no data type, but we know what the type should be
       if (!data.type && opts.type) {
         // bless absence with known type
@@ -76,7 +78,10 @@ function configure (app, wares, ctx, env) {
 
       // Support date de-normalization for older clients
       if (env.settings.deNormalizeDates) {
-        if (data.dateString && Object.prototype.hasOwnProperty.call(data, 'utcOffset')) {
+        if (
+          data.dateString &&
+          Object.prototype.hasOwnProperty.call(data, "utcOffset")
+        ) {
           const d = moment(data.dateString).utcOffset(data.utcOffset);
           data.dateString = d.toISOString(true);
           delete data.utcOffset;
@@ -92,29 +97,31 @@ function configure (app, wares, ctx, env) {
 
   // check for last modified from in-memory data
 
-  function ifModifiedSinceCTX (req, res, next) {
-
+  function ifModifiedSinceCTX(req, res, next) {
     var lastEntry = _last(ctx.ddata.sgvs);
     var lastEntryDate = null;
 
     if (!_isNil(lastEntry)) {
       lastEntryDate = new Date(_last(ctx.ddata.sgvs).mills);
-      res.setHeader('Last-Modified', lastEntryDate.toUTCString());
+      res.setHeader("Last-Modified", lastEntryDate.toUTCString());
     }
 
-    var ifModifiedSince = req.get('If-Modified-Since');
+    var ifModifiedSince = req.get("If-Modified-Since");
     if (!ifModifiedSince) {
       return next();
     }
 
     // console.log('CGM Entry request with If-Modified-Since: ', ifModifiedSince);
 
-    if (lastEntryDate && lastEntryDate.getTime() <= Date.parse(ifModifiedSince)) {
-      console.log('Sending Not Modified');
+    if (
+      lastEntryDate &&
+      lastEntryDate.getTime() <= Date.parse(ifModifiedSince)
+    ) {
+      console.log("Sending Not Modified");
       res.status(304).send({
-        status: 304
-        , message: 'Not modified'
-        , type: 'internal'
+        status: 304,
+        message: "Not modified",
+        type: "internal",
       });
       return;
     }
@@ -129,29 +136,36 @@ function configure (app, wares, ctx, env) {
     * We expect a payload to be attached to `res.entries`.
     // Middleware to format any response involving entries.
     */
-  function format_entries (req, res) {
+  function format_entries(req, res) {
     // deduce what type of records we might expect
     var type_params = {
-      type: (req.query && req.query.find && req.query.find.type &&
-          req.query.find.type !== req.params.model) ?
-        req.query.find.type : req.params.model
+      type:
+        req.query &&
+        req.query.find &&
+        req.query.find.type &&
+        req.query.find.type !== req.params.model
+          ? req.query.find.type
+          : req.params.model,
     };
 
     // f there's been some error, report that
     if (res.entries_err) {
-      return res.sendJSONStatus(res, consts.HTTP_INTERNAL_ERROR, 'Mongo Error', res.entries_err);
+      return res.sendJSONStatus(
+        res,
+        consts.HTTP_INTERNAL_ERROR,
+        "Mongo Error",
+        res.entries_err,
+      );
     }
 
     // IF-Modified-Since support
 
-    function compare (a, b) {
+    function compare(a, b) {
       var a_field = a.mills ? a.mills : a.date;
       var b_field = b.mills ? b.mills : b.date;
 
-      if (a_field > b_field)
-        return -1;
-      if (a_field < b_field)
-        return 1;
+      if (a_field > b_field) return -1;
+      if (a_field < b_field) return 1;
       return 0;
     }
 
@@ -165,47 +179,58 @@ function configure (app, wares, ctx, env) {
 
     if (!_isNil(lastEntry)) {
       if (lastEntry.mills) lastEntryDate = new Date(lastEntry.mills);
-      if (!lastEntry.mills && lastEntry.date) lastEntryDate = new Date(lastEntry.date);
-      res.setHeader('Last-Modified', lastEntryDate.toUTCString());
+      if (!lastEntry.mills && lastEntry.date)
+        lastEntryDate = new Date(lastEntry.date);
+      res.setHeader("Last-Modified", lastEntryDate.toUTCString());
     }
 
-    var ifModifiedSince = req.get('If-Modified-Since');
+    var ifModifiedSince = req.get("If-Modified-Since");
 
-    if (lastEntryDate !== null && ifModifiedSince !== null && lastEntryDate.getTime() <= new Date(ifModifiedSince).getTime()) {
-      console.log('If-Modified-Since: ' + new Date(ifModifiedSince) + ' Last-Modified', lastEntryDate);
+    if (
+      lastEntryDate !== null &&
+      ifModifiedSince !== null &&
+      lastEntryDate.getTime() <= new Date(ifModifiedSince).getTime()
+    ) {
+      console.log(
+        "If-Modified-Since: " + new Date(ifModifiedSince) + " Last-Modified",
+        lastEntryDate,
+      );
       res.status(304).send({
-        status: 304
-        , message: 'Not modified'
-        , type: 'internal'
+        status: 304,
+        message: "Not modified",
+        type: "internal",
       });
       return;
     }
 
-    function formatWithSeparator (data, separator) {
-      if (data === null || data.constructor !== Array || data.length == 0) return "";
+    function formatWithSeparator(data, separator) {
+      if (data === null || data.constructor !== Array || data.length == 0)
+        return "";
 
       var outputdata = [];
-      data.forEach(function(e) {
+      data.forEach(function (e) {
         var entry = {
-          "dateString": e.dateString
-          , "date": e.date
-          , "sgv": e.sgv
-          , "direction": e.direction
-          , "device": e.device
+          dateString: e.dateString,
+          date: e.date,
+          sgv: e.sgv,
+          direction: e.direction,
+          device: e.device,
         };
         outputdata.push(entry);
       });
 
       var fields = Object.keys(outputdata[0]);
-      var replacer = function(key, value) {
-        return value === null ? '' : value
-      }
-      var csv = outputdata.map(function(row) {
-        return fields.map(function(fieldName) {
-          return JSON.stringify(row[fieldName], replacer)
-        }).join(separator)
+      var replacer = function (key, value) {
+        return value === null ? "" : value;
+      };
+      var csv = outputdata.map(function (row) {
+        return fields
+          .map(function (fieldName) {
+            return JSON.stringify(row[fieldName], replacer);
+          })
+          .join(separator);
       });
-      return csv.join('\r\n');
+      return csv.join("\r\n");
     }
 
     // console.log(JSON.stringify(req.headers));
@@ -216,39 +241,59 @@ function configure (app, wares, ctx, env) {
     // The stream logic allows some streams to ensure that some basic rules,
     // such as enforcing a type property to exist, are followed.
     return res.format({
-      'text/plain': function() {
-        es.pipeline(output, force_typed_data(type_params), es.writeArray(function(err, out) {
-          var output = formatWithSeparator(out, "\t");
-          res.send(output);
-        }));
-      }
-      , 'text/tab-separated-values': function() {
-        es.pipeline(output, force_typed_data(type_params), es.writeArray(function(err, out) {
-          var output = formatWithSeparator(out, '\t');
-          res.send(output);
-        }));
-      }
-      , 'text/csv': function() {
-        es.pipeline(output, force_typed_data(type_params), es.writeArray(function(err, out) {
-          var output = formatWithSeparator(out, ',');
-          res.send(output);
-        }));
-      }
-      , 'application/json': function() {
+      "text/plain": function () {
+        es.pipeline(
+          output,
+          force_typed_data(type_params),
+          es.writeArray(function (err, out) {
+            var output = formatWithSeparator(out, "\t");
+            res.send(output);
+          }),
+        );
+      },
+      "text/tab-separated-values": function () {
+        es.pipeline(
+          output,
+          force_typed_data(type_params),
+          es.writeArray(function (err, out) {
+            var output = formatWithSeparator(out, "\t");
+            res.send(output);
+          }),
+        );
+      },
+      "text/csv": function () {
+        es.pipeline(
+          output,
+          force_typed_data(type_params),
+          es.writeArray(function (err, out) {
+            var output = formatWithSeparator(out, ",");
+            res.send(output);
+          }),
+        );
+      },
+      "application/json": function () {
         // so long as every element has a `type` field, and some kind of
         // date, we'll consider it valid
-        es.pipeline(output, force_typed_data(type_params), es.writeArray(function(err, out) {
-          res.json(out);
-        }));
-      }
-      , 'default': function() {
+        es.pipeline(
+          output,
+          force_typed_data(type_params),
+          es.writeArray(function (err, out) {
+            res.json(out);
+          }),
+        );
+      },
+      default: function () {
         // Default to JSON output
         // so long as every element has a `type` field, and some kind of
         // date, we'll consider it valid
-        es.pipeline(output, force_typed_data(type_params), es.writeArray(function(err, out) {
-          res.json(out);
-        }));
-      }
+        es.pipeline(
+          output,
+          force_typed_data(type_params),
+          es.writeArray(function (err, out) {
+            res.json(out);
+          }),
+        );
+      },
     });
   }
 
@@ -260,12 +305,12 @@ function configure (app, wares, ctx, env) {
    * into the configured storage layer, saving the results in mongodb.
    */
   // middleware to process "uploads" of sgv data
-  function insert_entries (req, res, next) {
+  function insert_entries(req, res, next) {
     // list of incoming records
     var incoming = [];
     // Potentially a single json encoded body.
     // This can happen from either an url-encoded or json content-type.
-    if ('date' in req.body) {
+    if ("date" in req.body) {
       // add it to the incoming list
       incoming.push(req.body);
     }
@@ -286,7 +331,7 @@ function configure (app, wares, ctx, env) {
      * Sends stream elements into storage layer.
      * Configures the storage layer stream.
      */
-    function persist (fn) {
+    function persist(fn) {
       if (req.persist_entries) {
         // store everything
         return entries.persist(fn);
@@ -300,7 +345,7 @@ function configure (app, wares, ctx, env) {
      * Final callback store results on `res.entries`, after all I/O is done.
      * store results and move to the next middleware
      */
-    function done (err, result) {
+    function done(err, result) {
       // assign payload
       res.entries = result;
       res.entries_err = err;
@@ -318,12 +363,11 @@ function configure (app, wares, ctx, env) {
    * @param {String} model The name of the model to use if not found.
    * Sets `req.query.find.type` to your chosen model.
    */
-  function prepReqModel (req, model) {
-    var type = model || 'sgv';
+  function prepReqModel(req, model) {
+    var type = model || "sgv";
     if (!req.query.find) {
-
       req.query.find = {
-        type: type
+        type: type,
       };
     } else {
       req.query.find.type = type;
@@ -334,7 +378,7 @@ function configure (app, wares, ctx, env) {
    * @param model
    * Prepare model based on explicit choice in route/path parameter.
    */
-  api.param('model', function(req, res, next, model) {
+  api.param("model", function (req, res, next, model) {
     prepReqModel(req, model);
     next();
   });
@@ -345,17 +389,25 @@ function configure (app, wares, ctx, env) {
    * Get last entry.
    * @response /definitions/Entries
    */
-  api.get('/entries/current', function(req, res, next) {
-    //assume sgv
-    req.params.model = 'sgv';
-    entries.list({
-      count: 1
-    }, function(err, records) {
-      res.entries = records;
-      res.entries_err = err;
-      return next();
-    });
-  }, wares.obscure_device, format_entries);
+  api.get(
+    "/entries/current",
+    function (req, res, next) {
+      //assume sgv
+      req.params.model = "sgv";
+      entries.list(
+        {
+          count: 1,
+        },
+        function (err, records) {
+          res.entries = records;
+          res.entries_err = err;
+          return next();
+        },
+      );
+    },
+    wares.obscure_device,
+    format_entries,
+  );
 
   /**
    * @module get#/entries/:spec
@@ -368,28 +420,33 @@ function configure (app, wares, ctx, env) {
    * usual query logic is performed biased towards that model type.
    * Useful for filtering by type.
    */
-  api.get('/entries/:spec', function(req, res, next) {
-    if (isId(req.params.spec)) {
-      entries.getEntry(req.params.spec, function(err, entry) {
-        if (err) {
-          return next(err);
-        }
-        res.entries = [entry];
-        res.entries_err = err;
-        req.query.find = req.query.find || {};
-        if (entry) {
-          req.query.find.type = entry.type;
-        } else {
-          res.entries_err = 'No such id: \'' + req.params.spec + '\'';
-        }
-        next();
-      });
-    } else {
-      req.params.model = req.params.spec;
-      prepReqModel(req, req.params.model);
-      query_models(req, res, next);
-    }
-  }, wares.obscure_device, format_entries);
+  api.get(
+    "/entries/:spec",
+    function (req, res, next) {
+      if (isId(req.params.spec)) {
+        entries.getEntry(req.params.spec, function (err, entry) {
+          if (err) {
+            return next(err);
+          }
+          res.entries = [entry];
+          res.entries_err = err;
+          req.query.find = req.query.find || {};
+          if (entry) {
+            req.query.find.type = entry.type;
+          } else {
+            res.entries_err = "No such id: '" + req.params.spec + "'";
+          }
+          next();
+        });
+      } else {
+        req.params.model = req.params.spec;
+        prepReqModel(req, req.params.model);
+        query_models(req, res, next);
+      }
+    },
+    wares.obscure_device,
+    format_entries,
+  );
 
   /**
    * @module get#/entries
@@ -400,7 +457,13 @@ function configure (app, wares, ctx, env) {
    * `find[date]`.
    *
    */
-  api.get('/entries', ifModifiedSinceCTX, query_models, wares.obscure_device, format_entries);
+  api.get(
+    "/entries",
+    ifModifiedSinceCTX,
+    query_models,
+    wares.obscure_device,
+    format_entries,
+  );
 
   /**
    * @function echo_query
@@ -408,7 +471,7 @@ function configure (app, wares, ctx, env) {
    * Useful for understanding how REST api parameters translate into mongodb
    * queries.
    */
-  function echo_query (req, res) {
+  function echo_query(req, res) {
     var query = req.query;
     // make a depth-wise copy of the original raw input
     var input = JSON.parse(JSON.stringify(query));
@@ -418,14 +481,14 @@ function configure (app, wares, ctx, env) {
       query.count = consts.ENTRIES_DEFAULT_COUNT;
     }
     // bias towards entries, but allow expressing preference of storage layer
-    var storage = req.params.echo || 'entries';
+    var storage = req.params.echo || "entries";
 
     // send payload with information about query itself
     res.json({
-      query: ctx[storage].query_for(query)
-      , input: input
-      , params: req.params
-      , storage: storage
+      query: ctx[storage].query_for(query),
+      input: input,
+      params: req.params,
+      storage: storage,
     });
   }
 
@@ -438,7 +501,7 @@ function configure (app, wares, ctx, env) {
    * If the query can be served from data in the runtime ddata, use the cached
    * data and don't query the database.
    */
-  function query_models (req, res, next) {
+  function query_models(req, res, next) {
     var query = req.query;
 
     // If "?count=" is present, use that number to decided how many to return.
@@ -451,8 +514,8 @@ function configure (app, wares, ctx, env) {
     let typeQuery;
 
     if (query.find) {
-      Object.keys(query.find).forEach(function(key) {
-        if (key == 'type') {
+      Object.keys(query.find).forEach(function (key) {
+        if (key == "type") {
           typeQuery = query.find[key]["$eq"];
           if (!typeQuery) typeQuery = query.find.type;
         } else {
@@ -464,18 +527,21 @@ function configure (app, wares, ctx, env) {
     let inMemoryCollection;
 
     if (typeQuery) {
-      inMemoryCollection= _.filter(ctx.cache.entries, function checkType (object) {
-        if (typeQuery == 'sgv') return 'sgv' in object;
-        if (typeQuery == 'mbg') return 'mbg' in object;
-        if (typeQuery == 'cal') return object.type === 'cal';
-        return false;
-      });
+      inMemoryCollection = _.filter(
+        ctx.cache.entries,
+        function checkType(object) {
+          if (typeQuery == "sgv") return "sgv" in object;
+          if (typeQuery == "mbg") return "mbg" in object;
+          if (typeQuery == "cal") return object.type === "cal";
+          return false;
+        },
+      );
     } else {
-      inMemoryCollection = ctx.cache.getData('entries');
+      inMemoryCollection = ctx.cache.getData("entries");
     }
 
     if (inMemoryPossible && query.count <= inMemoryCollection.length) {
-      res.entries = _.cloneDeep(_.take(inMemoryCollection,query.count));
+      res.entries = _.cloneDeep(_.take(inMemoryCollection, query.count));
 
       for (let i = 0; i < res.entries.length; i++) {
         let e = res.entries[i];
@@ -490,7 +556,7 @@ function configure (app, wares, ctx, env) {
     // bias to entries, but allow expressing a preference
     var storage = req.storage || ctx.entries;
     // perform the query
-    storage.list(query, function payload (err, entries) {
+    storage.list(query, function payload(err, entries) {
       // assign payload
       res.entries = entries;
       res.entries_err = err;
@@ -498,10 +564,10 @@ function configure (app, wares, ctx, env) {
     });
   }
 
-  function count_records (req, res, next) {
+  function count_records(req, res, next) {
     var query = req.query;
     var storage = req.storage || ctx.entries;
-    storage.aggregate(query, function payload (err, entries) {
+    storage.aggregate(query, function payload(err, entries) {
       // assign payload
       res.entries = entries;
       res.entries_err = err;
@@ -509,7 +575,7 @@ function configure (app, wares, ctx, env) {
     });
   }
 
-  function format_results (req, res, next) {
+  function format_results(req, res, next) {
     res.json(res.entries);
     next();
   }
@@ -519,7 +585,7 @@ function configure (app, wares, ctx, env) {
    * Delete entries.  The query logic works the same way as find/list.  This
    * endpoint uses same search logic to remove records from the database.
    */
-  function delete_records (req, res, next) {
+  function delete_records(req, res, next) {
     // bias towards model, but allow expressing a preference
     if (!req.model) {
       req.model = ctx.entries;
@@ -529,7 +595,7 @@ function configure (app, wares, ctx, env) {
       query.count = consts.ENTRIES_DEFAULT_COUNT;
     }
     // remove using the query
-    req.model.remove(query, function(err, stat) {
+    req.model.remove(query, function (err, stat) {
       if (err) {
         return next(err);
       }
@@ -543,13 +609,13 @@ function configure (app, wares, ctx, env) {
    * @param spec
    * Middleware that prepares the :spec parameter in the routed path.
    */
-  api.param('spec', function(req, res, next, spec) {
+  api.param("spec", function (req, res, next, spec) {
     if (isId(spec)) {
       prepReqModel(req, req.params.model);
       req.query = {
         find: {
-          _id: req.params.spec
-        }
+          _id: req.params.spec,
+        },
       };
     } else {
       prepReqModel(req, req.params.model);
@@ -562,10 +628,10 @@ function configure (app, wares, ctx, env) {
    * The echo parameter in the path routing parameters allows the echo
    * endpoints to customize the storage layer.
    */
-  api.param('echo', function(req, res, next, echo) {
-    console.log('echo', echo);
+  api.param("echo", function (req, res, next, echo) {
+    console.log("echo", echo);
     if (!echo) {
-      req.params.echo = 'entries';
+      req.params.echo = "entries";
     }
     next();
   });
@@ -576,7 +642,7 @@ function configure (app, wares, ctx, env) {
    * Echo information about model/spec queries.
    * Useful in understanding how REST API prepares queries against mongo.
    */
-  api.get('/echo/:echo/:model?/:spec?', echo_query);
+  api.get("/echo/:echo/:model?/:spec?", echo_query);
 
   /**
         * Prepare regexp patterns based on `prefix`, and `regex` parameters.
@@ -594,30 +660,30 @@ function configure (app, wares, ctx, env) {
 
   ```
         */
-  function prep_patterns (req, res, next) {
+  function prep_patterns(req, res, next) {
     // initialize empty pattern list.
     var pattern = [];
     // initialize a basic prefix
     // also perform bash brace/glob-style expansion
-    var prefix = expand(req.params.prefix || '.*');
+    var prefix = expand(req.params.prefix || ".*");
 
     // if expansion leads to more than one prefix
     if (prefix.length > 1) {
       // pre-pend the prefix to the pattern list and wait to expand it as
       // part of the full pattern
-      pattern.push('^' + req.params.prefix);
+      pattern.push("^" + req.params.prefix);
     }
     // append any regex parameters
     if (req.params.regex) {
       // prepend "match any" rule to their rule
-      pattern.push('.*' + req.params.regex);
+      pattern.push(".*" + req.params.regex);
     }
     // create a single pattern with all inputs considered
     // expand the pattern using bash/glob style brace expansion to generate
     // an array of patterns.
 
-    pattern = expand(pattern.join(''));
-    if (pattern.length == 0) pattern = [''];
+    pattern = expand(pattern.join(""));
+    if (pattern.length == 0) pattern = [""];
 
     /**
      * Factory function to customize creation of RegExp patterns.
@@ -628,14 +694,14 @@ function configure (app, wares, ctx, env) {
      * RegExp with the prefix and suffix prepended, and appended,
      * respectively.
      */
-    function iter_regex (prefix, suffix) {
+    function iter_regex(prefix, suffix) {
       /**
        * @function make
        * @returns RegExp Make a RegExp with configured prefix and suffix
        */
-      function make (pat) {
+      function make(pat) {
         // concat the prefix, pattern, and suffix.
-        pat = (prefix ? prefix : '') + pat + (suffix ? suffix : '');
+        pat = (prefix ? prefix : "") + pat + (suffix ? suffix : "");
         // return RegExp.
         return new RegExp(pat);
       }
@@ -652,12 +718,12 @@ function configure (app, wares, ctx, env) {
     query[field] = {
       // $regex: prefix,
       // configure query to perform regex against list of potential regexp
-      $in: matches
+      $in: matches,
     };
     if (prefix.length === 1) {
       // If there is a single prefix pattern, mongo can optimize this against
       // an indexed field
-      query[field].$regex = prefix.map(iter_regex('^')).pop();
+      query[field].$regex = prefix.map(iter_regex("^")).pop();
     }
 
     // Merge into existing query structure.
@@ -684,13 +750,13 @@ function configure (app, wares, ctx, env) {
    * Default is `dateString`, because that's the iso8601 field for sgv
    * entries.
    */
-  function prep_pattern_field (req, res, next) {
+  function prep_pattern_field(req, res, next) {
     // If req.params.field from routed path parameter is available use it.
     if (req.params.field) {
       req.patternField = req.params.field;
     } else {
       // Default is `dateString`.
-      req.patternField = 'dateString';
+      req.patternField = "dateString";
     }
     next();
   }
@@ -703,8 +769,11 @@ function configure (app, wares, ctx, env) {
    * the entries storage layer, because that's where sgv records are stored
    * by default.
    */
-  function prep_storage (req, res, next) {
-    if (req.params.storage && _includes(['entries', 'treatments', 'devicestatus'], req.params.storage)) {
+  function prep_storage(req, res, next) {
+    if (
+      req.params.storage &&
+      _includes(["entries", "treatments", "devicestatus"], req.params.storage)
+    ) {
       req.storage = ctx[req.params.storage];
     } else {
       req.storage = ctx.entries;
@@ -719,15 +788,22 @@ function configure (app, wares, ctx, env) {
    * Useful for understanding how the `/:prefix/:regex` route generates
    * mongodb queries.
    */
-  api.get('/times/echo/:prefix?/:regex?', prep_storage, prep_pattern_field, prep_patterns, prep_patterns, function(req, res) {
-    res.json({
-      req: {
-        params: req.params
-        , query: req.query
-      }
-      , pattern: req.pattern
-    });
-  });
+  api.get(
+    "/times/echo/:prefix?/:regex?",
+    prep_storage,
+    prep_pattern_field,
+    prep_patterns,
+    prep_patterns,
+    function (req, res) {
+      res.json({
+        req: {
+          params: req.params,
+          query: req.query,
+        },
+        pattern: req.pattern,
+      });
+    },
+  );
 
   /**
         * @module get#/times/:prefix/:regex
@@ -740,9 +816,18 @@ function configure (app, wares, ctx, env) {
         * @routed
         * @response 200 /definitions/Entries
         */
-  api.get('/times/:prefix?/:regex?', prep_storage, prep_pattern_field, prep_patterns, prep_patterns, query_models, wares.obscure_device, format_entries);
+  api.get(
+    "/times/:prefix?/:regex?",
+    prep_storage,
+    prep_pattern_field,
+    prep_patterns,
+    prep_patterns,
+    query_models,
+    wares.obscure_device,
+    format_entries,
+  );
 
-  api.get('/count/:storage/where', prep_storage, count_records, format_results);
+  api.get("/count/:storage/where", prep_storage, count_records, format_results);
 
   /**
         * @module get#/slice/:storage/:field/:type/:prefix/:regex
@@ -755,7 +840,15 @@ function configure (app, wares, ctx, env) {
   /api/v1/slice/entries/dateString/mbg/2015.json
   ```
         */
-  api.get('/slice/:storage/:field/:type?/:prefix?/:regex?', prep_storage, prep_pattern_field, prep_patterns, query_models, wares.obscure_device, format_entries);
+  api.get(
+    "/slice/:storage/:field/:type?/:prefix?/:regex?",
+    prep_storage,
+    prep_pattern_field,
+    prep_patterns,
+    query_models,
+    wares.obscure_device,
+    format_entries,
+  );
 
   /**
    * @module post#/entries/preview
@@ -763,14 +856,21 @@ function configure (app, wares, ctx, env) {
    * posted back out.
    * Similar to the echo api, useful to lint/debug upload problems.
    */
-  api.post('/entries/preview', ctx.authorization.isPermitted('api:entries:create'), function(req, res, next) {
-    // setting this flag tells insert_entries to not actually store the results
-    req.persist_entries = false;
-    next();
-  }, insert_entries, wares.obscure_device, format_entries);
+  api.post(
+    "/entries/preview",
+    ctx.authorization.isPermitted("api:entries:create"),
+    function (req, res, next) {
+      // setting this flag tells insert_entries to not actually store the results
+      req.persist_entries = false;
+      next();
+    },
+    insert_entries,
+    wares.obscure_device,
+    format_entries,
+  );
 
   // Protect endpoints with authenticated api.
-  if (app.enabled('api')) {
+  if (app.enabled("api")) {
     // Create and store new sgv entries
     /**
      * @module post#/entries
@@ -778,11 +878,18 @@ function configure (app, wares, ctx, env) {
      * Stores incoming payload that follows basic rules about having a
      * `type` field in `entries` storage layer.
      */
-    api.post('/entries/', ctx.authorization.isPermitted('api:entries:create'), function(req, res, next) {
-      // setting this flag tells insert_entries to store the results
-      req.persist_entries = true;
-      next();
-    }, insert_entries, wares.obscure_device, format_entries);
+    api.post(
+      "/entries/",
+      ctx.authorization.isPermitted("api:entries:create"),
+      function (req, res, next) {
+        // setting this flag tells insert_entries to store the results
+        req.persist_entries = true;
+        next();
+      },
+      insert_entries,
+      wares.obscure_device,
+      format_entries,
+    );
 
     /**
      * @module delete#/entries/:spec
@@ -790,27 +897,36 @@ function configure (app, wares, ctx, env) {
      * Delete entries.  The query logic works the same way as find/list.  This
      * endpoint uses same search logic to remove records from the database.
      */
-    api.delete('/entries/:spec', ctx.authorization.isPermitted('api:entries:delete'), function(req, res, next) {
-      // if ID, prepare to query for one record
-      if (isId(req.params.spec)) {
-        prepReqModel(req, req.params.model);
-        req.query = {
-          find: {
-            _id: req.params.spec
+    api.delete(
+      "/entries/:spec",
+      ctx.authorization.isPermitted("api:entries:delete"),
+      function (req, res, next) {
+        // if ID, prepare to query for one record
+        if (isId(req.params.spec)) {
+          prepReqModel(req, req.params.model);
+          req.query = {
+            find: {
+              _id: req.params.spec,
+            },
+          };
+        } else {
+          req.params.model = req.params.spec;
+          prepReqModel(req, req.params.model);
+          if (req.query.find.type === "*") {
+            delete req.query.find.type;
           }
-        };
-      } else {
-        req.params.model = req.params.spec;
-        prepReqModel(req, req.params.model);
-        if (req.query.find.type === '*') {
-          delete req.query.find.type;
         }
-      }
-      next();
-    }, delete_records);
+        next();
+      },
+      delete_records,
+    );
 
     // delete record that match query
-    api.delete('/entries/', ctx.authorization.isPermitted('api:entries:delete'), delete_records);
+    api.delete(
+      "/entries/",
+      ctx.authorization.isPermitted("api:entries:delete"),
+      delete_records,
+    );
   }
 
   return api;

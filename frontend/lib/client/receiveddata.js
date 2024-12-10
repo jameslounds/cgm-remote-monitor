@@ -1,12 +1,11 @@
-'use strict';
+"use strict";
 
-var _ = require('lodash');
+var _ = require("lodash");
 
 var TWO_DAYS = 172800000;
 
-function mergeDataUpdate (isDelta, cachedDataArray, receivedDataArray, maxAge) {
-
-  function nsArrayDiff (oldArray, newArray) {
+function mergeDataUpdate(isDelta, cachedDataArray, receivedDataArray, maxAge) {
+  function nsArrayDiff(oldArray, newArray) {
     var knownMills = [];
 
     var l = oldArray.length;
@@ -21,7 +20,7 @@ function mergeDataUpdate (isDelta, cachedDataArray, receivedDataArray, maxAge) {
 
     var result = {
       updates: [],
-      new: []
+      new: [],
     };
 
     l = newArray.length;
@@ -50,15 +49,19 @@ function mergeDataUpdate (isDelta, cachedDataArray, receivedDataArray, maxAge) {
   }
 
   // purge old data from cache before updating
-  var mAge = (isNaN(maxAge) || maxAge == null) ? TWO_DAYS : maxAge;
+  var mAge = isNaN(maxAge) || maxAge == null ? TWO_DAYS : maxAge;
   var twoDaysAgo = new Date().getTime() - mAge;
 
   var i;
 
-  for (i = cachedDataArray.length -1; i >= 0; i--) {
+  for (i = cachedDataArray.length - 1; i >= 0; i--) {
     /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
     var element = cachedDataArray[i];
-    if (element !== null && element !== undefined && element.mills <= twoDaysAgo) {
+    if (
+      element !== null &&
+      element !== undefined &&
+      element.mills <= twoDaysAgo
+    ) {
       cachedDataArray.splice(i, 1);
     }
   }
@@ -72,20 +75,19 @@ function mergeDataUpdate (isDelta, cachedDataArray, receivedDataArray, maxAge) {
       var e = diff.updates[i];
       for (var j = 0; j < cachedDataArray.length; j++) {
         if (e.mills == cachedDataArray[j].mills) {
-          cachedDataArray.splice(j,1,e);
+          cachedDataArray.splice(j, 1, e);
         }
       }
     }
   }
 
   // merge new items in
-  return cachedDataArray.concat(diff.new).sort(function(a, b) {
+  return cachedDataArray.concat(diff.new).sort(function (a, b) {
     return a.mills - b.mills;
   });
 }
 
-function mergeTreatmentUpdate (isDelta, cachedDataArray, receivedDataArray) {
-
+function mergeTreatmentUpdate(isDelta, cachedDataArray, receivedDataArray) {
   // If there was no delta data, just return the original data
   if (!receivedDataArray) {
     return cachedDataArray || [];
@@ -109,11 +111,11 @@ function mergeTreatmentUpdate (isDelta, cachedDataArray, receivedDataArray) {
     for (var j = 0; j < m; j++) {
       /* eslint-disable security/detect-object-injection */ // verified false positive
       if (no._id === cachedDataArray[j]._id) {
-        if (no.action === 'remove') {
+        if (no.action === "remove") {
           cachedDataArray.splice(j, 1);
           break;
         }
-        if (no.action === 'update') {
+        if (no.action === "update") {
           delete no.action;
           cachedDataArray.splice(j, 1, no);
           break;
@@ -123,13 +125,12 @@ function mergeTreatmentUpdate (isDelta, cachedDataArray, receivedDataArray) {
   }
 
   // If this is delta, calculate the difference, merge and sort
-  return cachedDataArray.sort(function(a, b) {
+  return cachedDataArray.sort(function (a, b) {
     return a.mills - b.mills;
   });
 }
 
-function receiveDData (received, ddata, settings) {
-
+function receiveDData(received, ddata, settings) {
   if (!received) {
     return;
   }
@@ -137,7 +138,11 @@ function receiveDData (received, ddata, settings) {
   // Calculate the diff to existing data and replace as needed
   ddata.sgvs = mergeDataUpdate(received.delta, ddata.sgvs, received.sgvs);
   ddata.mbgs = mergeDataUpdate(received.delta, ddata.mbgs, received.mbgs);
-  ddata.treatments = mergeTreatmentUpdate(received.delta, ddata.treatments, received.treatments);
+  ddata.treatments = mergeTreatmentUpdate(
+    received.delta,
+    ddata.treatments,
+    received.treatments,
+  );
   ddata.food = mergeTreatmentUpdate(received.delta, ddata.food, received.food);
 
   ddata.processTreatments(false);
@@ -152,9 +157,16 @@ function receiveDData (received, ddata, settings) {
   }
 
   if (received.devicestatus) {
-    if (settings.extendedSettings.devicestatus && settings.extendedSettings.devicestatus.advanced) {
+    if (
+      settings.extendedSettings.devicestatus &&
+      settings.extendedSettings.devicestatus.advanced
+    ) {
       //only use extra memory in advanced mode
-      ddata.devicestatus = mergeDataUpdate(received.delta, ddata.devicestatus, received.devicestatus);
+      ddata.devicestatus = mergeDataUpdate(
+        received.delta,
+        ddata.devicestatus,
+        received.devicestatus,
+      );
     } else {
       ddata.devicestatus = received.devicestatus;
     }
