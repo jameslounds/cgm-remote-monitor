@@ -6,7 +6,7 @@ const helper = require("./inithelper")();
 
 describe("basalprofile", function () {
   var sandbox = require("../lib/sandbox")();
-  var env = require("../lib/server/env")();
+  var env = require("./fixtures/default-server-settings");
   var ctx = {
     settings: {},
     language: language,

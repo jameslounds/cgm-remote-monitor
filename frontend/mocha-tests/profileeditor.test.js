@@ -2,7 +2,7 @@
 
 require("should");
 var _ = require("lodash");
-var benv = require("benv");
+const path = require("path");
 var read = require("fs").readFileSync;
 
 var nowData = require("../lib/data/ddata")();
@@ -35,7 +35,7 @@ var exampleProfile = {
           value: 100,
         },
         {
-          time: "8:00",
+          time: "08:00",
           value: 80,
         },
       ],
@@ -77,9 +77,10 @@ var someData = {
   "/api/v1/profile.json?count=20": [exampleProfile],
 };
 
+let window, document;
 describe("Profile editor", function () {
   this.timeout(40000); //TODO: see why this test takes longer on Travis to complete
-  var headless = require("./fixtures/headless")(benv, this);
+  var headless = require("./fixtures/headless")(this);
 
   before(function (done) {
     done();
@@ -89,17 +90,20 @@ describe("Profile editor", function () {
     done();
   });
 
-  beforeEach(function (done) {
+  before(function (done) {
     var opts = {
-      htmlFile: __dirname + "/../views/profileindex.html",
+      htmlFile: path.resolve("./bundle/profile/index.html"),
       mockProfileEditor: true,
       mockAjax: someData,
-      benvRequires: [__dirname + "/../static/js/profileinit.js"],
+      benvRequires: [path.resolve("./bundle/profile/profileinit.js")],
     };
-    headless.setup(opts, done);
+    headless.setup(opts, (args) => {
+      ({ window, document } = args);
+      done();
+    });
   });
 
-  afterEach(function (done) {
+  after(function (done) {
     headless.teardown();
     done();
   });

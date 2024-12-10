@@ -1,7 +1,7 @@
 "use strict";
 
 var _ = require("lodash");
-var moment = window.moment;
+var moment = window.moment || require("moment-timezone");
 var times = require("../times");
 var d3 = (global && global.d3) || require("d3");
 

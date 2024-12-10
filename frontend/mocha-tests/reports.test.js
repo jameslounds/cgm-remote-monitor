@@ -2,9 +2,9 @@
 
 require("should");
 var _ = require("lodash");
-var benv = require("benv");
 var read = require("fs").readFileSync;
 var serverSettings = require("./fixtures/default-server-settings");
+const path = require("path");
 
 var nowData = {
   sgvs: [{ mgdl: 100, mills: Date.now(), direction: "Flat", type: "sgv" }],
@@ -763,9 +763,10 @@ var exampleProfile = [
 exampleProfile[0].startDate.setSeconds(0);
 exampleProfile[0].startDate.setMilliseconds(0);
 
+let window, document;
 describe("reports", function () {
   var self = this;
-  var headless = require("./fixtures/headless")(benv, this);
+  var headless = require("./fixtures/headless")(this);
   this.timeout(80000);
 
   before(function (done) {
@@ -776,31 +777,31 @@ describe("reports", function () {
     done();
   });
 
-  beforeEach(function (done) {
+  before(function (done) {
     var opts = {
-      htmlFile: __dirname + "/../views/reportindex.html",
+      htmlFile: path.resolve("./bundle/report/index.html"),
       mockProfileEditor: true,
       serverSettings: serverSettings,
       mockSimpleAjax: someData,
-      benvRequires: [__dirname + "/../static/js/reportinit.js"],
+      benvRequires: [path.resolve("./bundle/report/reportinit.js")],
+      waitForLoad: true,
     };
-    headless.setup(opts, done);
+    headless.setup(opts, (args) => {
+      ({ window, document } = args);
+      // stops flot trying to plot, which fails because happy-dom's canvas support is lacking
+      $.plot = () => {};
+
+      done();
+    });
   });
 
-  afterEach(function (done) {
+  after(function (done) {
     headless.teardown();
     done();
   });
 
   it("should produce some html", function (done) {
     var client = window.Nightscout.client;
-
-    var hashauth = require("../lib/client/hashauth");
-    hashauth.init(client, $);
-    hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
-      hashauth.authenticated = true;
-      next(true);
-    };
 
     window.confirm = function mockConfirm() {
       return true;
@@ -814,8 +815,6 @@ describe("reports", function () {
       if (timer == 60000) return;
       call();
     };
-
-    window.Nightscout.reportclient();
 
     client.init(function afterInit() {
       client.dataUpdate(nowData);
@@ -846,8 +845,8 @@ describe("reports", function () {
       $("#rp_show").click();
       $("#dailystats").click();
 
-      $("img.deleteTreatment:first").click();
-      $("img.editTreatment:first").click();
+      $("img.deleteTreatment:first-child").click();
+      $("img.editTreatment:first-child").click();
       $('.ui-button:contains("Save")').click();
 
       var result = $("body").html();
@@ -889,13 +888,6 @@ describe("reports", function () {
 
   it("should produce week to week report", function (done) {
     var client = window.Nightscout.client;
-
-    var hashauth = require("../lib/client/hashauth");
-    hashauth.init(client, $);
-    hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
-      hashauth.authenticated = true;
-      next(true);
-    };
 
     window.confirm = function mockConfirm() {
       return true;

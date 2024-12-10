@@ -1,12 +1,12 @@
 "use strict";
 
 require("should");
-var benv = require("benv");
 
+let window, document;
 describe("pluginbase", function () {
   this.timeout(50000); // TODO: see why this test takes longer on Travis to complete
 
-  var headless = require("./fixtures/headless")(benv, this);
+  var headless = require("./fixtures/headless")(this);
 
   before(function (done) {
     done();
@@ -17,7 +17,10 @@ describe("pluginbase", function () {
   });
 
   beforeEach(function (done) {
-    headless.setup({}, done);
+    headless.setup({}, (args) => {
+      ({window, document} = args)
+      done()
+    })
   });
 
   afterEach(function (done) {

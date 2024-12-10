@@ -1,7 +1,6 @@
 "use strict";
 
 require("should");
-var benv = require("benv");
 
 var nowData = {
   sgvs: [{ mgdl: 100, mills: Date.now(), direction: "Flat", type: "sgv" }],
@@ -12,22 +11,24 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-describe("careportal", function () {
+let window, document;
+
+describe("careportal", async function () {
   this.timeout(60000); // TODO: see why this test takes longer on Travis to complete
 
-  var headless = require("./fixtures/headless")(benv, this);
+  var headless = require("./fixtures/headless")(this);
 
   before(function (done) {
     const t = Date.now();
     console.log("Starting headless setup for Careportal test");
 
-    function d() {
-      console.log("Done called by headless", Date.now() - t);
+    function d(args) {
+      console.log("Headless setup for Careportal test done");
+      ({ window, document } = args);
       done();
     }
 
     headless.setup({ mockAjax: true }, d);
-    console.log("Headless setup for Careportal test done");
   });
 
   after(function (done) {

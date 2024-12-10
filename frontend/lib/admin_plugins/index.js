@@ -3,7 +3,10 @@
 var _find = require("lodash/find");
 var _each = require("lodash/each");
 
-function init(ctx) {
+function init() {
+  const ctx = {
+    moment: window.moment || require("moment-timezone")
+  }
   var allPlugins = [
     require("./subjects")(ctx),
     require("./roles")(ctx),

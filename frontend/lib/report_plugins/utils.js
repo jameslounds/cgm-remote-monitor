@@ -2,7 +2,7 @@
 
 var consts = require("../constants");
 
-var moment = window.moment;
+var moment = window.moment || require("moment-timezone");
 var utils = {};
 
 function init() {

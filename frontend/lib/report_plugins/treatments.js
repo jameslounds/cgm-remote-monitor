@@ -1,7 +1,7 @@
 "use strict";
 
 var _ = window._;
-var moment = window.moment;
+var moment = window.moment || require("moment-timezone");
 
 var treatments = {
   name: "treatments",

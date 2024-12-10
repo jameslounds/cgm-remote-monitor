@@ -1,10 +1,8 @@
 "use strict";
 
 require("should");
-var _ = require("lodash");
-var benv = require("benv");
-var read = require("fs").readFileSync;
-var serverSettings = require("./fixtures/default-server-settings");
+// var serverSettings = require("./fixtures/default-server-settings");
+const path = require("path");
 
 var nowData = {
   sgvs: [{ mgdl: 100, mills: Date.now(), direction: "Flat", type: "sgv" }],
@@ -59,163 +57,41 @@ var someData = {
   "/api/v1/entries/?find[date][$lte]=": {
     n: 1,
   },
+  "/translations/en/en.json": require("../translations/en/en.json"),
+  "/api/v1/adminnotifies": {
+    status: 200,
+    message: {
+      notifies: [],
+      notifyCount: 0,
+    },
+  },
 };
 
+const headless = require("./fixtures/headless")(this);
 describe("admintools", function () {
   var self = this;
   this.timeout(45000); // TODO: see why this test takes longer on CI to complete
   before(function (done) {
-    benv.setup(function () {
-      benv.require(
-        __dirname + "/../node_modules/.cache/_ns_cache/public/js/bundle.app.js",
-      );
-
-      self.$ = $;
-
-      self.localCookieStorage =
-        self.localStorage =
-        self.$.localStorage =
-          require("./fixtures/localstorage");
-
-      self.$.fn.tooltip = function mockTooltip() {};
-
-      self.$.fn.dialog = function mockDialog(opts) {
-        function maybeCall(name, obj) {
-          if (obj[name] && obj[name].call) {
-            obj[name]();
-          }
-        }
-        maybeCall("open", opts);
-
-        _.forEach(opts.buttons, function (button) {
-          maybeCall("click", button);
-        });
-      };
-
-      var indexHtml = read(__dirname + "/../views/adminindex.html", "utf8");
-      self.$("body").html(indexHtml);
-
-      //var filesys = require('fs');
-      //var logfile = filesys.createWriteStream('out.txt', { flags: 'a'} )
-
-      self.$.ajax = function mockAjax(url, opts) {
-        if (url && url.url) {
-          url = url.url;
-        }
-        //logfile.write(url+'\n');
-        //console.log('Mock ajax:',url,opts);
-        if (opts && opts.success && opts.success.call) {
-          if (
-            url.indexOf("/api/v1/treatments.json?&find[created_at][$gte]=") ===
-            0
-          ) {
-            url = "/api/v1/treatments.json?&find[created_at][$gte]=";
-          } else if (
-            url.indexOf("/api/v1/entries.json?&find[date][$gte]=") === 0
-          ) {
-            url = "/api/v1/entries.json?&find[date][$gte]=";
-          } else if (
-            url.indexOf("/api/v1/devicestatus/?find[created_at][$lte]=") === 0
-          ) {
-            url = "/api/v1/devicestatus/?find[created_at][$lte]=";
-          } else if (
-            url.indexOf("/api/v1/treatments/?find[created_at][$lte]=") === 0
-          ) {
-            url = "/api/v1/treatments/?find[created_at][$lte]=";
-          } else if (url.indexOf("/api/v1/entries/?find[date][$lte]=") === 0) {
-            url = "/api/v1/entries/?find[date][$lte]=";
-          }
-          return {
-            done: function mockDone(fn) {
-              if (someData[url]) {
-                console.log("+++++Data for " + url + " sent");
-                opts.success(someData[url]);
-              } else {
-                console.log("-----Data for " + url + " missing");
-                opts.success([]);
-              }
-              fn();
-              return self.$.ajax();
-            },
-            fail: function mockFail() {
-              return self.$.ajax();
-            },
-          };
-        }
-        return {
-          done: function mockDone(fn) {
-            if (url.indexOf("status.json") > -1) {
-              fn(serverSettings);
-            } else {
-              fn({ message: { message: "OK" } });
-            }
-            return self.$.ajax();
-          },
-          fail: function mockFail() {
-            return self.$.ajax();
-          },
-        };
-      };
-
-      self.$.plot = function mockPlot() {};
-
-      var d3 = require("d3");
-      //disable all d3 transitions so most of the other code can run with jsdom
-      //d3.timer = function mockTimer() { };
-      let timer = d3.timer(function mockTimer() {});
-      timer.stop();
-
-      var cookieStorageType = self.localStorage._type;
-
-      benv.expose({
-        $: self.$,
-        jQuery: self.$,
-        d3: d3,
-        serverSettings: serverSettings,
-        localCookieStorage: self.localStorage,
-        cookieStorageType: self.localStorage,
-        localStorage: self.localStorage,
-        io: {
-          connect: function mockConnect() {
-            return {
-              on: function mockOn(event, callback) {
-                if ("connect" === event && callback) {
-                  callback();
-                }
-              },
-              emit: function mockEmit(event, data, callback) {
-                if ("authorize" === event && callback) {
-                  callback({
-                    read: true,
-                  });
-                }
-              },
-            };
-          },
-        },
-      });
-
-      //benv.require(__dirname + '/../bundle/bundle.source.js');
-      benv.require(__dirname + "/../static/admin/js/admin.js");
-
-      done();
-    });
+    headless.setup(
+      {
+        mockAjax: someData,
+        benvRequires: [path.resolve("./bundle/admin/admininit.js")],
+        waitForLoad: true,
+        htmlFile: path.resolve("./bundle/admin/index.html"),
+      },
+      () => {
+        done();
+      },
+    );
   });
 
   after(function (done) {
-    benv.teardown(true);
+    headless.teardown();
     done();
   });
 
-  it("should produce some html", function (done) {
-    var client = require("../lib/client");
-
-    var hashauth = require("../lib/client/hashauth");
-    hashauth.init(client, $);
-    hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
-      hashauth.authenticated = true;
-      next(true);
-    };
+  it("should produce some html", async function (done) {
+    var client = window.Nightscout.client;
 
     window.confirm = function mockConfirm(text) {
       console.log("Confirm:", text);
@@ -226,16 +102,7 @@ describe("admintools", function () {
       return true;
     };
 
-    client.init();
-
     client.dataUpdate(nowData);
-
-    //var result = $('body').html();
-    //var filesys = require('fs');
-    //var logfile = filesys.createWriteStream('out.txt', { flags: 'a'} )
-    //logfile.write($('body').html());
-
-    //console.log(result);
 
     $("#admin_cleanstatusdb_0_html + button")
       .text()

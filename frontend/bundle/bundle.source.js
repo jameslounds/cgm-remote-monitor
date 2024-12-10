@@ -13,14 +13,9 @@ window.d3 = d3;
 import Storage from "js-storage";
 window.Storage = Storage;
 
-import moment from "moment-timezone";
-window.moment = moment;
 
 window.Nightscout = window.Nightscout || {};
 
-// var ctx = {
-// moment: moment,
-// };
 
 import client from "../lib/client/index.js";
 import initUnits from "../lib/units.js";
@@ -28,7 +23,7 @@ import initAdminPlugins from "../lib/admin_plugins/index.js";
 window.Nightscout = {
   client,
   units: initUnits(),
-  admin_plugins: initAdminPlugins({ moment }),
+  admin_plugins: initAdminPlugins(),
 };
 
 import report_plugins from "../lib/report_plugins/index.js";

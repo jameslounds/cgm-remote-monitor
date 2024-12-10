@@ -1,7 +1,7 @@
 var init = function init() {
   "use strict";
   //for the tests window isn't the global object
-  var $ = window.$;
+  var $ = window.$ || require("jquery");
   var _ = window._;
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;

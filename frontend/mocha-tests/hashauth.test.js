@@ -1,7 +1,6 @@
 "use strict";
 
 require("should");
-var benv = require("benv");
 var read = require("fs").readFileSync;
 var serverSettings = require("./fixtures/default-server-settings");
 
@@ -9,7 +8,7 @@ describe("hashauth", function () {
   this.timeout(50000); // TODO: see why this test takes longer on Travis to complete
 
   var self = this;
-  var headless = require("./fixtures/headless")(benv, this);
+  var headless = require("./fixtures/headless")(this);
 
   before(function (done) {
     done();
@@ -22,7 +21,11 @@ describe("hashauth", function () {
   });
 
   beforeEach(function (done) {
-    headless.setup({ mockAjax: true }, done);
+    headless.setup({ mockAjax: true }, () => {
+      console.log("headless setup done for hashauth");
+      done();
+    });
+    require("jquery.tooltips");
   });
 
   afterEach(function (done) {
@@ -103,9 +106,8 @@ describe("hashauth", function () {
   it("should store hash and the remove authentication", function () {
     var client = require("../lib/client");
     var hashauth = require("../lib/client/hashauth");
-    var localStorage = require("./fixtures/localstorage");
 
-    localStorage.remove("apisecrethash");
+    window.localStorage.removeItem("apisecrethash");
 
     hashauth.init(client, $);
     hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
@@ -119,8 +121,8 @@ describe("hashauth", function () {
     hashauth.processSecret("this is my long pass phrase", true);
 
     hashauth.hash().should.equal("b723e97aa97846eb92d5264f084b2823f57c4aa1");
-    localStorage
-      .get("apisecrethash")
+    window.localStorage
+      .getItem("apisecrethash")
       .should.equal("b723e97aa97846eb92d5264f084b2823f57c4aa1");
     hashauth.isAuthenticated().should.equal(true);
 
@@ -131,9 +133,8 @@ describe("hashauth", function () {
   it("should not store hash", function () {
     var client = require("../lib/client");
     var hashauth = require("../lib/client/hashauth");
-    var localStorage = require("./fixtures/localstorage");
 
-    localStorage.remove("apisecrethash");
+    window.localStorage.removeItem("apisecrethash");
 
     hashauth.init(client, $);
     hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
@@ -146,7 +147,7 @@ describe("hashauth", function () {
     hashauth.processSecret("this is my long pass phrase", false);
 
     hashauth.hash().should.equal("b723e97aa97846eb92d5264f084b2823f57c4aa1");
-    var testnull = localStorage.get("apisecrethash") === null;
+    var testnull = window.localStorage.getItem("apisecrethash") === null;
     testnull.should.equal(true);
     hashauth.isAuthenticated().should.equal(true);
   });
@@ -154,9 +155,8 @@ describe("hashauth", function () {
   it("should report secret too short", function () {
     var client = require("../lib/client");
     var hashauth = require("../lib/client/hashauth");
-    var localStorage = require("./fixtures/localstorage");
 
-    localStorage.remove("apisecrethash");
+    window.localStorage.removeItem("apisecrethash");
 
     hashauth.init(client, self.$);
 

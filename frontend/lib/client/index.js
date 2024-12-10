@@ -347,8 +347,8 @@ client.load = function load(serverSettings, callback) {
   client.formatTime = formatTime;
   client.dataUpdate = dataUpdate;
 
-  client.careportal = require("./careportal")(client, $);
-  client.boluscalc = require("./boluscalc")(client, $);
+  client.careportal = require("./careportal")(client, global.$ || $);
+  client.boluscalc = require("./boluscalc")(client, global.$ || $);
 
   var profile = require("../profilefunctions")(null, client.ctx);
 

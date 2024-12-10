@@ -1,125 +1,78 @@
-var read = require("fs").readFileSync;
-var _ = require("lodash");
+const fs = require("fs");
+const _ = require("lodash");
+const { Window } = require("happy-dom");
+const path = require("path");
 
-function headless(benv, binding) {
-  var self = binding;
+function headless(binding = {}) {
+  const self = binding;
+
   function root() {
-    return benv;
+    return self.window;
   }
 
-  function init(opts, callback) {
-    var localStorage = opts.localStorage || "./localstorage";
+  async function init(options, callback) {
+    const localStorage = options.localStorage || "./localstorage";
     const t = Date.now();
 
     console.log("Headless init");
 
-    var htmlFile = opts.htmlFile || __dirname + "/../../views/index.html";
-    var serverSettings =
-      opts.serverSettings || require("./default-server-settings");
-    var someData = opts.mockAjax || {};
+    const htmlFile = options.htmlFile || path.resolve("./bundle/index.html");
+    const serverSettings =
+      options.serverSettings || require("./default-server-settings");
+
+    if (options.mockAjax === true) options.mockAjax = {};
+    let mockAjaxResponses = options.mockAjax || {};
 
     console.log("Entering setup", Date.now() - t);
 
-    benv.setup(function () {
-      console.log("Setting up benv", Date.now() - t);
+    const window = new Window({
+      url: "http://localhost",
+      width: 1024,
+      height: 768,
+    });
+    global.window = self.window = window;
+    global.document = window.document;
+    global.location = window.location;
 
-      benv.require(
-        __dirname +
-          "/../../node_modules/.cache/_ns_cache/public/js/bundle.app.js",
-      );
+    const indexHtml = fs.readFileSync(htmlFile, "utf8");
+    const regex = /<script[^>]*>[\s\S]*?<\/script>/g;
+    window.document.body.innerHTML = indexHtml.replace(regex, "");
 
-      console.log("Bundle loaded", Date.now() - t);
+    console.log("HTML set", Date.now() - t);
 
-      self.$ = $;
+    const $ = require("jquery"); // must be done *after* instantiating `new Window`
+    $.localStorage = require(localStorage);
 
-      self.localCookieStorage =
-        self.localStorage =
-        self.$.localStorage =
-          require(localStorage);
+    if (options.mockProfileEditor) {
+      $.plot = function mockPlot() {};
 
-      self.$.fn.tooltip = function mockTooltip() {};
+      $.fn.tooltip = function mockTooltip() {};
 
-      var indexHtml = read(htmlFile, "utf8");
-      self.$("body").html(indexHtml);
-
-      console.log("HTML set", Date.now() - t);
-
-      var d3 = require("d3");
-      //disable all d3 transitions so most of the other code can run with jsdom
-      d3.timer = function mockTimer() {};
-
-      if (opts.mockProfileEditor) {
-        self.$.plot = function mockPlot() {};
-
-        self.$.fn.tooltip = function mockTooltip() {};
-
-        self.$.fn.dialog = function mockDialog(opts) {
-          function maybeCall(name, obj) {
-            if (obj[name] && obj[name].call) {
-              obj[name]();
-            }
+      $.fn.dialog = function mockDialog(options) {
+        function maybeCall(name, obj) {
+          if (obj[name] && obj[name].call) {
+            obj[name]();
           }
-          maybeCall("open", opts);
+        }
+        maybeCall("open", options);
 
-          _.forEach(opts.buttons, function (button) {
-            maybeCall("click", button);
-          });
-        };
-      }
-      if (opts.mockSimpleAjax) {
-        someData = opts.mockSimpleAjax;
-        self.$.ajax = function mockAjax(url, opts) {
-          if (url && url.url) {
-            url = url.url;
-          }
+        _.forEach(options.buttons, function (button) {
+          maybeCall("click", button);
+        });
+      };
+    }
+    if (options.mockSimpleAjax) {
+      mockAjaxResponses = options.mockSimpleAjax;
+      $.ajax = function mockAjax(url, options) {
+        if (url && url.url) {
+          url = url.url;
+        }
 
-          var returnVal = someData[url] || [];
-          if (opts && typeof opts.success === "function") {
-            opts.success(returnVal);
-            return self.$.Deferred().resolveWith(returnVal);
-          } else {
-            return {
-              done: function mockDone(fn) {
-                if (url.indexOf("status.json") > -1) {
-                  fn(serverSettings);
-                } else {
-                  fn({ message: "OK" });
-                }
-                return self.$.ajax();
-              },
-              fail: function mockFail() {
-                return self.$.ajax();
-              },
-            };
-          }
-        };
-      }
-      if (opts.mockAjax) {
-        self.$.ajax = function mockAjax(url, opts) {
-          if (url && url.url) {
-            url = url.url;
-          }
-
-          //logfile.write(url+'\n');
-          //console.log(url,opts);
-          if (opts && opts.success && opts.success.call) {
-            return {
-              done: function mockDone(fn) {
-                if (someData[url]) {
-                  console.log("+++++Data for " + url + " sent");
-                  opts.success(someData[url]);
-                } else {
-                  console.log("-----Data for " + url + " missing");
-                  opts.success([]);
-                }
-                fn();
-                return self.$.ajax();
-              },
-              fail: function mockFail() {
-                return self.$.ajax();
-              },
-            };
-          }
+        var returnVal = mockAjaxResponses[url] || [];
+        if (options && typeof options.success === "function") {
+          options.success(returnVal);
+          return $.Deferred().resolveWith(returnVal);
+        } else {
           return {
             done: function mockDone(fn) {
               if (url.indexOf("status.json") > -1) {
@@ -127,56 +80,171 @@ function headless(benv, binding) {
               } else {
                 fn({ message: "OK" });
               }
-              return self.$.ajax();
+              return $.ajax();
             },
             fail: function mockFail() {
-              return self.$.ajax();
+              return $.ajax();
             },
           };
-        };
-      }
+        }
+      };
+    }
+    if (options.mockAjax) {
+      $.ajax = function mockAjax(url, options) {
+        if (url && url.url) {
+          url = url.url;
+        }
+        if (
+          !!url &&
+          !(url in mockAjaxResponses) &&
+          !url.includes("status.json")
+        ) {
+          const maybeNewUrl = Object.keys(mockAjaxResponses).find((key) =>
+            url.includes(key)
+          );
+          if (maybeNewUrl) {
+            url = maybeNewUrl;
+          }
+        }
 
-      console.log("Benv expose", Date.now() - t);
-
-      benv.expose({
-        $: self.$,
-        jQuery: self.$,
-        d3: d3,
-        serverSettings: serverSettings,
-        localCookieStorage: self.localStorage,
-        cookieStorageType: self.localStorage,
-        localStorage: self.localStorage,
-        io: {
-          connect: function mockConnect() {
-            return {
-              on: function mockOn(event, callback) {
-                if ("connect" === event && callback) {
-                  callback();
-                }
-              },
-              emit: function mockEmit(event, data, callback) {
-                if ("authorize" === event && callback) {
-                  callback({
-                    read: true,
-                  });
-                }
-              },
-            };
+        //logfile.write(url+'\n');
+        //console.log(url,options);
+        if (options && options.success && options.success.call) {
+          return {
+            done: function mockDone(fn) {
+              if (mockAjaxResponses[url]) {
+                console.log("+++++Data for " + url + " sent");
+                options.success(mockAjaxResponses[url]);
+              } else {
+                console.log("-----Data for " + url + " missing");
+                options.success([]);
+              }
+              fn();
+              return $.ajax();
+            },
+            fail: function mockFail() {
+              return $.ajax();
+            },
+          };
+        }
+        return {
+          done: function mockDone(fn) {
+            if (url.indexOf("status.json") > -1) {
+              fn(serverSettings);
+            } else if (url in mockAjaxResponses) {
+              console.log("+++++Data for " + url + " sent");
+              fn(mockAjaxResponses[url]);
+            } else {
+              fn({ message: "OK" });
+            }
+            return $.ajax();
           },
-        },
-      });
+          fail: function mockFail() {
+            return $.ajax();
+          },
+        };
+      };
+    }
 
-      var extraRequires = opts.benvRequires || [];
-      extraRequires.forEach(function (req) {
-        benv.require(req);
-      });
-      callback();
-    });
+    // $.fn.tooltip = function mockTooltip() {};
+    // $.fn.dialog = function mockDialog(options) {
+    //   function maybeCall(name, obj) {
+    //     if (obj[name] && obj[name].call) {
+    //       obj[name]();
+    //     }
+    //   }
+
+    //   maybeCall("open", opts);
+
+    //   _.forEach(opts.buttons, function (button) {
+    //     maybeCall("click", button);
+    //   });
+    // };
+    const io = {
+      connect: function mockConnect() {
+        return {
+          on: function mockOn(event, cb) {
+            if ("connect" === event && cb) {
+              cb();
+            }
+          },
+          emit: function mockEmit(event, data, cb) {
+            if ("authorize" === event && cb) {
+              cb({
+                read: true,
+              });
+            }
+          },
+        };
+      },
+    };
+
+    self.$ = global.$ = $;
+    self.jQuery = global.jQuery = $;
+    self.io = global.io = io;
+    // not sure why, but `require`ing d3 doesn't work
+    self.d3 = global.d3 = await import("d3");
+    self._ = global._ = window._ = _;
+    // happy dom doesn't set this as global by default, necessary for d3 to work
+    global.requestAnimationFrame = window.requestAnimationFrame;
+    self.serverSettings = global.serverSettings = serverSettings;
+    self.localCookieStorage =
+      global.localCookieStorage =
+      self.localStorage =
+        $.localStorage;
+
+    try {
+      const ns = (await import("../../bundle/bundle.source.js")).default;
+      if (!window.Nightscout) {
+        window.Nightscout = ns;
+      }
+    } catch (err) {
+      console.log(err);
+    }
+    console.log("loaded bundle ok");
+
+    const extraRequires = options.benvRequires || [];
+    await Promise.all(
+      extraRequires.map((req) => {
+        try {
+          import(req);
+        } catch (err) {
+          console.log("Failed to load", req, err);
+        }
+      })
+    );
+
+    if (options.waitForLoad) {
+      console.log("waiting for load event");
+      await new Promise((resolve) =>
+        document.addEventListener("Nightscout-load", resolve)
+      );
+
+      console.log("calling callback");
+      callback({ document, window });
+    } else {
+      console.log("calling callback");
+      callback({ document, window });
+    }
   }
 
   function teardown() {
-    benv.teardown();
+    if (self.window) {
+      self.window.happyDOM.close();
+
+      delete global.window;
+      delete self.window;
+      delete global.document;
+
+      delete global.$;
+      delete global.jQuery;
+      delete global.io;
+      delete global.d3;
+      delete global.serverSettings;
+      delete global.localCookieStorage;
+    }
   }
+
   root.setup = init;
   root.teardown = teardown;
 
