@@ -9,7 +9,18 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "mocha --require ./mocha-tests/hooks.js --exit ./mocha-tests/"
+    "test": "mocha mocha-tests/*.test.js"
+  },
+  "mocha": {
+    "require": [
+      "mocha-tests/hooks.js"
+    ],
+    "exit": true,
+    "watch-files": [
+      "lib/**/*.[jt]s",
+      "mocha-tests/**/*.[jt]s",
+      "bundle/**/*.[jt]s"
+    ]
   },
   "author": "",
   "license": "ISC",
