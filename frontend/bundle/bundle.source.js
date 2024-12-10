@@ -1,48 +1,56 @@
-import "../static/css/drawer.css";
-import "../static/css/dropdown.css";
-import "../static/css/sgv.css";
+// // import "./public/css/drawer.css";
+// // import "./public/css/dropdown.css";
+// // import "./public/css/sgv.css";
 
-$ = require("jquery");
+import "jquery-ui-bundle";
+import "jquery.tooltips";
 
-require("jquery-ui-bundle");
+import _ from "lodash";
+window._ = _;
+import * as d3 from "d3";
+window.d3 = d3;
 
-window._ = require("lodash");
-window.d3 = require("d3");
+import Storage from "js-storage";
+window.Storage = Storage;
 
-require("jquery.tooltips");
-
-window.Storage = require("js-storage");
-
-require("flot");
-require("../node_modules/flot/jquery.flot.time");
-require("../node_modules/flot/jquery.flot.pie");
-require("../node_modules/flot/jquery.flot.fillbetween");
-
-const moment = require("moment-timezone");
-
+import moment from "moment-timezone";
 window.moment = moment;
 
 window.Nightscout = window.Nightscout || {};
 
-var ctx = {
-  moment: moment,
-};
+// var ctx = {
+// moment: moment,
+// };
 
+import client from "../lib/client/index.js";
+import initUnits from "../lib/units.js";
+import initAdminPlugins from "../lib/admin_plugins/index.js";
 window.Nightscout = {
-  client: require("../lib/client"),
-  units: require("../lib/units")(),
-  admin_plugins: require("../lib/admin_plugins/")(ctx),
+  client,
+  units: initUnits(),
+  admin_plugins: initAdminPlugins({ moment }),
 };
 
-window.Nightscout.report_plugins_preinit = require("../lib/report_plugins/");
-window.Nightscout.predictions = require("../lib/report/predictions");
-window.Nightscout.reportclient = require("../lib/report/reportclient");
-window.Nightscout.profileclient = require("../lib/profile/profileeditor");
-window.Nightscout.foodclient = require("../lib/food/food");
+import report_plugins from "../lib/report_plugins/index.js";
+import report_predictions from "../lib/report/predictions.js";
+import report_reportclient from "../lib/report/reportclient.js";
+import profile_profileeditor from "../lib/profile/profileeditor.js";
+import food from "../lib/food/food.js";
+
+window.Nightscout.report_plugins_preinit = report_plugins;
+window.Nightscout.predictions = report_predictions;
+window.Nightscout.reportclient = report_reportclient;
+window.Nightscout.profileclient = profile_profileeditor;
+window.Nightscout.foodclient = food;
+// even though it's typescript, this is apparently fine
+// import foodClient from "./src/food";
+// window.Nightscout.foodclient = foodClient;
 
 console.info("Nightscout bundle ready");
 
-// Needed for Hot Module Replacement
-if (typeof module.hot !== "undefined") {
-  module.hot.accept();
-}
+// // Needed for Hot Module Replacement
+// if (typeof module.hot !== "undefined") {
+//   module.hot.accept();
+// }
+
+export default window.Nightscout;

@@ -17,7 +17,7 @@ var receiveDData = require("./receiveddata");
 var brushing = false;
 
 var browserSettings;
-var moment = window.moment;
+var moment = window.moment || require("moment-timezone");
 var timezones = moment.tz.names();
 
 var client = {};
