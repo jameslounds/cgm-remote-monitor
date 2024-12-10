@@ -12,15 +12,14 @@ In 3 terminals (in the root of `nightscout/cgm-remote-monitor`), run:
 - `caddy run` Runs `caddy` to reverse proxy frontend/backend onto same port (`3000`)
 
 ## To run tests
-- `npm run test`
-
-Dont forget to set your env!
+- `npm test`
 
 ## Aims
-- Reduce build time for both hmr in development and building for production. 
-- Allow for incremental migration from `function init()`s to `class`es
-- Get "go to definition" working as much as possible
-- Use typescript wherever possible
+- [x] Reduce build time for both hmr in development and building for production (builds in 6s down from 15s).
+- [x] Allow for incremental migration from `function init()`s to `class`es (First migration: [`lib/language.js`](https://github.com/jameslounds/cgm-remote-monitor/blob/feat/typescript-migration/frontend/lib/language.js))
+- [ ] Get "go to definition" working as much as possible
+- [ ] Use typescript wherever possible
+- [ ] [Eventually] Use `vitest` instead of `mocha` - rewriting the tests is scary though
 
 In general, my aim is to migrate to a more modern tech stack to make it easier and more enjoyable to work on.
 
