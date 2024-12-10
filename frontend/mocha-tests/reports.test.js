@@ -2,7 +2,6 @@
 
 require('should');
 var _ = require('lodash');
-var benv = require('benv');
 var read = require('fs').readFileSync;
 var serverSettings = require('./fixtures/default-server-settings');
 const path = require("path");

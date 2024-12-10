@@ -1,7 +1,6 @@
 "use strict";
 
 require("should");
-var benv = require("benv");
 var read = require("fs").readFileSync;
 var serverSettings = require("./fixtures/default-server-settings");
 const localstorage = require("./fixtures/localstorage");

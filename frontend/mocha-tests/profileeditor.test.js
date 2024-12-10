@@ -2,7 +2,6 @@
 
 require("should");
 var _ = require("lodash");
-var benv = require("benv");
 const path = require("path");
 var read = require("fs").readFileSync;
 
