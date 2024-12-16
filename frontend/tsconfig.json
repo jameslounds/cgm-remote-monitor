@@ -27,6 +27,7 @@
     "lib/constants.js",
     "lib/types.d.ts",
     "lib/language.js",
-    "lib/levels.js"
+    "lib/levels.js",
+    "lib/units.js"
   ]
 }

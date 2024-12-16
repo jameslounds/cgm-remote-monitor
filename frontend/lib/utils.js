@@ -1,45 +1,49 @@
 "use strict";
 
-var _ = require("lodash");
-
 var units = require("./units")();
 
-function init(ctx) {
-  var moment = ctx.moment;
-  var settings = ctx.settings;
-  var translate = ctx.language.translate;
-  var timeago = require("./plugins/timeago")(ctx);
+class Utils {
+  /** @param {{moment: import("moment-timezone"); settings: any; language: ReturnType<import("./language")>}} ctx */
+  constructor(ctx) {
+    this.moment = ctx.moment;
+    this.settings = ctx.settings;
+    this.translate = ctx.language.translate;
+    this.timeago = require("./plugins/timeago")(ctx);
+  }
 
-  var utils = {};
-
-  utils.scaleMgdl = function scaleMgdl(mgdl) {
-    if (settings.units === "mmol" && mgdl) {
+  /** @param {number} mgdl */
+  scaleMgdl(mgdl) {
+    if (this.settings.units === "mmol" && mgdl) {
       return Number(units.mgdlToMMOL(mgdl));
     } else {
       return Number(mgdl);
     }
-  };
+  }
 
-  utils.roundBGForDisplay = function roundBGForDisplay(bg) {
-    return settings.units === "mmol"
+  /** @param {number} bg - blood glucose */
+  roundBGForDisplay(bg) {
+    return this.settings.units === "mmol"
       ? Math.round(bg * 10) / 10
       : Math.round(bg);
-  };
+  }
 
-  utils.toFixed = function toFixed(value) {
+  /** @param {number} value */
+  toFixed(value) {
     if (!value) {
       return "0";
     } else {
       var fixed = value.toFixed(2);
       return fixed === "-0.00" ? "0.00" : fixed;
     }
-  };
+  }
 
   /**
    * Round the number to maxDigits places, return a string
    * that truncates trailing zeros
+   * @param {number} value
+   * @param {number} maxDigits
    */
-  utils.toRoundedStr = function toRoundedStr(value, maxDigits) {
+  toRoundedStr(value, maxDigits) {
     if (!value) {
       return "0";
     }
@@ -48,48 +52,63 @@ function init(ctx) {
       (Math.sign(value) * Math.round(Math.abs(value) * mult)) / mult;
     if (isNaN(fixed)) return "0";
     return String(fixed);
-  };
+  }
 
-  // some helpers for input "date"
-  utils.mergeInputTime = function mergeInputTime(timestring, datestring) {
-    return moment(datestring + " " + timestring, "YYYY-MM-D HH:mm");
-  };
+  /** @param {string} timestring @param {string} datestring */
+  mergeInputTime(timestring, datestring) {
+    return this.moment(datestring + " " + timestring, "YYYY-MM-D HH:mm");
+  }
 
-  utils.deviceName = function deviceName(device) {
-    var last = device ? _.last(device.split("://")) : "unknown";
-    return _.first(last.split("/"));
-  };
+  /** @param {string} device */
+  deviceName(device) {
+    const last = device ? device.split("://").at(1) : "unknown";
+    return last?.split("/")?.at(0);
+  }
 
-  utils.timeFormat = function timeFormat(m, sbx) {
+  // * @param {ReturnType<import("./sandbox")>} sbx
+  /**
+   * @param {import("moment-timezone").Moment} m
+   * @param {*} sbx
+   * */
+  timeFormat(m, sbx) {
     var when;
     if (m && sbx.data.inRetroMode) {
       when = m.format("LT");
     } else if (m) {
-      when = utils.formatAgo(m, sbx.time);
+      when = this.formatAgo(m, sbx.time);
     } else {
       when = "unknown";
     }
 
     return when;
-  };
+  }
 
-  utils.formatAgo = function formatAgo(m, nowMills) {
-    var ago = timeago.calcDisplay({ mills: m.valueOf() }, nowMills);
-    return translate(
+  /**
+   * @param {import("moment-timezone").Moment} m
+   * @param {number} nowMills
+   */
+  formatAgo(m, nowMills) {
+    //@ts-expect-error
+    const ago = this.timeago.calcDisplay({ mills: m.valueOf() }, nowMills);
+    return this.translate(
+      //@ts-expect-error
       "%1" + ago.shortLabel + (ago.shortLabel.length === 1 ? " ago" : ""),
-      { params: [ago.value ? ago.value : ""] },
+      { params: [ago.value ? ago.value : ""] }
     );
-  };
+  }
 
-  utils.timeAt = function timeAt(prefix, sbx) {
+  /**
+   * @param {string | undefined} prefix
+   * @param {*} sbx
+   */
+  timeAt(prefix, sbx) {
     return sbx.data.inRetroMode
       ? (prefix ? " " : "") + "@ "
       : prefix
         ? ", "
         : "";
-  };
-
-  return utils;
+  }
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof Utils>} args */
+module.exports = (...args) => new Utils(...args);
