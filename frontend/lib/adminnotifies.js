@@ -1,26 +1,28 @@
 "use strict";
 
-const _ = require("lodash");
+const { ONE_HOUR } = require("./constants");
 
-function init(ctx) {
-  const adminnotifies = {};
+class AdminNotifies {
+  constructor(ctx) {
+    this.ctx = ctx;
+    this.notifies = [];
 
-  adminnotifies.addNotify = function addnotify(notify) {
-    if (!ctx.settings.adminNotifiesEnabled) {
+    this.ctx.bus.on("admin-notify", this.addNotify);
+    this.ctx.bus.on("tick", this.clean);
+  }
+  addNotify(notify) {
+    if (!this.ctx.settings.adminNotifiesEnabled) {
       console.log("Admin notifies disabled, skipping notify", notify);
       return;
     }
 
     if (!notify) return;
 
-    notify.title = notify.title || "No title";
-    notify.message = notify.message || "No message";
+    if (!notify.title) notify.title = "No title";
+    if (!notify.message) notify.message = "No message";
 
-    const existingMessage = _.find(
-      adminnotifies.notifies,
-      function findExisting(obj) {
-        return obj.message == notify.message;
-      },
+    const existingMessage = this.notifies.find(
+      ({ message }) => message === notify.message
     );
 
     if (existingMessage) {
@@ -29,36 +31,23 @@ function init(ctx) {
     } else {
       notify.count = 1;
       notify.lastRecorded = Date.now();
-      adminnotifies.notifies.push(notify);
+      this.notifies.push(notify);
     }
-  };
+  }
 
-  adminnotifies.getNotifies = function getNotifies() {
-    return adminnotifies.notifies;
-  };
+  getNotifies() {
+    return this.notifies;
+  }
 
-  ctx.bus.on("admin-notify", adminnotifies.addNotify);
-
-  adminnotifies.clean = function cleanNotifies() {
-    adminnotifies.notifies = _.filter(
-      adminnotifies.notifies,
-      function findExisting(obj) {
-        return (
-          obj.persistent || Date.now() - obj.lastRecorded < 1000 * 60 * 60 * 12
-        );
-      },
+  clean() {
+    this.notifies = this.notifies.filter(
+      (obj) => obj.persistent || Date.now() - obj.lastRecorded < 12 * ONE_HOUR
     );
-  };
+  }
 
-  adminnotifies.cleanAll = function cleanAll() {
-    adminnotifies.notifies = [];
-  };
-
-  adminnotifies.cleanAll();
-
-  ctx.bus.on("tick", adminnotifies.clean);
-
-  return adminnotifies;
+  cleanAll() {
+    this.notifies = [];
+  }
 }
 
-module.exports = init;
+module.exports = (ctx) => new AdminNotifies(ctx);
