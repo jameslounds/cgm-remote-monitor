@@ -8,7 +8,7 @@ var ctx_top = helper.getctx();
 ctx_top.language.set("en");
 const language = ctx_top.language;
 
-var env = require("../lib/server/env")();
+var env = require("./fixtures/env");
 var loop = require("../lib/plugins/loop")(ctx_top);
 var sandbox = require("../lib/sandbox")(ctx_top);
 

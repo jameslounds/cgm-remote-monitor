@@ -3,7 +3,7 @@ var Stream = require("stream");
 const helper = require("./inithelper")();
 
 describe("boluswizardpreview", function () {
-  var env = require("../lib/server/env")();
+  var env = require("./fixtures/env");
   env.testMode = true;
 
   var ctx = helper.getctx();

@@ -5,7 +5,7 @@ const helper = require("./inithelper")();
 const levels = helper.ctx.levels;
 
 describe("cage", function () {
-  var env = require("../lib/server/env")();
+  var env = require("./fixtures/env");
   var ctx = helper.getctx();
 
   ctx.ddata = require("../lib/data/ddata")();

@@ -10,7 +10,7 @@ top_ctx.language.set("en");
 const language = top_ctx.language;
 const levels = top_ctx.levels;
 
-var env = require("../lib/server/env")();
+var env = require("./fixtures/env");
 var openaps = require("../lib/plugins/openaps")(top_ctx);
 var sandbox = require("../lib/sandbox")(top_ctx);
 

@@ -32,7 +32,7 @@ describe("Database Size", function () {
     },
   };
 
-  var env = require("../lib/server/env")();
+  var env = require("./fixtures/env");
 
   it("display database size in range", function (done) {
     var sandbox = require("../lib/sandbox")();

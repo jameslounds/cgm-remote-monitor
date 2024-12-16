@@ -3,7 +3,7 @@ var should = require("should");
 var levels = require("../lib/levels");
 
 describe("treatmentnotify", function () {
-  var env = require("../lib/server/env")();
+  var env = require("./fixtures/env");
   var ctx = {};
   ctx.ddata = require("../lib/data/ddata")();
   ctx.notifications = require("../lib/notifications")(env, ctx);

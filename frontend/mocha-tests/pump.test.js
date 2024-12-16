@@ -9,7 +9,7 @@ var top_ctx = helper.getctx();
 top_ctx.settings = require("../lib/settings")();
 top_ctx.language.set("en");
 
-var env = require("../lib/server/env")();
+var env = require("./fixtures/env");
 const levels = top_ctx.levels;
 const language = top_ctx.language;
 

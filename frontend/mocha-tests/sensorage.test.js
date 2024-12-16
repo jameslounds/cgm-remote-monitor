@@ -5,7 +5,7 @@ var times = require("../lib/times");
 const helper = require("./inithelper")();
 
 describe("sage", function () {
-  var env = require("../lib/server/env")();
+  var env = require("./fixtures/env");
   var ctx = helper.getctx();
   ctx.ddata = require("../lib/data/ddata")();
   ctx.notifications = require("../lib/notifications")(env, ctx);
