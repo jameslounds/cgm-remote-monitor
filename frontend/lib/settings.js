@@ -1,7 +1,7 @@
 "use strict";
 
 var _ = require("lodash");
-var constants = require("./constants.json");
+var constants = require("./constants");
 
 function init() {
   var settings = {
