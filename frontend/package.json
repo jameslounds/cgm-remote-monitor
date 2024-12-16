@@ -39,7 +39,6 @@
     "moment-timezone": "^0.5.46",
     "parse-duration": "^1.1.0",
     "pushover-notifications": "^1.2.3",
-    "share2nightscout-bridge": "^0.1.2",
     "shiro-trie": "^0.4.10",
     "simple-statistics": "^0.7.0",
     "socket.io-client": "^4.8.1",
