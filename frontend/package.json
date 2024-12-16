@@ -36,7 +36,6 @@
     "js-storage": "^1.1.0",
     "lodash": "^4.17.21",
     "memory-cache": "^0.2.0",
-    "minimed-connect-to-nightscout": "^1.5.5",
     "moment-timezone": "^0.5.46",
     "parse-duration": "^1.1.0",
     "pushover-notifications": "^1.2.3",
