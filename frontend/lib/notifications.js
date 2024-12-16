@@ -1,31 +1,69 @@
 "use strict";
 
-var _ = require("lodash");
-var THIRTY_MINUTES = 30 * 60 * 1000;
-var DEFAULT_GROUPS = ["default"];
+const { THIRTY_MINUTES } = require("./constants");
 
-var Alarm = function (level, group, label) {
-  this.level = level;
-  this.group = group;
-  this.label = label;
-  this.silenceTime = THIRTY_MINUTES;
-  this.lastAckTime = 0;
-};
+const DEFAULT_GROUPS = ["default"];
 
-// list of alarms with their thresholds
-var alarms = {};
+class Alarm {
+  /** @type {number} */
+  silenceTime = THIRTY_MINUTES;
+  /** @type {number | undefined} */
+  lastEmitTime;
 
-function init(env, ctx) {
-  function notifications() {
-    return notifications;
+  /**
+   * @param {import("./types").Level} level
+   * @param {string} group
+   * @param {string} label
+   */
+  constructor(level, group, label) {
+    this.level = level;
+    this.group = group;
+    this.label = label;
+    this.lastAckTime = 0;
+  }
+}
+
+/**
+ * list of alarms with their thresholds
+ * @type {Partial<Record<string, Alarm>>}
+ */
+let alarms = {};
+
+class Notifications {
+  /**
+   *
+   * @param {{testMode?: boolean}} env
+   * @param {{levels: import("./levels"); bus: ReturnType<import("./bus")>; ddata: ReturnType<import("./data/ddata")>}} ctx
+   */
+  constructor(env, ctx) {
+    this.env = env;
+    this.ctx = ctx;
+
+    this.requests = {
+      /**@type {import("./types").Notify[]} */
+      notifies: [],
+      /**@type {import("./types").Snooze[]} */
+      snoozes: [],
+    };
+    // noitifies might look like {level: string; group: string; isAnnouncement?: boolean}
+
+    this.requestNotify = this.requestNotify.bind(this);
+    this.requestSnooze = this.requestSnooze.bind(this);
   }
 
-  function getAlarm(level, group) {
-    var key = level + "-" + group;
-    var alarm = alarms[key];
+  /**
+   *
+   * @param {import("./types").Level} level
+   * @param {string} group
+   */
+  #getAlarm(level, group) {
+    const key = `${level}-${group}`;
+    let alarm = alarms[key];
     if (!alarm) {
-      var display =
-        group === "default" ? ctx.levels.toDisplay(level) : group + ":" + level;
+      const display =
+        group === "default"
+          ? this.ctx.levels.toDisplay(level)
+          : group + ":" + level;
       alarm = new Alarm(level, group, display);
       alarms[key] = alarm;
     }
@@ -33,99 +71,108 @@ function init(env, ctx) {
     return alarm;
   }
 
-  //should only be used when auto acking the alarms after going back in range or when an error corrects
-  //setting the silence time to 1ms so the alarm will be re-triggered as soon as the condition changes
-  //since this wasn't ack'd by a user action
-  function autoAckAlarms(group) {
-    var sendClear = false;
-
-    for (var level = 1; level <= 2; level++) {
-      var alarm = getAlarm(level, group);
-      if (alarm.lastEmitTime) {
-        console.info("auto acking " + alarm.level, " - ", group);
-        notifications.ack(alarm.level, group, 1);
-        sendClear = true;
-      }
-    }
+  /**
+   * should only be used when auto acking the alarms after going back in range or when an error corrects
+   * setting the silence time to 1ms so the alarm will be re-triggered as soon as the condition changes
+   * since this wasn't ack'd by a user action
+   * @param {string} group
+   */
+  #autoAckAlarms(group) {
+    const sendClear = [this.ctx.levels.WARN, this.ctx.levels.URGENT]
+      .map((level) => {
+        const alarm = this.#getAlarm(level, group);
+        if (alarm.lastEmitTime) {
+          console.info(`auto acking ${alarm.level} - ${group}`);
+          this.ack(alarm.level, group, 1);
+          return true;
+        }
+      })
+      .some(Boolean);
 
     if (sendClear) {
-      var notify = {
+      /** @type {import("./types").Notify} */
+      const notify = {
         clear: true,
         title: "All Clear",
         message: "Auto ack'd alarm(s)",
-        group: group,
+        group,
+        level: this.ctx.levels.NONE,
       };
-      ctx.bus.emit("notification", notify);
-      logEmitEvent(notify);
+      this.ctx.bus.emit("notification", notify);
+      this.#logEmitEvent(notify);
     }
   }
 
-  function emitNotification(notify) {
-    var alarm = getAlarm(notify.level, notify.group);
-    if (ctx.ddata.lastUpdated > alarm.lastAckTime + alarm.silenceTime) {
-      ctx.bus.emit("notification", notify);
-      alarm.lastEmitTime = ctx.ddata.lastUpdated;
-      logEmitEvent(notify);
+  /**
+   * @param {import("./types").Notify} notify
+   */
+  #emitNotification(notify) {
+    const alarm = this.#getAlarm(notify.level, notify.group);
+    if (this.ctx.ddata.lastUpdated > alarm.lastAckTime + alarm.silenceTime) {
+      this.ctx.bus.emit("notification", notify);
+      alarm.lastEmitTime = this.ctx.ddata.lastUpdated;
+      this.#logEmitEvent(notify);
     } else {
+      const silencedMs =
+        alarm.silenceTime - (this.ctx.ddata.lastUpdated - alarm.lastAckTime);
+      const silencedMins = Math.floor(silencedMs / 60000);
       console.log(
-        alarm.label +
-          " alarm is silenced for " +
-          Math.floor(
-            (alarm.silenceTime - (ctx.ddata.lastUpdated - alarm.lastAckTime)) /
-              60000,
-          ) +
-          " minutes more",
+        `${alarm.label} alarm is silenced for ${silencedMins} minutes more`
       );
     }
   }
 
-  var requests = {};
-
-  notifications.initRequests = function initRequests() {
-    requests = { notifies: [], snoozes: [] };
-  };
-
-  notifications.initRequests();
+  /**
+   * Only the tests use this, not sure if they actually use this to init,
+   * or if they use it to clear
+   * */
+  initRequests() {
+    this.requests = { notifies: [], snoozes: [] };
+  }
 
   /**
    * Find the first URGENT or first WARN
-   * @returns a notification or undefined
+   * @param {string} [group="default"] - group to search in. Defaults to `"default"`
    */
-  notifications.findHighestAlarm = function findHighestAlarm(group) {
-    group = group || "default";
-    var filtered = _.filter(requests.notifies, { group: group });
-    return (
-      _.find(filtered, { level: ctx.levels.URGENT }) ||
-      _.find(filtered, { level: ctx.levels.WARN })
+  findHighestAlarm(group = "default") {
+    const filtered = this.requests.notifies.filter(
+      ({ group: foundGroup }) => foundGroup === group
     );
-  };
+    return (
+      filtered.find(({ level }) => level === this.ctx.levels.URGENT) ||
+      filtered.find(({ level }) => level === this.ctx.levels.WARN)
+    );
+  }
 
-  notifications.findUnSnoozeable = function findUnSnoozeable() {
-    return _.filter(requests.notifies, function (notify) {
-      return notify.level <= ctx.levels.INFO || notify.isAnnouncement;
-    });
-  };
+  findUnSnoozeable() {
+    return this.requests.notifies.filter(
+      (notify) => notify.level <= this.ctx.levels.INFO || notify.isAnnouncement
+    );
+  }
 
-  notifications.snoozedBy = function snoozedBy(notify) {
-    if (notify.isAnnouncement) {
-      return false;
-    }
+  /**
+   *
+   * @param {import("./types").Notify} notify
+   */
+  snoozedBy(notify) {
+    if (notify.isAnnouncement) return false;
 
-    var filtered = _.filter(requests.snoozes, { group: notify.group });
+    const filtered = this.requests.snoozes.filter(
+      ({ group }) => group === notify.group
+    );
+    if (!filtered.length) return false;
 
-    if (_.isEmpty(filtered)) {
-      return false;
-    }
+    return filtered
+      .filter((snooze) => snooze.level >= notify.level)
+      .sort((a, b) => a.lengthMills - b.lengthMills)
+      .at(-1);
+  }
 
-    var byLevel = _.filter(filtered, function checkSnooze(snooze) {
-      return snooze.level >= notify.level;
-    });
-    var sorted = _.sortBy(byLevel, "lengthMills");
-
-    return _.last(sorted);
-  };
-
-  notifications.requestNotify = function requestNotify(notify) {
+  /**
+   *
+   * @param {import("./types").Notify} notify
+   */
+  requestNotify(notify) {
     if (
       !Object.prototype.hasOwnProperty.call(notify, "level") ||
       !notify.title ||
@@ -135,18 +182,22 @@ function init(env, ctx) {
       console.error(
         new Error(
           "Unable to request notification, since the notify isn't complete: " +
-            JSON.stringify(notify),
-        ),
+            JSON.stringify(notify)
+        )
       );
       return;
     }
 
-    notify.group = notify.group || "default";
+    if (!notify.group) notify.group = "default";
 
-    requests.notifies.push(notify);
-  };
+    this.requests.notifies.push(notify);
+  }
 
-  notifications.requestSnooze = function requestSnooze(snooze) {
+  /**
+   *
+   * @param {import("./types").Snooze} snooze
+   */
+  requestSnooze(snooze) {
     if (
       !snooze.level ||
       !snooze.title ||
@@ -156,76 +207,69 @@ function init(env, ctx) {
       console.error(
         new Error(
           "Unable to request snooze, since the snooze isn't complete: " +
-            JSON.stringify(snooze),
-        ),
+            JSON.stringify(snooze)
+        )
       );
       return;
     }
 
     snooze.group = snooze.group || "default";
 
-    requests.snoozes.push(snooze);
-  };
+    this.requests.snoozes.push(snooze);
+  }
 
-  notifications.process = function process() {
-    var notifyGroups = _.map(requests.notifies, function eachNotify(notify) {
-      return notify.group;
-    });
+  process() {
+    const notifyGroups = this.requests.notifies.map(({ group }) => group);
+    const alarmGroups = /** @type {string[]} */ (
+      Object.values(alarms)
+        .map((a) => a?.group)
+        .filter(Boolean)
+    );
+    let groups = [...new Set([...notifyGroups, ...alarmGroups])];
 
-    var alarmGroups = _.map(_.values(alarms), function eachAlarm(alarm) {
-      return alarm.group;
-    });
+    if (!groups.length) groups = DEFAULT_GROUPS.slice();
 
-    var groups = _.uniq(notifyGroups.concat(alarmGroups));
-
-    if (_.isEmpty(groups)) {
-      groups = DEFAULT_GROUPS.slice();
-    }
-
-    _.each(groups, function eachGroup(group) {
-      var highestAlarm = notifications.findHighestAlarm(group);
-
-      if (highestAlarm) {
-        var snoozedBy = notifications.snoozedBy(highestAlarm, group);
-        if (snoozedBy) {
-          logSnoozingEvent(highestAlarm, snoozedBy);
-          notifications.ack(
-            snoozedBy.level,
-            group,
-            snoozedBy.lengthMills,
-            true,
-          );
-        } else {
-          emitNotification(highestAlarm);
-        }
-      } else {
-        autoAckAlarms(group);
+    groups.forEach((group) => {
+      const highestAlarm = this.findHighestAlarm(group);
+      if (!highestAlarm) {
+        this.#autoAckAlarms(group);
+        return;
       }
+
+      const snoozedBy = this.snoozedBy(highestAlarm);
+      if (snoozedBy) {
+        this.#logSnoozingEvent(highestAlarm, snoozedBy);
+        this.ack(snoozedBy.level, group, snoozedBy.lengthMills, true);
+        return;
+      }
+
+      this.#emitNotification(highestAlarm);
     });
 
-    notifications.findUnSnoozeable().forEach(function eachInfo(notify) {
-      emitNotification(notify);
-    });
-  };
+    this.findUnSnoozeable().forEach((n) => this.#emitNotification(n));
+  }
 
-  notifications.ack = function ack(level, group, time, sendClear) {
-    var alarm = getAlarm(level, group);
+  /**
+   *
+   * @param {import("./types").Level} level
+   * @param {string} group
+   * @param {number} time
+   * @param {boolean} [sendClear]
+   */
+  ack(level, group, time, sendClear) {
+    const alarm = this.#getAlarm(level, group);
     if (!alarm) {
       console.warn(
-        "Got an ack for an unknown alarm time, level:",
-        level,
-        ", group:",
-        group,
+        "Got an ack for an unknown alarm time",
+        `level: ${level}, group: ${group}`
       );
       return;
     }
 
     if (Date.now() < alarm.lastAckTime + alarm.silenceTime) {
       console.warn(
-        "Alarm has already been snoozed, don't snooze it again, level:",
-        level,
-        ", group:",
-        group,
+        "Alarm has already been snoozed, don't snooze it again",
+        `level: ${level}, group: ${group}`
       );
       return;
     }
@@ -234,8 +278,8 @@ function init(env, ctx) {
     alarm.silenceTime = time ? time : THIRTY_MINUTES;
     delete alarm.lastEmitTime;
 
-    if (level === 2) {
-      notifications.ack(1, group, time);
+    if (level === this.ctx.levels.URGENT) {
+      this.ack(this.ctx.levels.WARN, group, time);
     }
 
     /*
@@ -243,46 +287,54 @@ function init(env, ctx) {
      * globally
      */
     if (sendClear) {
-      var notify = {
+      /** @type {import("./types").Notify} */
+      const notify = {
         clear: true,
         title: "All Clear",
-        message: group + " - " + ctx.levels.toDisplay(level) + " was ack'd",
-        group: group,
+        message: `${group} - ${this.ctx.levels.toDisplay(level)} was ack'd`,
+        group,
+        level: this.ctx.levels.NONE,
       };
       // When web client sends ack, this translates the websocket message into
       // an event on our internal bus.
-      ctx.bus.emit("notification", notify);
-      logEmitEvent(notify);
+      this.ctx.bus.emit("notification", notify);
+      this.#logEmitEvent(notify);
     }
-  };
+  }
 
-  function ifTestModeThen(callback) {
-    if (env.testMode) {
+  /** @param {() => void} callback */
+  #ifTestModeThen(callback) {
+    if (this.env.testMode) {
       return callback();
     } else {
       throw "Test only function was called = while not in test mode";
     }
   }
 
-  notifications.resetStateForTests = function resetStateForTests() {
-    ifTestModeThen(function doResetStateForTests() {
+  resetStateForTests() {
+    this.#ifTestModeThen(() => {
       console.info("resetting notifications state for tests");
       alarms = {};
     });
-  };
+  }
 
-  notifications.getAlarmForTests = function getAlarmForTests(level, group) {
-    return ifTestModeThen(function doResetStateForTests() {
+  /**
+   * @param {import("./types").Level} level
+   * @param {string} group
+   */
+  getAlarmForTests(level, group) {
+    return this.#ifTestModeThen(() => {
       group = group || "default";
-      var alarm = getAlarm(level, group);
+      const alarm = this.#getAlarm(level, group);
       console.info("got alarm for tests: ", alarm);
       return alarm;
     });
-  };
+  }
 
-  function notifyToView(notify) {
+  /** @param {import("./types").Notify} notify */
+  #notifyToView(notify) {
     return {
-      level: ctx.levels.toDisplay(notify.level),
+      level: this.ctx.levels.toDisplay(notify.level),
       title: notify.title,
       message: notify.message,
       group: notify.group,
@@ -291,47 +343,48 @@ function init(env, ctx) {
     };
   }
 
-  function snoozeToView(snooze) {
+  /** @param {import("./types").Snooze} snooze */
+  #snoozeToView(snooze) {
     return {
-      level: ctx.levels.toDisplay(snooze.level),
+      level: this.ctx.levels.toDisplay(snooze.level),
       title: snooze.title,
       message: snooze.message,
       group: snooze.group,
     };
   }
 
-  function logEmitEvent(notify) {
-    var type =
-      notify.level >= ctx.levels.WARN
+  /** @param {import("./types").Notify} notify */
+  #logEmitEvent(notify) {
+    const type =
+      notify.level >= this.ctx.levels.WARN
         ? "ALARM"
         : notify.clear
           ? "ALL CLEAR"
           : "NOTIFICATION";
+
     console.info(
-      [
-        logTimestamp() + "\tEMITTING " + type + ":",
-        "  " + JSON.stringify(notifyToView(notify)),
-      ].join("\n"),
+      `${this.#logTimestamp()}  EMITTING ${type}: 
+        ${JSON.stringify(this.#notifyToView(notify))}`
     );
   }
 
-  function logSnoozingEvent(highestAlarm, snoozedBy) {
+  /**
+   * @param {import("./types").Notify} highestAlarm
+   * @param {import("./types").Snooze} snoozedBy
+   */
+  #logSnoozingEvent(highestAlarm, snoozedBy) {
     console.info(
-      [
-        logTimestamp() + "\tSNOOZING ALARM:",
-        "  " + JSON.stringify(notifyToView(highestAlarm)),
-        "  BECAUSE:",
-        "    " + JSON.stringify(snoozeToView(snoozedBy)),
-      ].join("\n"),
+      `${this.#logTimestamp()}  SNOOZING ALARM:
+        ${JSON.stringify(this.#notifyToView(highestAlarm))}
+        BECAUSE
+            ${JSON.stringify(this.#snoozeToView(snoozedBy))}`
     );
   }
 
-  //TODO: we need a common logger, but until then...
-  function logTimestamp() {
+  #logTimestamp() {
     return new Date().toISOString();
   }
-
-  return notifications();
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof Notifications>} args */
+module.exports = (...args) => new Notifications(...args);

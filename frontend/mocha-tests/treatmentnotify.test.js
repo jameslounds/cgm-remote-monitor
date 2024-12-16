@@ -24,6 +24,9 @@ describe("treatmentnotify", function () {
     var sbx = require("../lib/sandbox")().serverInit(env, ctx);
     treatmentnotify.checkNotifications(sbx);
     should.not.exist(ctx.notifications.findHighestAlarm());
+
+    // This will always exist, since `snoozedBy` returns false or a notify, both of which exist.
+    // `snoozedBy` returns `false` since no `group` is specified
     should.exist(ctx.notifications.snoozedBy({ level: levels.URGENT }));
 
     _.first(ctx.notifications.findUnSnoozeable()).level.should.equal(
