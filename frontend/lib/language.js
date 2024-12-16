@@ -3,10 +3,7 @@
 /** @typedef {keyof import("../translations/en/en.json")} TranslationKey */
 
 class Language {
-  /**
-   * @static
-   */
-  languages = [
+  static languages = [
     {
       code: "ar",
       file: "ar_SA",
@@ -80,13 +77,14 @@ class Language {
   ];
 
   /**
-   *
    * @param {import('fs')} [fs] should be provided only on the server
    */
   constructor(fs) {
     this.speechCode = "en-US";
     this.lang = "en";
-    this.translations = {};
+
+    this.translations =
+      /** @type {import("../translations/en/en.json")} */ ({});
 
     if (fs) {
       this.loadLocalization(fs);
@@ -99,11 +97,15 @@ class Language {
     this.translate = this.translate.bind(this);
   }
 
+  /** @param {import("../translations/en/en.json")} localization*/
   offerTranslations(localization) {
     this.translations = localization;
   }
 
-  /** Case sensitive */
+  /**
+   * Case sensitive
+   * @param {keyof import("../translations/en/en.json")} text
+   */
   translateCS(text) {
     if (this.translations[text]) {
       return this.translations[text];
@@ -111,7 +113,10 @@ class Language {
     return text;
   }
 
-  /** Case insensitive */
+  /**
+   * Case insensitive
+   * @param {keyof import("../translations/en/en.json")} text
+   */
   translateCI(text) {
     const utext = text.toUpperCase();
     const foundKey = Object.keys(this.translations).find(
@@ -141,7 +146,7 @@ class Language {
 
     let keys = [];
 
-    if (hasParams) keys = options.params;
+    if (hasParams && options.params) keys = options.params;
     if (!hasCI && !hasParams) keys = Object.values(arguments).slice(1);
     if ((hasCI || hasParams) && arguments.length > 2)
       keys = Object.values(arguments).slice(2);
@@ -163,17 +168,20 @@ class Language {
    */
   DOMtranslate($) {
     $(".translate").each((_, el) => {
+      // @ts-expect-error Invalid Translation Key
       $(el).text(this.translate($(el).text()));
     });
     $(".titletranslate, .tip").each((_, el) => {
+      // @ts-expect-error Invalid Translation Key
       $(el).attr("title", this.translate($(el).attr("title")));
     });
   }
 
+  /** @param {typeof Language['languages'][number]['code']} code */
   getFilename(code) {
     if (code == "en") return "en/en.json";
 
-    const file = this.languages.find((l) => l.code === code)?.file;
+    const file = Language.languages.find((l) => l.code === code)?.file;
 
     // Yes, this can just return `.json` when it can't find the filename
     // I'm not changing it in order to maintain compatibility with the old code
@@ -185,21 +193,21 @@ class Language {
    * @param {import('fs')} fs - The filesystem module
    * @param {import('path')} [path] - The path module
    */
-  loadLocalization = function loadLocalization(fs, path) {
-    const filename = !!path
-      ? path.resolve(__dirname, filename)
-      : "./translations/" + this.getFilename(this.lang);
+  loadLocalization(fs, path) {
+    let filename = "./translations/" + this.getFilename(this.lang);
+    if (path) filename = path.resolve(__dirname, filename);
 
     /* eslint-disable-next-line security/detect-non-literal-fs-filename */ // verified false positive; well defined set of values
-    const l = fs.readFileSync(filename);
+    const l = fs.readFileSync(filename).toString();
     this.offerTranslations(JSON.parse(l));
-  };
+  }
 
+  /** @param {typeof Language['languages'][number]['code']} newlang */
   set(newlang) {
     if (!newlang) return;
     this.lang = newlang;
 
-    this.languages.forEach((language) => {
+    Language.languages.forEach((language) => {
       if (language.code === newlang && language.speechCode) {
         this.speechCode = language.speechCode;
       }
@@ -208,9 +216,11 @@ class Language {
     return this;
   }
 
+  /** @param {typeof Language['languages'][number]['code']} lang */
   get(lang) {
-    return this.languages.find((l) => l.code === lang);
+    return Language.languages.find((l) => l.code === lang);
   }
 }
 
+/** @param {import("fs")} [fs] */
 module.exports = (fs) => new Language(fs);

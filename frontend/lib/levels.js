@@ -9,37 +9,51 @@ class Levels {
   LOW = constants.LEVEL_LOW;
   LOWEST = constants.LEVEL_LOWEST;
   NONE = constants.LEVEL_NONE;
-  #translationKeysByLevel = /** @type {const} */ ({
-    2: "Urgent",
-    1: "Warning",
-    0: "Info",
-    "-1": "Low",
-    "-2": "Lowest",
-    "-3": "None",
-  });
 
   constructor() {
     this.language = require("./language")();
     this.translate = this.language.translate;
   }
 
+  /** @param {import("./types").Level} level */
   isAlarm(level) {
     return level === this.WARN || level === this.URGENT;
   }
 
+  /** @param {import("./types").Level} level */
   toDisplay(level) {
-    if (!(level in this.#translationKeysByLevel)) {
-      // `Unknown` isn't a translation key - would `No data available` work instead?
+    if (
+      (level !== 0 && !level) ||
+      typeof level !== "number" ||
+      level < this.NONE ||
+      level > this.URGENT
+    ) {
+      // @ts-expect-error `Unknown` isn't a translation key - would `No data available` work instead?
       return this.translate("Unknown");
     }
 
-    return this.translate(this.#translationKeysByLevel[level.toString()]);
+    switch (level) {
+      case this.URGENT:
+        return this.translate("Urgent");
+      case this.WARN:
+        return this.translate("Warning");
+      case this.INFO:
+        return this.translate("Info");
+      case this.LOW:
+        return this.translate("Low");
+      case this.LOWEST:
+        return this.translate("Lowest");
+      case this.NONE:
+        return this.translate("None");
+    }
   }
 
+  /** @param {import("./types").Level} level */
   toLowerCase(level) {
     return this.toDisplay(level).toLowerCase();
   }
 
+  /** @param {import("./types").Level} level */
   toStatusClass(level) {
     if (level === this.WARN) {
       return "warn";

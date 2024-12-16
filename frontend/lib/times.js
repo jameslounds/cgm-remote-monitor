@@ -1,5 +1,6 @@
 "use strict";
 
+/** @param {number} value */
 function weeks(value) {
   return {
     mins: value * 7 * 24 * 60,
@@ -7,6 +8,7 @@ function weeks(value) {
     msecs: value * 7 * 24 * 60 * 60 * 1000,
   };
 }
+/** @param {number} value */
 function days(value) {
   return {
     hours: value * 24,
@@ -15,6 +17,7 @@ function days(value) {
     msecs: value * 24 * 60 * 60 * 1000,
   };
 }
+/** @param {number} value */
 function hours(value) {
   return {
     mins: value * 60,
@@ -22,17 +25,20 @@ function hours(value) {
     msecs: value * 60 * 60 * 1000,
   };
 }
+/** @param {number} value */
 function mins(value) {
   return {
     secs: value * 60,
     msecs: value * 60 * 1000,
   };
 }
+/** @param {number} value */
 function secs(value) {
   return {
     msecs: value * 1000,
   };
 }
+/** @param {number} value */
 function msecs(value) {
   return {
     mins: value / 1000 / 60,
