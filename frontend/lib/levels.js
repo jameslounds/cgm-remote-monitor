@@ -2,52 +2,53 @@
 
 var constants = require("./constants");
 
-var levels = {
-  URGENT: constants.LEVEL_URGENT,
-  WARN: constants.LEVEL_WARN,
-  INFO: constants.LEVEL_INFO,
-  LOW: constants.LEVEL_LOW,
-  LOWEST: constants.LEVEL_LOWEST,
-  NONE: constants.LEVEL_NONE,
-};
+class Levels {
+  URGENT = constants.LEVEL_URGENT;
+  WARN = constants.LEVEL_WARN;
+  INFO = constants.LEVEL_INFO;
+  LOW = constants.LEVEL_LOW;
+  LOWEST = constants.LEVEL_LOWEST;
+  NONE = constants.LEVEL_NONE;
+  #translationKeysByLevel = /** @type {const} */ ({
+    2: "Urgent",
+    1: "Warning",
+    0: "Info",
+    "-1": "Low",
+    "-2": "Lowest",
+    "-3": "None",
+  });
 
-levels.language = require("./language")();
-levels.translate = levels.language.translate;
-
-var level2Display = {
-  2: "Urgent",
-  1: "Warning",
-  0: "Info",
-  "-1": "Low",
-  "-2": "Lowest",
-  "-3": "None",
-};
-
-levels.isAlarm = function isAlarm(level) {
-  return level === levels.WARN || level === levels.URGENT;
-};
-
-levels.toDisplay = function toDisplay(level) {
-  var key = level !== undefined && level.toString();
-  return (
-    (key && levels.translate(level2Display[key])) || levels.translate("Unknown")
-  );
-};
-
-levels.toLowerCase = function toLowerCase(level) {
-  return levels.toDisplay(level).toLowerCase();
-};
-
-levels.toStatusClass = function toStatusClass(level) {
-  var cls = "current";
-
-  if (level === levels.WARN) {
-    cls = "warn";
-  } else if (level === levels.URGENT) {
-    cls = "urgent";
+  constructor() {
+    this.language = require("./language")();
+    this.translate = this.language.translate;
   }
 
-  return cls;
-};
+  isAlarm(level) {
+    return level === this.WARN || level === this.URGENT;
+  }
 
-module.exports = levels;
+  toDisplay(level) {
+    if (!(level in this.#translationKeysByLevel)) {
+      // `Unknown` isn't a translation key - would `No data available` work instead?
+      return this.translate("Unknown");
+    }
+
+    return this.translate(this.#translationKeysByLevel[level.toString()]);
+  }
+
+  toLowerCase(level) {
+    return this.toDisplay(level).toLowerCase();
+  }
+
+  toStatusClass(level) {
+    if (level === this.WARN) {
+      return "warn";
+    } else if (level === this.URGENT) {
+      return "urgent";
+    } else {
+      return "current";
+    }
+  }
+}
+
+module.exports = new Levels();
