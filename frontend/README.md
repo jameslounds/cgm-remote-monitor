@@ -14,6 +14,7 @@ In 3 terminals (in the root of `nightscout/cgm-remote-monitor`), run:
 ## To run tests
 
 - `npm test`
+- `npm test -- -f "<pattern>"` - run all tests with filenames or test names matching `<pattern>`
 
 ## Aims
 

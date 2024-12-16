@@ -15,6 +15,9 @@
     "require": [
       "mocha-tests/hooks.js"
     ],
+    "spec": [
+      "mocha-tests/*.test.js"
+    ],
     "exit": true,
     "watch-files": [
       "lib/**/*.[jt]s",
