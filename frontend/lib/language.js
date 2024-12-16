@@ -1,16 +1,12 @@
 "use strict";
 
-var _ = require("lodash");
+/** @typedef {keyof import("../translations/en/en.json")} TranslationKey */
 
-function init(fs) {
-  function language() {
-    return language;
-  }
-
-  language.speechCode = "en-US";
-  language.lang = "en";
-
-  language.languages = [
+class Language {
+  /**
+   * @static
+   */
+  languages = [
     {
       code: "ar",
       file: "ar_SA",
@@ -38,7 +34,12 @@ function init(fs) {
       language: "Norsk (Bokmål)",
       speechCode: "no-NO",
     },
-    { code: "nl", file: "nl_NL", language: "Nederlands", speechCode: "nl-NL" },
+    {
+      code: "nl",
+      file: "nl_NL",
+      language: "Nederlands",
+      speechCode: "nl-NL",
+    },
     { code: "pl", file: "pl_PL", language: "Polski", speechCode: "pl-PL" },
     { code: "pt", file: "pt_PT", language: "Português", speechCode: "pt-PT" },
     {
@@ -49,11 +50,26 @@ function init(fs) {
     },
     { code: "ro", file: "ro_RO", language: "Română", speechCode: "ro-RO" },
     { code: "ru", file: "ru_RU", language: "Русский", speechCode: "ru-RU" },
-    { code: "sk", file: "sk_SK", language: "Slovenčina", speechCode: "sk-SK" },
-    { code: "sl", file: "sl_SL", language: "Slovenščina", speechCode: "sl-SL" },
+    {
+      code: "sk",
+      file: "sk_SK",
+      language: "Slovenčina",
+      speechCode: "sk-SK",
+    },
+    {
+      code: "sl",
+      file: "sl_SL",
+      language: "Slovenščina",
+      speechCode: "sl-SL",
+    },
     { code: "sv", file: "sv_SE", language: "Svenska", speechCode: "sv-SE" },
     { code: "tr", file: "tr_TR", language: "Türkçe", speechCode: "tr-TR" },
-    { code: "uk", file: "uk_UA", language: "українська", speechCode: "uk-UA" },
+    {
+      code: "uk",
+      file: "uk_UA",
+      language: "українська",
+      speechCode: "uk-UA",
+    },
     {
       code: "zh_cn",
       file: "zh_CN",
@@ -63,145 +79,138 @@ function init(fs) {
     //    , { code: 'zh_tw', file: 'zh_TW', language: '中文（繁體）', speechCode: 'cmn-Hant-TW' }
   ];
 
-  var translations = {};
+  /**
+   *
+   * @param {import('fs')} [fs] should be provided only on the server
+   */
+  constructor(fs) {
+    this.speechCode = "en-US";
+    this.lang = "en";
+    this.translations = {};
 
-  language.translations = translations;
-
-  language.offerTranslations = function offerTranslations(localization) {
-    translations = localization;
-    language.translations = translations;
-  };
-
-  // case sensitive
-  language.translateCS = function translateCaseSensitive(text) {
-    if (translations[text]) {
-      return translations[text];
+    if (fs) {
+      this.loadLocalization(fs);
     }
-    // console.log('localization:', text, 'not found');
+
+    // When consumers of this class move `translate` into its own variable like:
+    // const translate = language.translate;
+    // The `this` context that `translate` will be called with gets lost and becomes `undefined`
+    // By binding `this` to `translate` here, we can ensure that `translate` always has the correct `this` context
+    this.translate = this.translate.bind(this);
+  }
+
+  offerTranslations(localization) {
+    this.translations = localization;
+  }
+
+  /** Case sensitive */
+  translateCS(text) {
+    if (this.translations[text]) {
+      return this.translations[text];
+    }
     return text;
-  };
+  }
 
-  // case insensitive
-  language.translateCI = function translateCaseInsensitive(text) {
-    var utext = text.toUpperCase();
-    _.forEach(translations, function (ts, key) {
-      var ukey = key.toUpperCase();
-      if (ukey === utext) {
-        text = ts;
-      }
-    });
-    return text;
-  };
-
-  language.translate = function translate(text, options) {
-    var translated;
-    if (options && options.ci) {
-      translated = language.translateCI(text);
-    } else {
-      translated = language.translateCS(text);
+  /** Case insensitive */
+  translateCI(text) {
+    const utext = text.toUpperCase();
+    const foundKey = Object.keys(this.translations).find(
+      (key) => key.toUpperCase() === utext
+    );
+    if (!foundKey) {
+      return text;
     }
+    return this.translations[foundKey];
+  }
 
-    var hasCI = false;
-    var hasParams = false;
+  /**
+   *
+   * @param {keyof import('../translations/en/en.json')} text
+   * @param {{ci?: boolean, params?: string[]}} [options]
+   * @returns {string}
+   */
+  translate(text, options) {
+    if (!options) return this.translateCS(text);
 
-    if (options) {
-      hasCI = Object.prototype.hasOwnProperty.call(options, "ci");
-      hasParams = Object.prototype.hasOwnProperty.call(options, "params");
-    }
+    let translated = options.ci
+      ? this.translateCI(text)
+      : this.translateCS(text);
 
-    var keys = hasParams ? options.params : null;
+    const hasCI = options.hasOwnProperty("ci");
+    const hasParams = options.hasOwnProperty("params");
 
-    if (options && !hasCI && !hasParams) {
-      keys = [];
-      for (var i = 1; i < arguments.length; i++) {
-        keys.push(arguments[i]);
-      }
-    }
+    let keys = [];
 
-    if (options && (hasCI || hasParams) && arguments.length > 2) {
-      if (!keys) keys = [];
-      for (i = 2; i < arguments.length; i++) {
-        keys.push(arguments[i]);
-      }
-    }
+    if (hasParams) keys = options.params;
+    if (!hasCI && !hasParams) keys = Object.values(arguments).slice(1);
+    if ((hasCI || hasParams) && arguments.length > 2)
+      keys = Object.values(arguments).slice(2);
 
-    if (keys) {
-      for (i = 0; i < keys.length; i++) {
+    if (keys.length) {
+      keys.forEach((key, i) => {
         /* eslint-disable-next-line no-useless-escape, security/detect-non-literal-regexp */ // validated false positive
-        var r = new RegExp("\%" + (i + 1), "g");
-        translated = translated.replace(r, keys[i]);
-      }
+        translated = translated.replace(new RegExp(`%${i + 1}`, "g"), key);
+      });
     }
 
     return translated;
-  };
+  }
 
-  language.DOMtranslate = function DOMtranslate($) {
-    // do translation of static text on load
-    $(".translate").each(function () {
-      $(this).text(language.translate($(this).text()));
+  /**
+   * Looks for elements wit the class `translate`, `titletranslate`, `tip` and translates them
+   *
+   * @param {import('jquery')} $
+   */
+  DOMtranslate($) {
+    $(".translate").each((_, el) => {
+      $(el).text(this.translate($(el).text()));
     });
-    $(".titletranslate, .tip").each(function () {
-      $(this).attr("title", language.translate($(this).attr("title")));
-      $(this).attr(
-        "original-title",
-        language.translate($(this).attr("original-title")),
-      );
-      $(this).attr(
-        "placeholder",
-        language.translate($(this).attr("placeholder")),
-      );
+    $(".titletranslate, .tip").each((_, el) => {
+      $(el).attr("title", this.translate($(el).attr("title")));
     });
-  };
+  }
 
-  language.getFilename = function getFilename(code) {
-    if (code == "en") {
-      return "en/en.json";
-    }
+  getFilename(code) {
+    if (code == "en") return "en/en.json";
 
-    let file;
-    language.languages.forEach(function (l) {
-      if (l.code == code) file = l.file;
-    });
-    return file + ".json";
-  };
+    const file = this.languages.find((l) => l.code === code)?.file;
 
-  // this is a server only call and needs fs by reference as the class is also used in the client
-  language.loadLocalization = function loadLocalization(fs, path) {
-    let filename = "./translations/" + this.getFilename(this.lang);
-    if (path) filename = path.resolve(__dirname, filename);
+    // Yes, this can just return `.json` when it can't find the filename
+    // I'm not changing it in order to maintain compatibility with the old code
+    return `${file}.json`;
+  }
+
+  /**
+   * this is a server only method, do not call it on the client, it needs `fs`
+   * @param {import('fs')} fs - The filesystem module
+   * @param {import('path')} [path] - The path module
+   */
+  loadLocalization = function loadLocalization(fs, path) {
+    const filename = !!path
+      ? path.resolve(__dirname, filename)
+      : "./translations/" + this.getFilename(this.lang);
+
     /* eslint-disable-next-line security/detect-non-literal-fs-filename */ // verified false positive; well defined set of values
     const l = fs.readFileSync(filename);
     this.offerTranslations(JSON.parse(l));
   };
 
-  language.set = function set(newlang) {
+  set(newlang) {
     if (!newlang) return;
-    language.lang = newlang;
+    this.lang = newlang;
 
-    language.languages.forEach(function (l) {
-      if (l.code === language.lang && l.speechCode)
-        language.speechCode = l.speechCode;
+    this.languages.forEach((language) => {
+      if (language.code === newlang && language.speechCode) {
+        this.speechCode = language.speechCode;
+      }
     });
 
-    return language();
-  };
-
-  language.get = function get(lang) {
-    var r;
-    language.languages.forEach(function (l) {
-      if (l.code === lang) r = l;
-    });
-    return r;
-  };
-
-  // if run on server and we get a filesystem handle, load english by default
-  if (fs) {
-    language.set("en");
-    language.loadLocalization(fs);
+    return this;
   }
 
-  return language();
+  get(lang) {
+    return this.languages.find((l) => l.code === lang);
+  }
 }
 
-module.exports = init;
+module.exports = (fs) => new Language(fs);
