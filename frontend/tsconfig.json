@@ -28,6 +28,9 @@
     "lib/types.d.ts",
     "lib/language.js",
     "lib/levels.js",
-    "lib/units.js"
+    "lib/units.js",
+    "lib/utils.js",
+    "lib/notifications.js",
+    "lib/profilefunctions.js"
   ]
 }
