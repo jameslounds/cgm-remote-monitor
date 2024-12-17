@@ -248,7 +248,7 @@ describe("openaps", function () {
       devicestatus: statuses,
     });
 
-    var unmockedOfferProperty = sbx.offerProperty;
+    var unmockedOfferProperty = sbx.offerProperty.bind(sbx);
     sbx.offerProperty = function mockedOfferProperty(name, setter) {
       name.should.equal("openaps");
       var result = setter();

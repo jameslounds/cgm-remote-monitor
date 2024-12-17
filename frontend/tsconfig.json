@@ -6,6 +6,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "checkJs": true,
+    "noImplicitAny": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -31,6 +32,7 @@
     "lib/units.js",
     "lib/utils.js",
     "lib/notifications.js",
-    "lib/profilefunctions.js"
+    "lib/profilefunctions.js",
+    "lib/sandbox.js"
   ]
 }

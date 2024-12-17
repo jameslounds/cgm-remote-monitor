@@ -128,7 +128,7 @@ describe("pump", function () {
       devicestatus: statuses,
     });
 
-    var unmockedOfferProperty = sbx.offerProperty;
+    var unmockedOfferProperty = sbx.offerProperty.bind(sbx)
     sbx.offerProperty = function mockedOfferProperty(name, setter) {
       name.should.equal("pump");
       var result = setter();
@@ -165,7 +165,7 @@ describe("pump", function () {
       devicestatus: statuses2,
     });
 
-    var unmockedOfferProperty = sbx.offerProperty;
+    var unmockedOfferProperty = sbx.offerProperty.bind(sbx);
     sbx.offerProperty = function mockedOfferProperty(name, setter) {
       name.should.equal("pump");
       sbx.offerProperty = unmockedOfferProperty;

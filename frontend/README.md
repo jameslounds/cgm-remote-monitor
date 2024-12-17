@@ -29,3 +29,7 @@ In general, my aim is to migrate to a more modern tech stack to make it easier a
 ## Fun bugs
 
 In `jquery@3.6.0`, we can't use `:first` to get the first child of an selector. We have to use `$("<selector>:first-child")` or `$("<selector>").first()` instead.
+
+## Potentially weird patterns/idioms
+- I'm using `NaN` in some places where `undefined` was previously a possible return value (and the other possible return values are numbers)
+    `NaN` has almost the same behaviour, `n < NaN === false && n > NaN === false` for all numbers `n` (including `NaN` itself, which *is* different: `(undefined === undefined) === true`)

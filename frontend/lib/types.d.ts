@@ -32,6 +32,10 @@ export type Profile = {
   };
 };
 
+interface Plugin {
+  name: string;
+};
+
 export type Treatment = {
   mills: number;
   endmills: number;
@@ -42,4 +46,11 @@ export type Treatment = {
   relative?: number;
   absolute?: number;
   percent?: number;
+};
+
+type Entry = {
+  mills: number;
+  mgdl?: number;
+  mmol?: number;
+  scaled?: number | string;
 };

@@ -130,7 +130,7 @@ describe("loop", function () {
       devicestatus: statuses,
     });
 
-    var unmockedOfferProperty = sbx.offerProperty;
+    var unmockedOfferProperty = sbx.offerProperty.bind(sbx);
     sbx.offerProperty = function mockedOfferProperty(name, setter) {
       name.should.equal("loop");
       var result = setter();
@@ -172,7 +172,7 @@ describe("loop", function () {
       devicestatus: statuses,
     });
 
-    var unmockedOfferProperty = sbx.offerProperty;
+    var unmockedOfferProperty = sbx.offerProperty.bind(sbx);
     sbx.offerProperty = function mockedOfferProperty(name, setter) {
       name.should.equal("loop");
       var result = setter();
