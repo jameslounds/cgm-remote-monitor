@@ -1,13 +1,18 @@
 "use strict";
-var Stream = require("stream");
+const Stream = require("stream");
 
+/** @param {ReturnType<import("./settings")>} settings */
 function init(settings) {
-  var beats = 0;
-  var started = new Date();
-  var interval = settings.heartbeat * 1000;
+  let beats = 0;
+  const started = new Date();
+  const interval = settings.heartbeat * 1000;
+  /** @type {NodeJS.Timeout} */
   let busInterval;
 
-  var stream = new Stream();
+  const stream =
+    /** @type {Stream & {teardown: () => void; readable: Boolean; uptime: () => void}} */ (
+      new Stream()
+    );
 
   function ictus() {
     return {
