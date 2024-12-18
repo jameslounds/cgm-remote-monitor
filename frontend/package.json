@@ -30,6 +30,7 @@
   "description": "",
   "dependencies": {
     "@rollup/plugin-inject": "^5.0.5",
+    "@types/d3": "^7.4.3",
     "d3": "^7.9.0",
     "flot": "^0.8.3",
     "jquery": "^3.5.1",

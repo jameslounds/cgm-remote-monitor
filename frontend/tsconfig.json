@@ -8,6 +8,8 @@
     "checkJs": true,
     "noImplicitAny": true,
 
+    // "typeRoots": ["./@types"],
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -24,6 +26,7 @@
   },
   "include": [
     "global.d.ts",
+    "@types/jquery/jquery.d.ts",
     "lib/types.d.ts",
     "lib/constants.js",
     "lib/types.d.ts",
@@ -35,6 +38,7 @@
     "lib/profilefunctions.js",
     "lib/sandbox.js",
     "lib/data/ddata.js",
-    "lib/settings.js"
+    "lib/settings.js",
+    "lib/plugins/pluginbase.js"
   ]
 }

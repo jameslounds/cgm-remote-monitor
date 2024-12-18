@@ -35,6 +35,8 @@ export type Profile = {
 
 interface Plugin {
   name: string;
+  pluginType: string;
+  pillFlip?: boolean;
 };
 
 export type Treatment = {
