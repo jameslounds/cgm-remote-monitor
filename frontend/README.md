@@ -19,9 +19,11 @@ In 3 terminals (in the root of `nightscout/cgm-remote-monitor`), run:
 ## Aims
 
 - [x] Reduce build time for both hmr in development and building for production (builds in 6s down from 15s).
-- [x] Allow for incremental migration from `function init()`s to `class`es (First migration: [`lib/language.js`](https://github.com/jameslounds/cgm-remote-monitor/blob/feat/typescript-migration/frontend/lib/language.js))
+- [x] Allow for incremental migration from `function init()`s to `class`es (First migration: [`lib/language.js`](https://github.com/jameslounds/cgm-remote-monitor/blob/vite-migration/frontend/lib/language.js))
 - [ ] Get "go to definition" working as much as possible
-- [ ] Use typescript wherever possible
+- [ ] Use ~typescript~ jsdoc types wherever possible
+- [ ] Reduce the number of dependencies (WIP - as I'm migrating files to classes, I remove their lodash dependency when possible)
+- [x] Get useful information from types (e.g. type errors when invalid translation keys are used)
 - [ ] [Eventually] Use `vitest` instead of `mocha` - rewriting the tests is scary though
 
 In general, my aim is to migrate to a more modern tech stack to make it easier and more enjoyable to work on.
@@ -30,7 +32,11 @@ In general, my aim is to migrate to a more modern tech stack to make it easier a
 
 In `jquery@3.6.0`, we can't use `:first` to get the first child of an selector. We have to use `$("<selector>:first-child")` or `$("<selector>").first()` instead.
 
-## Potentially weird patterns/idioms
+## Potentially ["clever"](https://www.simplethread.com/dont-be-clever/) things
+It's best not to be "clever" when writing code. It's more important to be clear than it is to be concise or elegant or whatever.
+Below are some patterns which I think are really helpful, but could be (reasonably) construed as "clever". 
+I've tried to give a litle information on why I think these patterns are sufficiently useful (and standard) to not be "clever"
 - I'm using `NaN` in some places where `undefined` was previously a possible return value (and the other possible return values are numbers)
-    `NaN` has almost the same behaviour, `n < NaN === false && n > NaN === false` for all numbers `n` (including `NaN` itself, which *is* different: `(undefined === undefined) === true`)
-- `Set.intersection` is used where `_.difference` would previously have been used. This is only available in modern node (>22), so make sure you're running a supported version.
+    `NaN` has almost the same behaviour, `n < NaN === false && n > NaN === false` for all numbers `n` (including `NaN` itself, which *is* different: `(undefined === undefined) === true`).
+    This greatly reduces the number of `undefined` checks we need to do in order to keep typescript happy
+- `Set`s are sometimes used where previously `array`s were. This is only in cases where the variable is not available or used as an instance property (so we don't change the type signatures of anything public). This is a vanilla js feature available only in pretty modern versions of browsers and node (>22) - at least for somee methods (e.g. `Set.difference`). Since this is frontend only, that doesn't matter since Vite will transpile it to something less modern browsers can understand (depending on the `target`).
