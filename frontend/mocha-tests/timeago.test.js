@@ -88,17 +88,18 @@ describe("timeago", function () {
 
     should.deepEqual(
       timeago.calcDisplay({ mills: now + times.mins(15).msecs }, now),
-      { label: "in the future", shortLabel: "future" },
+      { value: undefined, label: "in the future", shortLabel: "future" }
     );
 
     //TODO: current behavior, we can do better
     //just a little in the future, pretend it's ok
     should.deepEqual(
       timeago.calcDisplay({ mills: now + times.mins(4).msecs }, now),
-      { value: 1, label: "min ago", shortLabel: "m" },
+      { value: 1, label: "min ago", shortLabel: "m" }
     );
 
     should.deepEqual(timeago.calcDisplay(null, now), {
+      value: undefined,
       label: "time ago",
       shortLabel: "ago",
     });
@@ -137,7 +138,7 @@ describe("timeago", function () {
 
     should.deepEqual(
       timeago.calcDisplay({ mills: now - times.days(10).msecs }, now),
-      { label: "long ago", shortLabel: "ago" },
+      { value: undefined, label: "long ago", shortLabel: "ago" }
     );
   });
 });

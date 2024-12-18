@@ -11,8 +11,10 @@ export type Notify = NotifyBase & {
   plugin?: {
     name: string;
   };
-  debug?: boolean;
+  debug?: any;
   isAnnouncement?: boolean;
+
+  pushoverSound?: string
 };
 export type Snooze = NotifyBase & { lengthMills: number };
 

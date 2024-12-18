@@ -1,156 +1,201 @@
 "use strict";
 
-var times = require("../times");
-var lastChecked = new Date();
-var lastRecoveryTimeFromSuspend = new Date("1900-01-01");
+const times = require("../times");
+let lastChecked = new Date();
+let lastRecoveryTimeFromSuspend = new Date("1900-01-01");
 
-function init(ctx) {
-  var translate = ctx.language.translate;
-  var levels = ctx.levels;
+/** @typedef {{time: number; entry:import("../types").Entry; timeSince?: number}} ResolverOpts */
+/** @typedef {(opts: ResolverOpts) => undefined | {value?: number; label: import("../language").TranslationKey; shortLabel?: string}} Resolver */
+/** @typedef {import("../types").Plugin} Plugin */
+/** @implements {Plugin} */
+class TimeAgo {
+  name = "timeago";
+  label = "Timeago";
+  pluginType = "pill-status";
+  pillFlip = true;
 
-  var timeago = {
-    name: "timeago",
-    label: "Timeago",
-    pluginType: "pill-status",
-    pillFlip: true,
-  };
+  /** @param {{language: ReturnType<import("../language")>; levels: import("../levels")}} ctx */
+  constructor(ctx) {
+    this.translate = ctx.language.translate;
+    this.levels = ctx.levels;
 
-  timeago.checkNotifications = function checkNotifications(sbx) {
-    if (!sbx.extendedSettings.enableAlerts) {
-      return;
-    }
+    this.resolvers = [
+      this.#isMissing,
+      this.#inTheFuture,
+      this.#almostInTheFuture,
+      this.#isLessThan(times.mins(2).msecs, times.min().msecs, "min ago", "m"),
+      this.#isLessThan(times.hour().msecs, times.min().msecs, "mins ago", "m"),
+      this.#isLessThan(
+        times.hours(2).msecs,
+        times.hour().msecs,
+        "hour ago",
+        "h"
+      ),
+      this.#isLessThan(times.day().msecs, times.hour().msecs, "hours ago", "h"),
+      this.#isLessThan(times.days(2).msecs, times.day().msecs, "day ago", "d"),
+      this.#isLessThan(times.week().msecs, times.day().msecs, "days ago", "d"),
+      /** @satisfies {Resolver} */
+      function () {
+        return {
+          value: undefined,
+          label: /** @type {const} */ ("long ago"),
+          shortLabel: /** @type {const} */ ("ago"),
+        };
+      },
+    ].map((resolver) => resolver.bind(this));
+  }
 
-    var lastSGVEntry = sbx.lastSGVEntry();
+  /** @param {import("../sandbox").InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    if (!sbx.extendedSettings.enableAlerts) return;
 
-    if (!lastSGVEntry || lastSGVEntry.mills >= sbx.time) {
-      return;
-    }
+    const lastSGVEntry = sbx.lastSGVEntry();
+    if (!lastSGVEntry || lastSGVEntry.mills >= sbx.time) return;
 
-    function buildMessage(agoDisplay) {
-      var lines = sbx.prepareDefaultLines();
-      lines.unshift(
-        translate("Last received:") +
-          " " +
-          [agoDisplay.value, agoDisplay.label].join(" "),
-      );
-      return lines.join("\n");
-    }
+    const status = this.checkStatus(sbx);
+    if (status === "current") return;
 
-    function sendAlarm(opts) {
-      var agoDisplay = timeago.calcDisplay(lastSGVEntry, sbx.time);
+    this.#sendAlarm(sbx, lastSGVEntry, {
+      level: { urgent: this.levels.URGENT, warn: this.levels.WARN }[status],
+      pushoverSound: "echo",
+    });
+  }
 
-      sbx.notifications.requestNotify({
-        level: opts.level,
-        title: translate("Stale data, check rig?"),
-        message: buildMessage(agoDisplay),
-        eventName: timeago.name,
-        plugin: timeago,
-        group: "Time Ago",
-        pushoverSound: opts.pushoverSound,
-        debug: agoDisplay,
-      });
-    }
+  /**
+   * @param {import("../sandbox").InitializedSandbox} sbx
+   * @param {{value?: number | null; label:string}} agoDisplay
+   */
+  #buildMessage(sbx, agoDisplay) {
+    return [
+      `${this.translate("Last received:")} ${agoDisplay.value} ${agoDisplay.label}`,
+      ...sbx.prepareDefaultLines(),
+    ].join("\n");
+  }
 
-    var status = timeago.checkStatus(sbx);
-    if (status === "urgent") {
-      sendAlarm({
-        level: levels.URGENT,
-        pushoverSound: "echo",
-      });
-    } else if (status === "warn") {
-      sendAlarm({
-        level: levels.WARN,
-        pushoverSound: "echo",
-      });
-    }
-  };
+  /**
+   * @param {import("../sandbox").InitializedSandbox} sbx
+   * @param {import("../types").Entry} lastSGVEntry
+   * @param {{level: import("../types").Level; pushoverSound: string}} opts
+   */
+  #sendAlarm(sbx, lastSGVEntry, opts) {
+    const agoDisplay = this.calcDisplay(lastSGVEntry, sbx.time);
+    if (!agoDisplay) return;
 
-  timeago.checkStatus = function checkStatus(sbx) {
+    sbx.notifications.requestNotify({
+      level: opts.level,
+      title: this.translate("Stale data, check rig?"),
+      message: this.#buildMessage(sbx, agoDisplay),
+      eventName: this.name,
+      plugin: this,
+      group: "Time Ago",
+      pushoverSound: opts.pushoverSound,
+      debug: agoDisplay,
+    });
+  }
+
+  /** @param {import("../sandbox").InitializedSandbox} sbx */
+  checkStatus(sbx) {
     // Check if the app has been suspended; if yes, snooze data missing alarmn for 15 seconds
-    var now = new Date();
-    var delta = now.getTime() - lastChecked.getTime();
+    const now = new Date();
+    const delta = now.getTime() - lastChecked.getTime();
     lastChecked = now;
 
-    function isHibernationDetected() {
-      if (sbx.runtimeEnvironment === "client") {
-        if (delta > 20 * 1000) {
-          // Looks like we've been hibernating
-          lastRecoveryTimeFromSuspend = now;
-        }
-        var timeSinceLastRecovered =
-          now.getTime() - lastRecoveryTimeFromSuspend.getTime();
-        return timeSinceLastRecovered < 10 * 1000;
-      }
-
-      // Assume server never hibernates, or if it does, it's alarm-worthy
-      return false;
-    }
-
-    if (isHibernationDetected()) {
+    if (this.#isHibernationDetected(sbx, delta, now)) {
       console.log("Hibernation detected, suspending timeago alarm");
       return "current";
     }
 
-    var lastSGVEntry = sbx.lastSGVEntry(),
-      warn = sbx.settings.alarmTimeagoWarn,
-      warnMins = sbx.settings.alarmTimeagoWarnMins || 15,
-      urgent = sbx.settings.alarmTimeagoUrgent,
-      urgentMins = sbx.settings.alarmTimeagoUrgentMins || 30;
+    const lastSGVEntry = sbx.lastSGVEntry();
+    if (!lastSGVEntry) return "current";
 
-    function isStale(mins) {
+    /** @param {import("../types").Entry} lastSGVEntry @param {number} mins */
+    function isStale(lastSGVEntry, mins) {
       return sbx.time - lastSGVEntry.mills > times.mins(mins).msecs;
     }
 
-    var status = "current";
-
-    if (!lastSGVEntry) {
-      //assume current
-    } else if (urgent && isStale(urgentMins)) {
-      status = "urgent";
-    } else if (warn && isStale(warnMins)) {
-      status = "warn";
+    if (
+      sbx.settings.alarmTimeagoUrgent &&
+      isStale(lastSGVEntry, sbx.settings.alarmTimeagoUrgentMins || 15)
+    ) {
+      return "urgent";
+    } else if (
+      sbx.settings.alarmTimeagoWarn &&
+      isStale(lastSGVEntry, sbx.settings.alarmTimeagoWarnMins || 30)
+    ) {
+      return "warn";
     }
 
-    return status;
-  };
+    return "current";
+  }
 
-  timeago.isMissing = function isMissing(opts) {
+  /**
+   * @param {import("../sandbox").InitializedSandbox} sbx
+   * @param {number} delta
+   * @param {Date} now
+   */
+  #isHibernationDetected(sbx, delta, now) {
+    // Assume server never hibernates, or if it does, it's alarm-worthy
+    if (sbx.runtimeEnvironment !== "client") return false;
+
+    if (delta > 20 * 1000) {
+      // Looks like we've been hibernating
+      lastRecoveryTimeFromSuspend = now;
+    }
+    const timeSinceLastRecovered =
+      now.getTime() - lastRecoveryTimeFromSuspend.getTime();
+    return timeSinceLastRecovered < 10 * 1000;
+  }
+
+  /** @satisfies {Resolver} @param {ResolverOpts} opts */
+  #isMissing(opts) {
     if (
       !opts ||
       !opts.entry ||
       isNaN(opts.entry.mills) ||
       isNaN(opts.time) ||
-      isNaN(opts.timeSince)
+      isNaN(opts.timeSince ?? NaN)
     ) {
       return {
-        label: translate("time ago"),
-        shortLabel: translate("ago"),
+        value: undefined,
+        label: /** @type {const} */ ("time ago"),
+        shortLabel: /** @type {"ago"} */ (this.translate("ago")),
       };
     }
-  };
+  }
 
-  timeago.inTheFuture = function inTheFuture(opts) {
+  /** @satisfies {Resolver} @param {ResolverOpts} opts */
+  #inTheFuture(opts) {
     if (opts.entry.mills - times.mins(5).msecs > opts.time) {
       return {
-        label: translate("in the future"),
-        shortLabel: translate("future"),
+        value: undefined,
+        label: /** @type {const} */ ("in the future"),
+        shortLabel: /** @type {"future"} */ (this.translate("future")),
       };
     }
-  };
+  }
 
-  timeago.almostInTheFuture = function almostInTheFuture(opts) {
+  /** @satisfies {Resolver} @param {ResolverOpts} opts */
+  #almostInTheFuture(opts) {
     if (opts.entry.mills > opts.time) {
       return {
         value: 1,
-        label: translate("min ago"),
-        shortLabel: "m",
+        label: /** @type {const} */ ("min ago"),
+        shortLabel: /** @type {const} */ ("m"),
       };
     }
-  };
+  }
 
-  timeago.isLessThan = function isLessThan(limit, divisor, label, shortLabel) {
+  /**
+   * @template {import("../language").TranslationKey} TLabel
+   * @param {number} limit
+   * @param {number} divisor
+   * @param {TLabel} label
+   * @param {"d" | "m" | "h"} shortLabel
+   */
+  #isLessThan(limit, divisor, label, shortLabel) {
+    /** @satisfies {Resolver} @param {ResolverOpts} opts */
     return function checkIsLessThan(opts) {
-      if (opts.timeSince < limit) {
+      if (opts.timeSince !== undefined && opts.timeSince < limit) {
         return {
           value: Math.max(1, Math.round(opts.timeSince / divisor)),
           label: label,
@@ -158,33 +203,12 @@ function init(ctx) {
         };
       }
     };
-  };
+  }
 
-  timeago.resolvers = [
-    timeago.isMissing,
-    timeago.inTheFuture,
-    timeago.almostInTheFuture,
-    timeago.isLessThan(times.mins(2).msecs, times.min().msecs, "min ago", "m"),
-    timeago.isLessThan(times.hour().msecs, times.min().msecs, "mins ago", "m"),
-    timeago.isLessThan(
-      times.hours(2).msecs,
-      times.hour().msecs,
-      "hour ago",
-      "h",
-    ),
-    timeago.isLessThan(times.day().msecs, times.hour().msecs, "hours ago", "h"),
-    timeago.isLessThan(times.days(2).msecs, times.day().msecs, "day ago", "d"),
-    timeago.isLessThan(times.week().msecs, times.day().msecs, "days ago", "d"),
-    function () {
-      return {
-        label: "long ago",
-        shortLabel: "ago",
-      };
-    },
-  ];
-
-  timeago.calcDisplay = function calcDisplay(entry, time) {
-    var opts = {
+  /** @param {import("../types").Entry} entry @param {number} time */
+  calcDisplay(entry, time) {
+    /** @type {ResolverOpts} */
+    const opts = {
       time: time,
       entry: entry,
     };
@@ -193,27 +217,35 @@ function init(ctx) {
       opts.timeSince = time - entry.mills;
     }
 
-    for (var i = 0; i < timeago.resolvers.length; i++) {
-      var value = timeago.resolvers[i](opts);
+    for (const resolver of this.resolvers) {
+      const value = resolver(opts);
       if (value) {
         return value;
       }
     }
-  };
+    throw Error(`No resolvers resolved for entry ${JSON.stringify(entry)}`);
+  }
 
-  timeago.updateVisualisation = function updateVisualisation(sbx) {
-    var agoDisplay = timeago.calcDisplay(sbx.lastSGVEntry(), sbx.time);
-    var inRetroMode = sbx.data.inRetroMode;
-
-    sbx.pluginBase.updatePillText(timeago, {
+  /** @param {import("../sandbox").InitializedSandbox} sbx  */
+  updateVisualisation(sbx) {
+    const lastSGVEntry = sbx.lastSGVEntry();
+    if (!lastSGVEntry) return;
+    const agoDisplay = this.calcDisplay(lastSGVEntry, sbx.time);
+    if (!agoDisplay) return;
+    const inRetroMode = sbx.data.inRetroMode;
+    if (!sbx.pluginBase) return;
+    sbx.pluginBase.updatePillText(this, {
       value: inRetroMode ? null : agoDisplay.value,
-      label: inRetroMode ? translate("RETRO") : translate(agoDisplay.label),
+      label: inRetroMode
+        ? this.translate("RETRO")
+        : this.translate(agoDisplay.label),
       //no warning/urgent class when in retro mode
-      pillClass: inRetroMode ? "current" : timeago.checkStatus(sbx),
+      pillClass: inRetroMode ? "current" : this.checkStatus(sbx),
+      labelClass: "",
+      valueClass: "",
     });
-  };
-
-  return timeago;
+  }
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof TimeAgo>[0]} ctx */
+module.exports = (ctx) => new TimeAgo(ctx);
