@@ -3,7 +3,7 @@
 var units = require("./units")();
 
 class Utils {
-  /** @param {{moment: import("moment-timezone"); settings: any; language: ReturnType<import("./language")>}} ctx */
+  /** @param {{moment: import("moment-timezone"); settings: any; language: ReturnType<import("./language")>; levels: import("./levels")}} ctx */
   constructor(ctx) {
     this.moment = ctx.moment;
     this.settings = ctx.settings;
@@ -65,10 +65,9 @@ class Utils {
     return last?.split("/")?.at(0);
   }
 
-  // * @param {ReturnType<import("./sandbox")>} sbx
   /**
    * @param {import("moment-timezone").Moment} m
-   * @param {*} sbx
+   * @param {ReturnType<import("./sandbox")>} sbx
    * */
   timeFormat(m, sbx) {
     var when;
@@ -88,12 +87,11 @@ class Utils {
    * @param {number} nowMills
    */
   formatAgo(m, nowMills) {
-    //@ts-expect-error
     const ago = this.timeago.calcDisplay({ mills: m.valueOf() }, nowMills);
+    if(ago.shortLabel !== "d" && ago.shortLabel !== "h" && ago.shortLabel !== "m") return
     return this.translate(
-      //@ts-expect-error
-      "%1" + ago.shortLabel + (ago.shortLabel.length === 1 ? " ago" : ""),
-      { params: [ago.value ? ago.value : ""] }
+      `%1${ago.shortLabel} ago`,
+      { params: [ago.value?.toString() ?? ""] }
     );
   }
 
