@@ -3,78 +3,13 @@
 var _ = require("lodash");
 var constants = require("./constants");
 
-function init() {
-  var settings = {
-    units: "mg/dl",
-    timeFormat: 12,
-    dayStart: 7.0,
-    dayEnd: 21.0,
-    nightMode: false,
-    editMode: true,
-    showRawbg: "never",
-    customTitle: "Nightscout",
-    theme: "default",
-    alarmUrgentHigh: true,
-    alarmUrgentHighMins: [30, 60, 90, 120],
-    alarmHigh: true,
-    alarmHighMins: [30, 60, 90, 120],
-    alarmLow: true,
-    alarmLowMins: [15, 30, 45, 60],
-    alarmUrgentLow: true,
-    alarmUrgentLowMins: [15, 30, 45],
-    alarmUrgentMins: [30, 60, 90, 120],
-    alarmWarnMins: [30, 60, 90, 120],
-    alarmTimeagoWarn: true,
-    alarmTimeagoWarnMins: 15,
-    alarmTimeagoUrgent: true,
-    alarmTimeagoUrgentMins: 30,
-    alarmPumpBatteryLow: false,
-    language: "en",
-    scaleY: "log",
-    showPlugins: "dbsize",
-    showForecast: "ar2",
-    focusHours: 3,
-    heartbeat: 60,
-    baseURL: "",
-    authDefaultRoles: "readable",
-    thresholds: {
-      bgHigh: 260,
-      bgTargetTop: 180,
-      bgTargetBottom: 80,
-      bgLow: 55,
-    },
-    insecureUseHttp: false,
-    secureHstsHeader: true,
-    secureHstsHeaderIncludeSubdomains: false,
-    secureHstsHeaderPreload: false,
-    secureCsp: false,
-    deNormalizeDates: false,
-    showClockDelta: false,
-    showClockLastTime: false,
-    frameUrl1: "",
-    frameUrl2: "",
-    frameUrl3: "",
-    frameUrl4: "",
-    frameUrl5: "",
-    frameUrl6: "",
-    frameUrl7: "",
-    frameUrl8: "",
-    frameName1: "",
-    frameName2: "",
-    frameName3: "",
-    frameName4: "",
-    frameName5: "",
-    frameName6: "",
-    frameName7: "",
-    frameName8: "",
-    authFailDelay: 5000,
-    adminNotifiesEnabled: true,
-    obscured: "",
-    obscureDeviceProvenance: "",
-    authenticationPromptOnLoad: false,
-  };
-
-  var secureSettings = [
+/**
+ * @namespace
+ * @property {"foo"} foo
+ */
+class Settings {
+  /** @satisfies {(keyof  Settings)[]} */
+  static secureSettings = [
     "apnsKey",
     "apnsKeyId",
     "developerTeamId",
@@ -84,78 +19,281 @@ function init() {
     "obscureDeviceProvenance",
   ];
 
-  var valueMappers = {
-    nightMode: mapTruthy,
-    alarmUrgentHigh: mapTruthy,
-    alarmUrgentHighMins: mapNumberArray,
-    alarmHigh: mapTruthy,
-    alarmHighMins: mapNumberArray,
-    alarmLow: mapTruthy,
-    alarmLowMins: mapNumberArray,
-    alarmUrgentLow: mapTruthy,
-    alarmUrgentLowMins: mapNumberArray,
-    alarmUrgentMins: mapNumberArray,
-    alarmTimeagoWarn: mapTruthy,
-    alarmTimeagoUrgent: mapTruthy,
-    alarmWarnMins: mapNumberArray,
-    timeFormat: mapNumber,
-    insecureUseHttp: mapTruthy,
-    secureHstsHeader: mapTruthy,
-    secureCsp: mapTruthy,
-    deNormalizeDates: mapTruthy,
-    showClockDelta: mapTruthy,
-    showClockLastTime: mapTruthy,
-    bgHigh: mapNumber,
-    bgLow: mapNumber,
-    bgTargetTop: mapNumber,
-    bgTargetBottom: mapNumber,
-    authFailDelay: mapNumber,
-    adminNotifiesEnabled: mapTruthy,
-    authenticationPromptOnLoad: mapTruthy,
+  static valueMappers = {
+    nightMode: Settings.mapTruthy,
+    alarmUrgentHigh: Settings.mapTruthy,
+    alarmUrgentHighMins: Settings.mapNumberArray,
+    alarmHigh: Settings.mapTruthy,
+    alarmHighMins: Settings.mapNumberArray,
+    alarmLow: Settings.mapTruthy,
+    alarmLowMins: Settings.mapNumberArray,
+    alarmUrgentLow: Settings.mapTruthy,
+    alarmUrgentLowMins: Settings.mapNumberArray,
+    alarmUrgentMins: Settings.mapNumberArray,
+    alarmTimeagoWarn: Settings.mapTruthy,
+    alarmTimeagoUrgent: Settings.mapTruthy,
+    alarmWarnMins: Settings.mapNumberArray,
+    timeFormat: Settings.mapNumber,
+    insecureUseHttp: Settings.mapTruthy,
+    secureHstsHeader: Settings.mapTruthy,
+    secureCsp: Settings.mapTruthy,
+    deNormalizeDates: Settings.mapTruthy,
+    showClockDelta: Settings.mapTruthy,
+    showClockLastTime: Settings.mapTruthy,
+    bgHigh: Settings.mapNumber,
+    bgLow: Settings.mapNumber,
+    bgTargetTop: Settings.mapNumber,
+    bgTargetBottom: Settings.mapNumber,
+    authFailDelay: Settings.mapNumber,
+    adminNotifiesEnabled: Settings.mapTruthy,
+    authenticationPromptOnLoad: Settings.mapTruthy,
   };
 
-  function filterObj(obj, secureKeys) {
-    if (obj && typeof obj === "object") {
-      var allKeys = Object.keys(obj);
-      for (var i = 0; i < allKeys.length; i++) {
-        var k = allKeys[i];
-        if (secureKeys.includes(k)) {
-          delete obj[k];
-        } else {
-          var value = obj[k];
+  static DEFAULT_FEATURES = [
+    "bgnow",
+    "delta",
+    "direction",
+    "timeago",
+    "devicestatus",
+    "upbat",
+    "errorcodes",
+    "profile",
+    "bolus",
+    "dbsize",
+    "runtimestate",
+    "basal",
+    "careportal",
+  ];
+
+  constructor() {
+    // some code which uses the static members of this class predates this being a class
+    // so these bits of code expect the static members as instance members
+    this.DEFAULT_FEATURES = Settings.DEFAULT_FEATURES;
+
+    /** @type {Record<string, any>} */
+    this.extendedSettings = {};
+    /** @type {"mg/dl" | "mmol"} */
+    this.units = "mg/dl";
+    /** @type {12 | 24} */
+    this.timeFormat = 12;
+    /** @type {number} */
+    this.dayStart = 7.0;
+    /** @type {number} */
+    this.dayEnd = 21.0;
+    /** @type {boolean} */
+    this.nightMode = false;
+    /** @type {boolean} */
+    this.editMode = true;
+    // TODO: narrow
+    /** @type {"never" | string} */
+    this.showRawbg = "never";
+    /** @type {string} */
+    this.customTitle = "Nightscout";
+    /** @type {string} */
+    this.theme = "default";
+    /** @type {boolean} */
+    this.alarmUrgentHigh = true;
+    /** @type {number[]} */
+    this.alarmUrgentHighMins = [30, 60, 90, 120];
+    /** @type {boolean} */
+    this.alarmHigh = true;
+    /** @type {number[]} */
+    this.alarmHighMins = [30, 60, 90, 120];
+    /** @type {boolean} */
+    this.alarmLow = true;
+    /** @type {number[]} */
+    this.alarmLowMins = [15, 30, 45, 60];
+    /** @type {boolean} */
+    this.alarmUrgentLow = true;
+    /** @type {number[]} */
+    this.alarmUrgentLowMins = [15, 30, 45];
+    /** @type {number[]} */
+    this.alarmUrgentMins = [30, 60, 90, 120];
+    /** @type {number[]} */
+    this.alarmWarnMins = [30, 60, 90, 120];
+    /** @type {boolean} */
+    this.alarmTimeagoWarn = true;
+    /** @type {number} */
+    this.alarmTimeagoWarnMins = 15;
+    /** @type {boolean} */
+    this.alarmTimeagoUrgent = true;
+    /** @type {number} */
+    this.alarmTimeagoUrgentMins = 30;
+    /** @type {boolean} */
+    this.alarmPumpBatteryLow = false;
+    /** @type {string} */
+    this.language = "en";
+    /** @type {string} */
+    this.scaleY = "log";
+    /** @type {string} */
+    this.showPlugins = "dbsize";
+    /** @type {string} */
+    this.showForecast = "ar2";
+    /** @type {number} */
+    this.focusHours = 3;
+    /** @type {number} */
+    this.heartbeat = 60;
+    /** @type {string} */
+    this.baseURL = "";
+    /** @type {string} */
+    this.authDefaultRoles = "readable";
+    /** @type {Record<"bgHigh" | "bgTargetTop" | "bgTargetBottom" | "bgLow", number>} */
+    this.thresholds = {
+      bgHigh: 260,
+      bgTargetTop: 180,
+      bgTargetBottom: 80,
+      bgLow: 55,
+    };
+    /** @type {boolean} */
+    this.insecureUseHttp = false;
+    /** @type {boolean} */
+    this.secureHstsHeader = true;
+    /** @type {boolean} */
+    this.secureHstsHeaderIncludeSubdomains = false;
+    /** @type {boolean} */
+    this.secureHstsHeaderPreload = false;
+    /** @type {boolean} */
+    this.secureCsp = false;
+    /** @type {boolean} */
+    this.deNormalizeDates = false;
+    /** @type {boolean} */
+    this.showClockDelta = false;
+    /** @type {boolean} */
+    this.showClockLastTime = false;
+    /** @type {string} */
+    this.frameUrl1 = "";
+    /** @type {string} */
+    this.frameUrl2 = "";
+    /** @type {string} */
+    this.frameUrl3 = "";
+    /** @type {string} */
+    this.frameUrl4 = "";
+    /** @type {string} */
+    this.frameUrl5 = "";
+    /** @type {string} */
+    this.frameUrl6 = "";
+    /** @type {string} */
+    this.frameUrl7 = "";
+    /** @type {string} */
+    this.frameUrl8 = "";
+    /** @type {string} */
+    this.frameName1 = "";
+    /** @type {string} */
+    this.frameName2 = "";
+    /** @type {string} */
+    this.frameName3 = "";
+    /** @type {string} */
+    this.frameName4 = "";
+    /** @type {string} */
+    this.frameName5 = "";
+    /** @type {string} */
+    this.frameName6 = "";
+    /** @type {string} */
+    this.frameName7 = "";
+    /** @type {string} */
+    this.frameName8 = "";
+    /** @type {number} */
+    this.authFailDelay = 5000;
+    /** @type {boolean} */
+    this.adminNotifiesEnabled = true;
+    /** @type {string | string[]} */
+    this.obscured = "";
+    /** @type {string} */
+    this.obscureDeviceProvenance = "";
+    /** @type {boolean} */
+    this.authenticationPromptOnLoad = false;
+    /** @type {string | undefined} */
+    this.apnsKey = undefined;
+    /** @type {string | undefined} */
+    this.apnsKeyId = undefined;
+    /** @type {string | undefined} */
+    this.developerTeamId = undefined;
+    /** @type {string | undefined} */
+    this.userName = undefined;
+    /** @type {string | undefined} */
+    this.password = undefined;
+    /** @type {string[]} */
+    this.enable = [];
+    /**@type {string[]} the names of properties we've mapped with `valueMappers` */
+    this.wasSet = [];
+  }
+
+  /**
+   * @template {Record<string, any>} T
+   * @template {keyof T} TKey
+   * @param {T} obj
+   * @param {TKey[]} secureKeys
+   * @returns {import("./types").RemoveKeys<T, TKey>}
+   */
+  static filterObj(obj, secureKeys) {
+    if (!obj || typeof obj !== "object") return obj;
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([key]) => secureKeys.includes(/** @type {TKey} */ (key)))
+        .map(([key, value]) => {
           if (typeof value === "object") {
-            filterObj(value, secureKeys);
+            return [
+              key,
+              Settings.filterObj(
+                value,
+                /** @type {(keyof value)[]} */ (secureKeys)
+              ),
+            ];
           }
-        }
-      }
-    }
-    return obj;
+          return [key, value];
+        })
+    );
   }
 
-  function filteredSettings(settingsObject) {
-    let so = _.cloneDeep(settingsObject);
-    if (so.obscured) {
-      so.enable = _.difference(so.enable, so.obscured);
+  /** @param {Settings} settings */
+  filteredSettings(settings) {
+    /** @type {Settings} */
+    const cloned = Object.assign(
+      Object.create(Object.getPrototypeOf(settings)),
+      settings
+    );
+    if (cloned.obscured) {
+      const enable = new Set(cloned.enable);
+      const obscured = new Set(cloned.obscured);
+      const difference = enable.difference(obscured)
+      cloned.enable = [...difference];
     }
-    return filterObj(so, secureSettings);
+    return Settings.filterObj(cloned, Settings.secureSettings);
   }
 
-  function mapNumberArray(value) {
+  /** @param {string | boolean} value */
+  static mapTruthy(value) {
+    if (
+      typeof value === "string" &&
+      (value.toLowerCase() === "on" || value.toLowerCase() === "true")
+    ) {
+      value = true;
+    }
+    if (
+      typeof value === "string" &&
+      (value.toLowerCase() === "off" || value.toLowerCase() === "false")
+    ) {
+      value = false;
+    }
+    return /** @type {boolean} */ (value);
+  }
+
+  /** @param {number[] | string} value */
+  static mapNumberArray(value) {
     if (!value || _.isArray(value)) {
-      return value;
+      return /** @type {number[]} */ (value);
     }
 
     if (isNaN(value)) {
-      var rawValues = (value && value.split(" ")) || [];
-      return _.map(rawValues, function (num) {
-        return isNaN(num) ? null : Number(num);
-      });
+      const rawValues = (value && value.split(" ")) || [];
+      return rawValues.map((num) => (isNaN(num) ? null : Number(num)));
     } else {
       return [Number(value)];
     }
   }
 
-  function mapNumber(value) {
+  /** @param {string | number} value */
+  static mapNumber(value) {
     if (!value) {
       return value;
     }
@@ -174,148 +312,118 @@ function init() {
     }
   }
 
-  function mapTruthy(value) {
-    if (
-      typeof value === "string" &&
-      (value.toLowerCase() === "on" || value.toLowerCase() === "true")
-    ) {
-      value = true;
-    }
-    if (
-      typeof value === "string" &&
-      (value.toLowerCase() === "off" || value.toLowerCase() === "false")
-    ) {
-      value = false;
-    }
-    return value;
-  }
-
-  //TODO: getting sent in status.json, shouldn't be
-  settings.DEFAULT_FEATURES = [
-    "bgnow",
-    "delta",
-    "direction",
-    "timeago",
-    "devicestatus",
-    "upbat",
-    "errorcodes",
-    "profile",
-    "bolus",
-    "dbsize",
-    "runtimestate",
-    "basal",
-    "careportal",
-  ];
-
-  var wasSet = [];
-
-  function isSimple(value) {
+  /** @param {unknown} value @returns {value is any[] | string | number | boolean | Symbol | bigint | undefined} */
+  #isSimple(value) {
     return (
-      _.isArray(value) ||
+      Array.isArray(value) ||
       (typeof value !== "function" && typeof value !== "object")
     );
   }
 
-  function nameFromKey(key, nameType) {
+  /** @param {string} key @param {string} [nameType]  */
+  #nameFromKey(key, nameType) {
     return nameType === "env" ? _.snakeCase(key).toUpperCase() : key;
   }
 
-  function eachSettingAs(nameType) {
-    function mapKeys(accessor, keys) {
-      _.forIn(keys, function each(value, key) {
-        if (isSimple(value)) {
-          var newValue = accessor(nameFromKey(key, nameType));
-          if (newValue !== undefined) {
-            var mapper = valueMappers[key];
-            wasSet.push(key);
-            keys[key] = mapper ? mapper(newValue) : newValue;
+  /** @param {string} [nameType] */
+  #eachSettingAs(nameType) {
+    const valueMappers = Settings.valueMappers;
+    /** @param {(name: string) => any} accessor @param {Record<string, any>} keys */
+    const mapKeys = (accessor, keys) => {
+      Object.keys(keys).forEach((key) => {
+        const value = keys[key];
+        if (this.#isSimple(value)) {
+          const newVal = accessor(this.#nameFromKey(key, nameType));
+          if (newVal !== undefined && _.has(valueMappers, key)) {
+            const mapper =
+              /** @type {valueMappers[keyof valueMappers]} */
+              (valueMappers[key]);
+            this.wasSet.push(key);
+            keys[key] = mapper ? mapper(newVal) : newVal;
           }
         }
       });
-    }
+    };
 
-    return function allKeys(accessor) {
-      mapKeys(accessor, settings);
-      mapKeys(accessor, settings.thresholds);
-      enableAndDisableFeatures(accessor, nameType);
+    /** @param {(name: string) => any} accessor */
+    return (accessor) => {
+      mapKeys(accessor, this);
+      mapKeys(accessor, this.thresholds);
+      this.#enableAndDisableFeatures(accessor, nameType);
     };
   }
+  /** @param {(name: string) => any} accessor */
+  eachSetting(accessor) {
+    return this.#eachSettingAs()(accessor);
+  }
+  /** @param {(name: string) => any} accessor */
+  eachSettingAsEnv(accessor) {
+    return this.#eachSettingAs("env")(accessor);
+  }
 
-  function enableAndDisableFeatures(accessor, nameType) {
-    function getAndPrepare(key) {
-      var raw = accessor(nameFromKey(key, nameType)) || "";
-      var cleaned = decodeURIComponent(raw).toLowerCase();
-      cleaned = cleaned ? cleaned.split(" ") : [];
-      cleaned = _.filter(cleaned, function (e) {
-        return e !== "";
-      });
-      return cleaned;
-    }
+  /** @param {(name: string) => any} accessor @param {string} [nameType] */
+  #enableAndDisableFeatures(accessor, nameType) {
+    /** @type {string[]} */
+    /** @param {string} key */
+    const getAndPrepare = (key) => {
+      const raw = accessor(this.#nameFromKey(key, nameType)) || "";
+      const cleaned = decodeURIComponent(raw).toLowerCase()?.split(" ") ?? [];
+      return cleaned.filter((e) => !!e);
+    };
+    let enable = getAndPrepare("enable");
+    let disable = getAndPrepare("disable");
+    let obscured = getAndPrepare("obscured");
 
+    /** @param {string} feature @param {boolean} condition */
     function enableIf(feature, condition) {
-      if (condition) {
-        enable.push(feature);
-      }
+      if (condition) enable.push(feature);
     }
 
+    /** @param {string[]} features */
     function anyEnabled(features) {
-      return (
-        _.findIndex(features, function (feature) {
-          return enable.indexOf(feature) > -1;
-        }) > -1
-      );
+      return !!features.find((feature) => enable.includes(feature));
     }
 
-    function prepareAlarmTypes() {
-      var alarmTypes = _.filter(
-        getAndPrepare("alarmTypes"),
-        function onlyKnownTypes(type) {
-          return type === "predict" || type === "simple";
-        },
+    const prepareAlarmTypes = () => {
+      const alarmTypes = getAndPrepare("alarmTypes").filter((type) =>
+        ["predict", "simple"].includes(type)
       );
+      if (alarmTypes.length) return alarmTypes;
 
-      if (alarmTypes.length === 0) {
-        var thresholdWasSet =
-          _.findIndex(wasSet, function (name) {
-            return name.indexOf("bg") === 0;
-          }) > -1;
-        alarmTypes = thresholdWasSet ? ["simple"] : ["predict"];
-      }
+      const thresholdWasSet = this.wasSet.some((name) => name.startsWith("bg"));
+      return thresholdWasSet ? ["simple"] : ["predict"];
+    };
 
-      return alarmTypes;
-    }
-
-    var enable = getAndPrepare("enable");
-    var disable = getAndPrepare("disable");
-    var obscured = getAndPrepare("obscured");
-
-    settings.alarmTypes = prepareAlarmTypes();
+    this.alarmTypes = prepareAlarmTypes();
 
     //don't require pushover to be enabled to preserve backwards compatibility if there are extendedSettings for it
-    enableIf("pushover", accessor(nameFromKey("pushoverApiToken", nameType)));
+    enableIf(
+      "pushover",
+      accessor(this.#nameFromKey("pushoverApiToken", nameType))
+    );
 
     enableIf(
       "treatmentnotify",
-      anyEnabled(["careportal", "pushover", "maker"]),
+      anyEnabled(["careportal", "pushover", "maker"])
     );
 
-    _.each(settings.DEFAULT_FEATURES, function eachDefault(feature) {
-      enableIf(feature, enable.indexOf(feature) < 0);
+    Settings.DEFAULT_FEATURES.forEach((feature) => {
+      enableIf(feature, !enable.includes(feature));
     });
 
     //TODO: maybe get rid of ALARM_TYPES and only use enable?
-    enableIf("simplealarms", settings.alarmTypes.indexOf("simple") > -1);
-    enableIf("ar2", settings.alarmTypes.indexOf("predict") > -1);
+    enableIf("simplealarms", this.alarmTypes.includes("simple"));
+    enableIf("ar2", this.alarmTypes.includes("predict"));
 
     if (disable.length > 0) {
       console.info("disabling", disable);
     }
 
     //all enabled feature, without any that have been disabled
-    settings.enable = _.difference(enable, disable);
-    settings.obscured = obscured;
+    this.enable = _.difference(enable, disable);
+    this.obscured = obscured;
 
-    var thresholds = settings.thresholds;
+    const thresholds = this.thresholds;
 
     thresholds.bgHigh = Number(thresholds.bgHigh);
     thresholds.bgTargetTop = Number(thresholds.bgTargetTop);
@@ -323,181 +431,146 @@ function init() {
     thresholds.bgLow = Number(thresholds.bgLow);
 
     // Do not convert for old installs that have these set in mg/dl
-    if (
-      settings.units.toLowerCase().includes("mmol") &&
-      thresholds.bgHigh < 50
-    ) {
+    if (this.units.toLowerCase().includes("mmol") && thresholds.bgHigh < 50) {
       thresholds.bgHigh = Math.round(
-        thresholds.bgHigh * constants.MMOL_TO_MGDL,
+        thresholds.bgHigh * constants.MMOL_TO_MGDL
       );
       thresholds.bgTargetTop = Math.round(
-        thresholds.bgTargetTop * constants.MMOL_TO_MGDL,
+        thresholds.bgTargetTop * constants.MMOL_TO_MGDL
       );
       thresholds.bgTargetBottom = Math.round(
-        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL,
+        thresholds.bgTargetBottom * constants.MMOL_TO_MGDL
       );
       thresholds.bgLow = Math.round(thresholds.bgLow * constants.MMOL_TO_MGDL);
     }
 
-    verifyThresholds();
-    adjustShownPlugins();
+    this.#verifyThresholds();
+    this.#adjustShownPlugins();
   }
 
-  function verifyThresholds() {
-    var thresholds = settings.thresholds;
+  #verifyThresholds() {
+    const thresholds = this.thresholds;
 
     if (thresholds.bgTargetBottom >= thresholds.bgTargetTop) {
       console.warn(
-        "BG_TARGET_BOTTOM(" +
-          thresholds.bgTargetBottom +
-          ") was >= BG_TARGET_TOP(" +
-          thresholds.bgTargetTop +
-          ")",
+        `BG_TARGET_BOTTOM(${thresholds.bgTargetBottom}) was >= BG_TARGET_TOP(${thresholds.bgTargetTop})`
       );
       thresholds.bgTargetBottom = thresholds.bgTargetTop - 1;
-      console.warn("BG_TARGET_BOTTOM is now " + thresholds.bgTargetBottom);
+      console.warn(`BG_TARGET_BOTTOM is now ${thresholds.bgTargetBottom}`);
     }
     if (thresholds.bgTargetTop <= thresholds.bgTargetBottom) {
       console.warn(
-        "BG_TARGET_TOP(" +
-          thresholds.bgTargetTop +
-          ") was <= BG_TARGET_BOTTOM(" +
-          thresholds.bgTargetBottom +
-          ")",
+        `BG_TARGET_TOP(${thresholds.bgTargetTop}) was <= BG_TARGET_BOTTOM(${thresholds.bgTargetBottom})`
       );
       thresholds.bgTargetTop = thresholds.bgTargetBottom + 1;
-      console.warn("BG_TARGET_TOP is now " + thresholds.bgTargetTop);
+      console.warn(`BG_TARGET_TOP is now ${thresholds.bgTargetTop}`);
     }
     if (thresholds.bgLow >= thresholds.bgTargetBottom) {
       console.warn(
-        "BG_LOW(" +
-          thresholds.bgLow +
-          ") was >= BG_TARGET_BOTTOM(" +
-          thresholds.bgTargetBottom +
-          ")",
+        `BG_LOW(${thresholds.bgLow}) was >= BG_TARGET_BOTTOM(${thresholds.bgTargetBottom})`
       );
       thresholds.bgLow = thresholds.bgTargetBottom - 1;
-      console.warn("BG_LOW is now " + thresholds.bgLow);
+      console.warn(`BG_LOW is now ${thresholds.bgLow}`);
     }
     if (thresholds.bgHigh <= thresholds.bgTargetTop) {
       console.warn(
-        "BG_HIGH(" +
-          thresholds.bgHigh +
-          ") was <= BG_TARGET_TOP(" +
-          thresholds.bgTargetTop +
-          ")",
+        `BG_HIGH(${thresholds.bgHigh}) was <= BG_TARGET_TOP(${thresholds.bgTargetTop})`
       );
       thresholds.bgHigh = thresholds.bgTargetTop + 1;
-      console.warn("BG_HIGH is now " + thresholds.bgHigh);
+      console.warn(`BG_HIGH is now ${thresholds.bgHigh}`);
     }
   }
 
-  function adjustShownPlugins() {
-    var showPluginsUnset =
-      settings.showPlugins && 0 === settings.showPlugins.length;
+  #adjustShownPlugins() {
+    const showPluginsUnset = this.showPlugins && 0 === this.showPlugins.length;
 
-    settings.showPlugins += " delta direction upbat";
-    if (settings.showRawbg === "always" || settings.showRawbg === "noise") {
-      settings.showPlugins += " rawbg";
+    this.showPlugins += " delta direction upbat";
+    if (this.showRawbg === "always" || this.showRawbg === "noise") {
+      this.showPlugins += " rawbg";
     }
 
     if (showPluginsUnset) {
       //assume all enabled features are plugins and they should be shown for now
       //it would be better to use the registered plugins, but it's not loaded yet...
-      _.forEach(settings.enable, function showFeature(feature) {
-        if (isEnabled(feature)) {
-          settings.showPlugins += " " + feature;
+      this.enable.forEach((feature) => {
+        if (this.isEnabled(feature)) {
+          this.showPlugins += " " + feature;
         }
       });
     }
   }
 
-  function isEnabled(feature) {
-    var enabled = false;
+  /** @param {string | string[]} feature */
+  isEnabled(feature) {
+    if (!this.enable) return false;
 
-    if (
-      settings.enable &&
-      typeof feature === "object" &&
-      feature.length !== undefined
-    ) {
-      enabled =
-        _.find(feature, function eachFeature(f) {
-          return settings.enable.indexOf(f) > -1;
-        }) !== undefined;
-    } else {
-      enabled = settings.enable && settings.enable.indexOf(feature) > -1;
+    if (Array.isArray(feature)) {
+      return feature.some((f) => this.enable.includes(f));
     }
 
-    return enabled;
+    return this.enable.includes(feature);
   }
 
-  function isUrgentHighAlarmEnabled(notify) {
+  /** @param {import("./types").Notify} notify */
+  #isUrgentHighAlarmEnabled(notify) {
     return (
       notify.eventName === "high" &&
       notify.level === constants.LEVEL_URGENT &&
-      settings.alarmUrgentHigh
+      this.alarmUrgentHigh
     );
   }
 
-  function isHighAlarmEnabled(notify) {
-    return notify.eventName === "high" && settings.alarmHigh;
+  /** @param {import("./types").Notify} notify */
+  #isHighAlarmEnabled(notify) {
+    return notify.eventName === "high" && this.alarmHigh;
   }
 
-  function isUrgentLowAlarmEnabled(notify) {
+  /** @param {import("./types").Notify} notify */
+  #isUrgentLowAlarmEnabled(notify) {
     return (
       notify.eventName === "low" &&
       notify.level === constants.LEVEL_URGENT &&
-      settings.alarmUrgentLow
+      this.alarmUrgentLow
     );
   }
 
-  function isLowAlarmEnabled(notify) {
-    return notify.eventName === "low" && settings.alarmLow;
+  /** @param {import("./types").Notify} notify */
+  #isLowAlarmEnabled(notify) {
+    return notify.eventName === "low" && this.alarmLow;
   }
 
-  function isAlarmEventEnabled(notify) {
+  /** @param {import("./types").Notify} notify */
+  isAlarmEventEnabled(notify) {
     return (
       ("high" !== notify.eventName && "low" !== notify.eventName) ||
-      isUrgentHighAlarmEnabled(notify) ||
-      isHighAlarmEnabled(notify) ||
-      isUrgentLowAlarmEnabled(notify) ||
-      isLowAlarmEnabled(notify)
+      this.#isUrgentHighAlarmEnabled(notify) ||
+      this.#isHighAlarmEnabled(notify) ||
+      this.#isUrgentLowAlarmEnabled(notify) ||
+      this.#isLowAlarmEnabled(notify)
     );
   }
 
-  function snoozeMinsForAlarmEvent(notify) {
-    var snoozeTime;
-
-    if (isUrgentHighAlarmEnabled(notify)) {
-      snoozeTime = settings.alarmUrgentHighMins;
-    } else if (isHighAlarmEnabled(notify)) {
-      snoozeTime = settings.alarmHighMins;
-    } else if (isUrgentLowAlarmEnabled(notify)) {
-      snoozeTime = settings.alarmUrgentLowMins;
-    } else if (isLowAlarmEnabled(notify)) {
-      snoozeTime = settings.alarmLowMins;
+  /** @param {import("./types").Notify} notify */
+  snoozeMinsForAlarmEvent(notify) {
+    if (this.#isUrgentHighAlarmEnabled(notify)) {
+      return this.alarmUrgentHighMins;
+    } else if (this.#isHighAlarmEnabled(notify)) {
+      return this.alarmHighMins;
+    } else if (this.#isUrgentLowAlarmEnabled(notify)) {
+      return this.alarmUrgentLowMins;
+    } else if (this.#isLowAlarmEnabled(notify)) {
+      return this.alarmLowMins;
     } else if (notify.level === constants.LEVEL_URGENT) {
-      snoozeTime = settings.alarmUrgentMins;
+      return this.alarmUrgentMins;
     } else {
-      snoozeTime = settings.alarmWarnMins;
+      return this.alarmWarnMins;
     }
-
-    return snoozeTime;
   }
 
-  function snoozeFirstMinsForAlarmEvent(notify) {
-    return _.first(snoozeMinsForAlarmEvent(notify));
+  /** @param {import("./types").Notify} notify */
+  snoozeFirstMinsForAlarmEvent(notify) {
+    return this.snoozeMinsForAlarmEvent(notify).at(0) ?? NaN;
   }
-
-  settings.eachSetting = eachSettingAs();
-  settings.eachSettingAsEnv = eachSettingAs("env");
-  settings.isEnabled = isEnabled;
-  settings.isAlarmEventEnabled = isAlarmEventEnabled;
-  settings.snoozeMinsForAlarmEvent = snoozeMinsForAlarmEvent;
-  settings.snoozeFirstMinsForAlarmEvent = snoozeFirstMinsForAlarmEvent;
-  settings.filteredSettings = filteredSettings;
-
-  return settings;
 }
 
-module.exports = init;
+module.exports = () => new Settings();

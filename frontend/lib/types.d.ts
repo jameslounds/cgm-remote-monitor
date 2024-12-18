@@ -6,6 +6,7 @@ type NotifyBase = {
 };
 export type Notify = NotifyBase & {
   clear?: boolean;
+  eventName?: string;
   /** maybe nto actully a string */
   plugin?: {
     name: string;
@@ -76,3 +77,9 @@ export type Cal = Record<string, any>;
 export type Food = Record<string, any>;
 export type Activity = Record<string, any>;
 export type DBStats = Record<string, any>;
+
+export type RemoveKeys<T, K extends string> = {
+  [P in keyof T as P extends K ? never : P]: T[P] extends object
+    ? RemoveKeys<T[P], K>
+    : T[P];
+}

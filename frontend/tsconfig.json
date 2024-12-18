@@ -3,7 +3,7 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "checkJs": true,
     "noImplicitAny": true,
@@ -34,6 +34,7 @@
     "lib/notifications.js",
     "lib/profilefunctions.js",
     "lib/sandbox.js",
-    "lib/data/ddata.js"
+    "lib/data/ddata.js",
+    "lib/settings.js"
   ]
 }
