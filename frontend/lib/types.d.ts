@@ -57,13 +57,6 @@ export type Treatment = {
   cutting?: Treatment["profile"];
 };
 
-type Entry = {
-  mills: number;
-  mgdl?: number;
-  mmol?: number;
-  scaled?: number | string;
-};
-
 export type DeviceStatus = {
   _id: string;
   mills: number;
@@ -75,12 +68,19 @@ export type DeviceStatus = {
   device: any;
 };
 
-export type Sgv = Record<string, any>;
-export type Mbg = Record<string, any>;
-export type Cal = Record<string, any>;
-export type Food = Record<string, any>;
-export type Activity = Record<string, any>;
-export type DBStats = Record<string, any>;
+export interface Entry {
+  mills: number;
+  mgdl?: number;
+  mmol?: number;
+  scaled?: number | string;
+};
+
+export interface Sgv extends Entry, Record<string, any> {};
+export interface Mbg extends Entry, Record<string, any> {};
+export interface Cal extends Entry, Record<string, any> {};
+export interface Food extends Entry, Record<string, any> {};
+export interface Activity extends Entry, Record<string, any> {};
+export interface DBStats extends Entry, Record<string, any> {};
 
 export type RemoveKeys<T, K extends string> = {
   [P in keyof T as P extends K ? never : P]: T[P] extends object

@@ -1,12 +1,8 @@
 "use strict";
 
-var _ = require("lodash");
-var constants = require("./constants");
+const _ = require("lodash");
+const constants = require("./constants");
 
-/**
- * @namespace
- * @property {"foo"} foo
- */
 class Settings {
   /** @satisfies {(keyof  Settings)[]} */
   static secureSettings = [
@@ -255,7 +251,7 @@ class Settings {
     if (cloned.obscured) {
       const enable = new Set(cloned.enable);
       const obscured = new Set(cloned.obscured);
-      const difference = enable.difference(obscured)
+      const difference = enable.difference(obscured);
       cloned.enable = [...difference];
     }
     return Settings.filterObj(cloned, Settings.secureSettings);
@@ -280,7 +276,7 @@ class Settings {
 
   /** @param {number[] | string} value */
   static mapNumberArray(value) {
-    if (!value || _.isArray(value)) {
+    if (!value || Array.isArray(value)) {
       return /** @type {number[]} */ (value);
     }
 
@@ -420,7 +416,7 @@ class Settings {
     }
 
     //all enabled feature, without any that have been disabled
-    this.enable = _.difference(enable, disable);
+    this.enable = [...new Set(enable).difference(new Set(disable))];
     this.obscured = obscured;
 
     const thresholds = this.thresholds;

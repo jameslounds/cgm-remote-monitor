@@ -34,6 +34,10 @@ class DData {
     this.dbstats = [];
     /** @type {number} */
     this.lastUpdated = 0;
+    /** @type {boolean | undefined} */
+    this.inRetroMode = undefined;
+    /** @type {ReturnType<import("../profilefunctions")> | undefined} */
+    this.profile = undefined;
   }
 
   /**
@@ -105,6 +109,7 @@ class DData {
       "insulinchangeTreatments",
       "lastUpdated",
       "mbgs",
+      "profile",
       "profileTreatments",
       "profiles",
       "sensorTreatments",
@@ -113,6 +118,7 @@ class DData {
       "tempTargetTreatments",
       "tempbasalTreatments",
       "treatments",
+      "inRetroMode",
     ];
 
     propertiesToClone.forEach(

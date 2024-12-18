@@ -17,6 +17,7 @@ class Sandbox {
     /** @type {Record<string, any>} */
     this.extendedSettings = {};
     this.settings = /** @type {ReturnType<import("./settings")>} */ ({});
+    this.data = /** @type {ReturnType<import("./data/ddata")>} */ ({});
   }
 
   reset() {
@@ -25,7 +26,8 @@ class Sandbox {
 
   extend() {
     this.unitsLabel = this.#unitsLabel();
-    this.data = this.data || {};
+    this.data =
+      this.data || /** @type {ReturnType<import("./data/ddata")>} */ ({});
 
     //default to prevent adding checks everywhere
     this.extendedSettings = { empty: true };
@@ -116,11 +118,13 @@ class Sandbox {
       ctx.ddata.combobolusTreatments
     );
     this.data.profile = profile;
+    /** @ts-ignore */
     delete this.data.profiles;
 
     this.properties = {};
 
     const withExtendedSettings = this.withExtendedSettings.bind(this);
+    /** @param {import("./types").Plugin} plugin */
     this.withExtendedSettings = (plugin) => {
       return withExtendedSettings(plugin, env.extendedSettings, this);
     };
@@ -168,7 +172,7 @@ class Sandbox {
 
     this.extendedSettings = { empty: true };
     const withExtendedSettings = this.withExtendedSettings.bind(this);
-    /** @type {import("./types").Plugin} plugin */
+    /** @param {import("./types").Plugin} plugin */
     this.withExtendedSettings = (plugin) => {
       return withExtendedSettings(plugin, this.settings.extendedSettings, this);
     };

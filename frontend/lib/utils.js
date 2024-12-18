@@ -97,7 +97,7 @@ class Utils {
 
   /**
    * @param {string | undefined} prefix
-   * @param {*} sbx
+   * @param {ReturnType<import("./sandbox")>} sbx
    */
   timeAt(prefix, sbx) {
     return sbx.data.inRetroMode
