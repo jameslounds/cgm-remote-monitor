@@ -33,6 +33,7 @@
     "lib/utils.js",
     "lib/notifications.js",
     "lib/profilefunctions.js",
-    "lib/sandbox.js"
+    "lib/sandbox.js",
+    "lib/data/ddata.js"
   ]
 }

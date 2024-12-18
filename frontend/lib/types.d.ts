@@ -39,6 +39,7 @@ interface Plugin {
 export type Treatment = {
   mills: number;
   endmills: number;
+  eventType: string;
   duration?: number;
   profile: string;
   profileJson?: string;
@@ -46,6 +47,9 @@ export type Treatment = {
   relative?: number;
   absolute?: number;
   percent?: number;
+
+  cuttedby?: Treatment["profile"];
+  cutting?: Treatment["profile"];
 };
 
 type Entry = {
@@ -54,3 +58,21 @@ type Entry = {
   mmol?: number;
   scaled?: number | string;
 };
+
+export type DeviceStatus = {
+  _id: string;
+  mills: number;
+  uploader: any;
+  pump: any;
+  openaps: any;
+  loop: any;
+  xdripjs: any;
+  device: any;
+};
+
+export type Sgv = Record<string, any>;
+export type Mbg = Record<string, any>;
+export type Cal = Record<string, any>;
+export type Food = Record<string, any>;
+export type Activity = Record<string, any>;
+export type DBStats = Record<string, any>;
