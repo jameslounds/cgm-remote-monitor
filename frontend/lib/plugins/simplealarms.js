@@ -1,5 +1,7 @@
 "use strict";
 
+/** Server only? */
+
 var times = require("../times");
 
 function init(ctx) {

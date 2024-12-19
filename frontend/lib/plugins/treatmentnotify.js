@@ -1,5 +1,7 @@
 "use strict";
 
+/** Server only? */
+
 const _ = require("lodash");
 const times = require("../times");
 const crypto = require("crypto");

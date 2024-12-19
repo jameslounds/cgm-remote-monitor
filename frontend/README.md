@@ -15,6 +15,9 @@ In 3 terminals (in the root of `nightscout/cgm-remote-monitor`), run:
 
 - `npm test`
 - `npm test -- -f "<pattern>"` - run all tests with filenames or test names matching `<pattern>`
+If you're looking at older commits than this, I might not have put all the correct packages into `package.json`. 
+This may cause the tests to fail due to missing modules.
+If so, just `cd .. && npm i && cd frontend` - node will use the parent dir's node_modules if they exist.
 
 ## Aims
 
@@ -68,4 +71,4 @@ I've tried to give a litle information on why I think these patterns are suffici
   This is quite common in Typescript, but is a bit weird if you haven't seen it before.
   It's useful in the example given since it's a lot more concise than listing each key out individually. It's useful in a bunch of other circumstances too though, for instance, a function which takes an argument that must start with a `/` (``type FirstArg = `/${string}`;``)
 
-  [^1]: [`types.d.ts`](./lib/types.d.ts)
+  [^1]: [`types.d.ts`](./frontend/lib/types.d.ts)

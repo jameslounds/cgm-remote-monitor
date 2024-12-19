@@ -1,5 +1,5 @@
 "use strict";
-
+/** server only ? */
 function init() {
   var runtime = {
     name: "runtimestate",
