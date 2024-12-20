@@ -2,7 +2,14 @@
 
 const TOOLTIP_WIDTH = 275; //min-width + padding
 
-/** @typedef {{type: string; info: {label: string; value: string; type: string}, mgdl: number; color: string;}} ForecastPoint */
+/**
+ * @typedef ForecastPoint
+ * @prop {string} type
+ * @prop {ForecastInfo} info
+ * @prop {number} mgdl
+ * @prop {string} color
+ * @prop {number} mills
+ */
 /** @typedef {{label: string; value: string; type: string}} ForecastInfo */
 
 class PluginBase {

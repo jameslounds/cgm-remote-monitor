@@ -4,7 +4,7 @@ const times = require("../times");
 let lastChecked = new Date();
 let lastRecoveryTimeFromSuspend = new Date("1900-01-01");
 
-/** @typedef {{time: number; entry:import("../types").Entry; timeSince?: number}} ResolverOpts */
+/** @typedef {{time: number; entry: {mills: number}; timeSince?: number}} ResolverOpts */
 /** @typedef {(opts: ResolverOpts) => undefined | {value?: number; label: import("../language").TranslationKey; shortLabel?: string}} Resolver */
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
@@ -205,7 +205,7 @@ class TimeAgo {
     };
   }
 
-  /** @param {import("../types").Entry} entry @param {number} time */
+  /** @param {{mills: number}} entry @param {number} time */
   calcDisplay(entry, time) {
     /** @type {ResolverOpts} */
     const opts = {

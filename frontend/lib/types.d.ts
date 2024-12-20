@@ -69,8 +69,9 @@ export type DeviceStatus = {
 };
 
 export interface Entry {
+  type: "sgv" | "mbg" | "cal" | "food" | "activity";
   mills: number;
-  mgdl?: number;
+  mgdl: number;
   mmol?: number;
   scaled?: number | string;
 }

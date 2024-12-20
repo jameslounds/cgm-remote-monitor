@@ -10,6 +10,13 @@ declare global {
     }[keyof T][];
   }
   function isNaN(value?: string | number): boolean;
+
+  interface Array<T> {
+    map<U>(
+      cb: (value: T, i: number, self: T[]) => U,
+      thisArg?: any
+    ): { [K in keyof this]: U };
+  }
 }
 
 export {};

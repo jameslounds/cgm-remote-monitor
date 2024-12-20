@@ -28,6 +28,7 @@
     "global.d.ts",
     "@types/jquery/jquery.d.ts",
     "@types/js-storage/js-storage.d.ts",
+    "@types/d3/d3.d.ts",
     "lib/types.d.ts",
     "lib/constants.js",
     "lib/types.d.ts",
