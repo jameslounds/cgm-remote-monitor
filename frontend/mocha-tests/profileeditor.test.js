@@ -111,13 +111,6 @@ describe("Profile editor", function () {
   it("should produce some html", function (done) {
     var client = require("../lib/client");
 
-    var hashauth = require("../lib/client/hashauth");
-    hashauth.init(client, $);
-    hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
-      hashauth.authenticated = true;
-      next(true);
-    };
-
     window.confirm = function mockConfirm(text) {
       console.log("Confirm:", text);
       return true;

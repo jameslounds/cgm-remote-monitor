@@ -41,13 +41,6 @@ describe("careportal", async function () {
 
     var client = window.Nightscout.client;
 
-    var hashauth = require("../lib/client/hashauth");
-    hashauth.init(client, $);
-    hashauth.verifyAuthentication = function mockVerifyAuthentication(next) {
-      hashauth.authenticated = true;
-      next(true);
-    };
-
     console.log("Careportal test client init");
     client.init();
     sleep(50);

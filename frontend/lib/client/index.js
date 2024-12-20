@@ -22,8 +22,8 @@ var timezones = moment.tz.names();
 
 var client = {};
 
-var hashauth = require("./hashauth");
-client.hashauth = hashauth.init(client, $);
+var HashAuth = require("./hashauth");
+client.hashauth = new HashAuth(client, $);
 
 $("#loadingMessageText").html("Connecting to server");
 
@@ -44,7 +44,7 @@ client.headers = function headers() {
 client.crashed = function crashed() {
   $("#centerMessagePanel").show();
   $("#loadingMessageText").html(
-    "It appears the server has crashed. Please go to Heroku or Azure and reboot the server.",
+    "It appears the server has crashed. Please go to Heroku or Azure and reboot the server."
   );
 };
 
@@ -72,7 +72,7 @@ client.init = function init(callback) {
       if (serverSettings.runtimeState !== "loaded") {
         console.log("Server is still loading data");
         $("#loadingMessageText").html(
-          "Server is starting and still loading data, retrying load in 5 seconds",
+          "Server is starting and still loading data, retrying load in 5 seconds"
         );
         window.setTimeout(window.Nightscout.client.init, 5000);
         return;
@@ -85,7 +85,7 @@ client.init = function init(callback) {
       if (!jqXHR.readyState) {
         console.log("Application appears to be OFFLINE");
         $("#loadingMessageText").html(
-          "Connecting to Nightscout server failed, retrying every 5 seconds",
+          "Connecting to Nightscout server failed, retrying every 5 seconds"
         );
         window.setTimeout(window.Nightscout.client.init(), 5000);
         return;
@@ -246,7 +246,7 @@ client.load = function load(serverSettings, callback) {
       statusPills,
       bgStatus,
       client.tooltip,
-      Storages.localStorage,
+      Storages.localStorage
     ),
     moment: moment,
     timezones: timezones,
@@ -258,7 +258,7 @@ client.load = function load(serverSettings, callback) {
 
   client.ctx.notifications = require("../notifications")(
     client.settings,
-    client.ctx,
+    client.ctx
   );
 
   client.sbx = sandbox.clientInit(client.ctx, client.now);
@@ -280,7 +280,7 @@ client.load = function load(serverSettings, callback) {
           shiro.add(permission);
         });
         return shiro;
-      },
+      }
     );
 
     client.authorized.check = function check(permission) {
@@ -304,15 +304,15 @@ client.load = function load(serverSettings, callback) {
       .click(client.hashauth.requestAuthentication)
       .toggle(
         !treatmentCreateAllowed &&
-          client.settings.showPlugins.indexOf("careportal") > -1,
+          client.settings.showPlugins.indexOf("careportal") > -1
       );
     $("#treatmentDrawerToggle").toggle(
       treatmentCreateAllowed &&
-        client.settings.showPlugins.indexOf("careportal") > -1,
+        client.settings.showPlugins.indexOf("careportal") > -1
     );
     $("#boluscalcDrawerToggle").toggle(
       treatmentCreateAllowed &&
-        client.settings.showPlugins.indexOf("boluscalc") > -1,
+        client.settings.showPlugins.indexOf("boluscalc") > -1
     );
 
     if (isAuthenticated) client.notifies.updateAdminNotifies();
@@ -341,7 +341,7 @@ client.load = function load(serverSettings, callback) {
 
   client.focusRangeMS = times.hours(client.settings.focusHours).msecs;
   $(".focus-range li[data-hours=" + client.settings.focusHours + "]").addClass(
-    "selected",
+    "selected"
   );
   client.brushed = brushed;
   client.formatTime = formatTime;
@@ -438,7 +438,7 @@ client.load = function load(serverSettings, callback) {
     if (status !== "current") {
       var ago = client.timeago.calcDisplay(
         client.sbx.lastSGVEntry(),
-        client.sbx.time,
+        client.sbx.time
       );
       title = s(ago.value) + s(ago.label, " - ") + title;
     } else if (client.latestSGV) {
@@ -572,11 +572,11 @@ client.load = function load(serverSettings, callback) {
         client.dataExtent()[1].getTime()
       ) {
         brushExtent[0] = new Date(
-          brushExtent[1].getTime() - client.focusRangeMS,
+          brushExtent[1].getTime() - client.focusRangeMS
         );
       } else {
         brushExtent[1] = new Date(
-          brushExtent[0].getTime() + client.focusRangeMS,
+          brushExtent[0].getTime() + client.focusRangeMS
         );
       }
 
@@ -591,7 +591,7 @@ client.load = function load(serverSettings, callback) {
 
       bgStatus.toggleClass(
         "current",
-        alarmingNow() || reallyCurrentAndNotAlarming,
+        alarmingNow() || reallyCurrentAndNotAlarming
       );
       if (!alarmingNow()) {
         container.removeClass("urgent warning inrange");
@@ -631,12 +631,12 @@ client.load = function load(serverSettings, callback) {
       var result = retro.map((x) =>
         Object.assign(
           x,
-          ddata.find((y) => y._id == x._id),
-        ),
+          ddata.find((y) => y._id == x._id)
+        )
       );
 
       var missingInRetro = ddata.filter(
-        (y) => !retro.find((x) => x._id == y._id),
+        (y) => !retro.find((x) => x._id == y._id)
       );
 
       result.push(...missingInRetro);
@@ -666,7 +666,7 @@ client.load = function load(serverSettings, callback) {
       if (client.retro.data) {
         mergedStatuses = mergeDeviceStatus(
           client.retro.data.devicestatus,
-          client.ddata.devicestatus,
+          client.ddata.devicestatus
         );
       }
 
@@ -676,7 +676,7 @@ client.load = function load(serverSettings, callback) {
       client.sbx = sandbox.clientInit(
         client.ctx,
         new Date(time).getTime(), //make sure we send a timestamp
-        clonedData,
+        clonedData
       );
 
       //all enabled plugins get a chance to set properties, even if they aren't shown
@@ -692,11 +692,11 @@ client.load = function load(serverSettings, callback) {
         var forecastOption = $("<li/>");
         var forecastLabel = $("<label/>");
         var forecastCheckbox = $(
-          '<input type="checkbox" data-forecast-type="' + info.type + '"/>',
+          '<input type="checkbox" data-forecast-type="' + info.type + '"/>'
         );
         forecastCheckbox.prop(
           "checked",
-          client.settings.showForecast.indexOf(info.type) > -1,
+          client.settings.showForecast.indexOf(info.type) > -1
         );
         forecastOption.append(forecastLabel);
         forecastLabel.append(forecastCheckbox);
@@ -709,7 +709,7 @@ client.load = function load(serverSettings, callback) {
             client.settings.showForecast += " " + type;
           } else {
             client.settings.showForecast = _.chain(
-              client.settings.showForecast.split(" "),
+              client.settings.showForecast.split(" ")
             )
               .filter(function (forecast) {
                 return forecast !== type;
@@ -719,7 +719,7 @@ client.load = function load(serverSettings, callback) {
           }
           Storages.localStorage.set(
             "showForecast",
-            client.settings.showForecast,
+            client.settings.showForecast
           );
           refreshChart(true);
         });
@@ -884,11 +884,11 @@ client.load = function load(serverSettings, callback) {
             times.mins(mins).msecs +
             '">' +
             client.translate("Silence for %1 minutes", { params: [mins] }) +
-            "</a></li>",
+            "</a></li>"
         );
         snoozeOption.click(snoozeAlarm);
         silenceBtn.append(snoozeOption);
-      },
+      }
     );
 
     updateTitle();
@@ -955,7 +955,7 @@ client.load = function load(serverSettings, callback) {
         "ack",
         currentNotify.level,
         currentNotify.group,
-        silenceTime,
+        silenceTime
       );
     }
 
@@ -995,7 +995,7 @@ client.load = function load(serverSettings, callback) {
     // Update at least every 15 seconds
     var interval = Math.min(
       15 * 1000,
-      (60 - new Date().getSeconds()) * 1000 + 5,
+      (60 - new Date().getSeconds()) * 1000 + 5
     );
     setTimeout(updateClock, interval);
 
@@ -1072,7 +1072,7 @@ client.load = function load(serverSettings, callback) {
       container.addClass("alarming-timeago");
       var display = client.timeago.calcDisplay(
         client.sbx.lastSGVEntry(),
-        client.sbx.time,
+        client.sbx.time
       );
       var translate = client.translate;
       var notify = {
@@ -1240,7 +1240,7 @@ client.load = function load(serverSettings, callback) {
     if (now - client.retro.loadStartedMills < times.secs(30).msecs) {
       console.info(
         "retro already loading, started",
-        new Date(client.retro.loadStartedMills),
+        new Date(client.retro.loadStartedMills)
       );
       return;
     }
@@ -1249,7 +1249,7 @@ client.load = function load(serverSettings, callback) {
       client.retro.loadStartedMills = now;
       console.info(
         "retro not fresh load started",
-        new Date(client.retro.loadStartedMills),
+        new Date(client.retro.loadStartedMills)
       );
       socket.emit("loadRetro", {
         loadedMills: client.retro.loadedMills,
@@ -1382,7 +1382,7 @@ client.load = function load(serverSettings, callback) {
       client.plugins.visualizeAlarm(
         client.sbx,
         notify,
-        notify.title + " " + notify.message,
+        notify.title + " " + notify.message
       );
     } else {
       console.log("No timestamp found for notify, not passing to plugins");
@@ -1408,7 +1408,7 @@ client.load = function load(serverSettings, callback) {
       console.info(
         "alarm was disabled locally",
         client.latestSGV.mgdl,
-        client.settings,
+        client.settings
       );
     }
     chart.update(false);
@@ -1426,7 +1426,7 @@ client.load = function load(serverSettings, callback) {
       console.info(
         "urgent alarm was disabled locally",
         client.latestSGV.mgdl,
-        client.settings,
+        client.settings
       );
     }
     chart.update(false);
@@ -1499,7 +1499,7 @@ client.load = function load(serverSettings, callback) {
 
   container.toggleClass(
     "has-minor-pills",
-    client.plugins.hasShownType("pill-minor", client.settings),
+    client.plugins.hasShownType("pill-minor", client.settings)
   );
 
   function prepareEntries() {
@@ -1514,7 +1514,7 @@ client.load = function load(serverSettings, callback) {
             entry.mgdl,
             entry.noise,
             client.ddata.cal,
-            sbx,
+            sbx
           )
             ? client.rawbg.calc(entry, client.ddata.cal, sbx)
             : 0;
@@ -1557,7 +1557,7 @@ client.load = function load(serverSettings, callback) {
           type: "mbg",
           device: obj.device,
         };
-      }),
+      })
     );
 
     var tooOld = client.now - times.hours(48).msecs;
@@ -1588,7 +1588,7 @@ client.load = function load(serverSettings, callback) {
     client.profilefunctions.updateTreatments(
       client.ddata.profileTreatments,
       client.ddata.tempbasalTreatments,
-      client.ddata.combobolusTreatments,
+      client.ddata.combobolusTreatments
     );
 
     if (received.profiles) {

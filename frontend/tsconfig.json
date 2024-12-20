@@ -27,6 +27,7 @@
   "include": [
     "global.d.ts",
     "@types/jquery/jquery.d.ts",
+    "@types/js-storage/js-storage.d.ts",
     "lib/types.d.ts",
     "lib/constants.js",
     "lib/types.d.ts",
@@ -39,6 +40,7 @@
     "lib/sandbox.js",
     "lib/data/ddata.js",
     "lib/settings.js",
-    "lib/plugins/pluginbase.js"
+    "lib/plugins/pluginbase.js",
+    "lib/client/hashauth.js"
   ]
 }
