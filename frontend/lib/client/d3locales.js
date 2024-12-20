@@ -6,11 +6,8 @@
 
 var d3locales = {};
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.cs_CZ = {
-  decimal: ",",
-  thousands: ".",
-  grouping: [3],
-  currency: ["", "CZK"],
   dateTime: "%A %e %b %Y %X",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -47,11 +44,8 @@ d3locales.cs_CZ = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.de_DE = {
-  decimal: ",",
-  thousands: ".",
-  grouping: [3],
-  currency: ["", " €"],
   dateTime: "%A, der %e. %B %Y, %X",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -96,11 +90,8 @@ d3locales.de_DE = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.en_US = {
-  decimal: ".",
-  thousands: ",",
-  grouping: [3],
-  currency: ["$", ""],
   dateTime: "%a %b %e %X %Y",
   date: "%m/%d/%Y",
   time: "%H:%M:%S",
@@ -145,11 +136,8 @@ d3locales.en_US = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.nb_NO = {
-  decimal: ".",
-  thousands: ",",
-  grouping: [3],
-  currency: ["", "NOK"],
   dateTime: "%a %b %e %X %Y",
   date: "%d/%m-%Y",
   time: "%H:%M:%S",
@@ -194,11 +182,8 @@ d3locales.nb_NO = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.es_ES = {
-  decimal: ",",
-  thousands: ".",
-  grouping: [3],
-  currency: ["", " €"],
   dateTime: "%A, %e de %B de %Y, %X",
   date: "%d/%m/%Y",
   time: "%H:%M:%S",
@@ -243,11 +228,8 @@ d3locales.es_ES = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.fi_FI = {
-  decimal: ",",
-  thousands: "\xa0",
-  grouping: [3],
-  currency: ["", "\xa0€"],
   dateTime: "%A, %-d. %Bta %Y klo %X",
   date: "%-d.%-m.%Y",
   time: "%H:%M:%S",
@@ -292,11 +274,8 @@ d3locales.fi_FI = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.fr_FR = {
-  decimal: ",",
-  thousands: ".",
-  grouping: [3],
-  currency: ["", " €"],
   dateTime: "%A, le %e %B %Y, %X",
   date: "%d/%m/%Y",
   time: "%H:%M:%S",
@@ -341,11 +320,8 @@ d3locales.fr_FR = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.he_IL = {
-  decimal: ".",
-  thousands: ",",
-  grouping: [3],
-  currency: ["₪", ""],
   dateTime: "%A, %e ב%B %Y %X",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -382,11 +358,8 @@ d3locales.he_IL = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.it_IT = {
-  decimal: ",",
-  thousands: ".",
-  grouping: [3],
-  currency: ["€", ""],
   dateTime: "%A %e %B %Y, %X",
   date: "%d/%m/%Y",
   time: "%H:%M:%S",
@@ -431,11 +404,8 @@ d3locales.it_IT = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.pl_PL = {
-  decimal: ".",
-  thousands: ",",
-  grouping: [3],
-  currency: ["", "zł"],
   dateTime: "%a %b %e %X %Y",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -480,11 +450,8 @@ d3locales.pl_PL = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.pt_BR = {
-  decimal: ",",
-  thousands: ".",
-  grouping: [3],
-  currency: ["R$", ""],
   dateTime: "%A, %e de %B de %Y. %X",
   date: "%d/%m/%Y",
   time: "%H:%M:%S",
@@ -521,11 +488,8 @@ d3locales.pt_BR = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.ro_RO = {
-  decimal: ".",
-  thousands: ",",
-  grouping: [3],
-  currency: ["", "RON"],
   dateTime: "%A %e %b %Y %X",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -562,11 +526,8 @@ d3locales.ro_RO = {
   ],
 };
 
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.ru_RU = {
-  decimal: ",",
-  thousands: "\xa0",
-  grouping: [3],
-  currency: ["", " руб."],
   dateTime: "%A, %e %B %Y г. %X",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -610,11 +571,9 @@ d3locales.ru_RU = {
     "Dec",
   ],
 };
+
+/** @type {import("d3").TimeLocaleDefinition} */
 d3locales.bg_BG = {
-  decimal: ".",
-  thousands: ",",
-  grouping: [3],
-  currency: ["", "лев"],
   dateTime: "%A, %e %B %Y г. %X",
   date: "%d.%m.%Y",
   time: "%H:%M:%S",
@@ -659,24 +618,28 @@ d3locales.bg_BG = {
   ],
 };
 
+/** @satisfies {Record<string, Exclude<keyof typeof d3locales, "locale">>} */
+const mapper = {
+  cs: "cs_CZ",
+  de: "de_DE",
+  en: "en_US",
+  es: "es_ES",
+  fi: "fi_FI",
+  fr: "fr_FR",
+  he: "he_IL",
+  it: "it_IT",
+  pl: "pl_PL",
+  pt: "pt_BR",
+  ro: "ro_RO",
+  ru: "ru_RU",
+  bg: "bg_BG",
+};
+
+/** @param {keyof typeof mapper} language */
 d3locales.locale = function locale(language) {
   // map locale until we switch to full en_US
-  var mapper = {
-    cs: "cs_CZ",
-    de: "de_DE",
-    en: "en_US",
-    es: "es_ES",
-    fi: "fi_FI",
-    fr: "fr_FR",
-    he: "he_IL",
-    it: "it_IT",
-    pl: "pl_PL",
-    pt: "pt_BR",
-    ro: "ro_RO",
-    ru: "ru_RU",
-    bg: "bg_BG",
-  };
-  var loc = "en_US";
+  /** @type {Exclude<keyof typeof d3locales, "locale">} */
+  let loc = "en_US";
 
   // validate the eventType input before getting the reasons list
   if (Object.prototype.hasOwnProperty.call(mapper, language)) {
