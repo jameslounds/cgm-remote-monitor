@@ -69,6 +69,8 @@ I've tried to give a litle information on why I think these patterns are suffici
   Then `"LEVEL_URGENT"`, ..., `"LEVEL_NONE"` are all of type `Key`
 
   This is quite common in Typescript, but is a bit weird if you haven't seen it before.
-  It's useful in the example given since it's a lot more concise than listing each key out individually. It's useful in a bunch of other circumstances too though, for instance, a function which takes an argument that must start with a `/` (``type FirstArg = `/${string}`;``)
+  It's useful in the example given since it's a lot more concise than listing each key out individually. It's useful in a bunch of other circumstances too though, for instance, a function which takes an argument that must start with a `/` (``type FirstArg = `/${string}`;``).
+
+  This also works the other way around. If we have a sufficiently strict type, say `"d" | "h" | "m"`, then we can use Javascript's template strings and get specific typescript types back out. For instance, in `utils.js`, we narrow the type of `ago.shortLabel`, and then use that narrowed type to ensure the string resulting from the template string will be a valid `TranslationKey` (since `"%1d ago"`, `"%1h ago"`, `"%1m ago"` are all valid translation keys).
 
   [^1]: [`types.d.ts`](./frontend/lib/types.d.ts)
