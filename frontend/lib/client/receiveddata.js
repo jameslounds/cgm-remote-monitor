@@ -1,135 +1,118 @@
 "use strict";
 
-var _ = require("lodash");
+const TWO_DAYS = 172_800_000;
 
-var TWO_DAYS = 172800000;
-
+/**
+ * @template {{mills: number}} DData
+ * @param {boolean | undefined} isDelta
+ * @param {DData[]} cachedDataArray
+ * @param {DData[]} receivedDataArray
+ * @param {number} [maxAge]
+ */
 function mergeDataUpdate(isDelta, cachedDataArray, receivedDataArray, maxAge) {
+  /** @template {{mills: number}} DData @param {DData[]} oldArray @param {DData[]} newArray */
   function nsArrayDiff(oldArray, newArray) {
-    var knownMills = [];
+    /** @type {number[]} */
+    const knownMills = [];
 
-    var l = oldArray.length;
+    oldArray.filter((d) => !!d).forEach((d) => knownMills.push(d.mills));
 
-    for (var i = 0; i < l; i++) {
-      /* eslint-disable security/detect-object-injection */ // verified false positive
-      if (oldArray[i] !== null) {
-        knownMills.push(oldArray[i].mills);
-      }
-      /* eslint-enable security/detect-object-injection */ // verified false positive
-    }
-
-    var result = {
+    const result = {
+      /** @type {DData[]} */
       updates: [],
+      /** @type {DData[]} */
       new: [],
     };
 
-    l = newArray.length;
-    for (var j = 0; j < l; j++) {
-      /* eslint-disable security/detect-object-injection */ // verified false positive
-      var item = newArray[j];
-      var millsSeen = knownMills.includes(item.mills);
+    newArray.forEach((item) => {
+      const seen = knownMills.includes(item.mills);
 
-      if (!millsSeen) {
-        result.new.push(item);
-      } else {
-        result.updates.push(item);
-      }
-    }
+      if (seen) result.updates.push(item);
+      else result.new.push(item);
+    });
+
     return result;
   }
 
   // If there was no delta data, just return the original data
-  if (!receivedDataArray) {
-    return cachedDataArray || [];
-  }
+  if (!receivedDataArray) return cachedDataArray || [];
 
   // If this is not a delta update, replace all data
-  if (!isDelta) {
-    return receivedDataArray || [];
-  }
+  if (!isDelta) return receivedDataArray || [];
 
   // purge old data from cache before updating
-  var mAge = isNaN(maxAge) || maxAge == null ? TWO_DAYS : maxAge;
-  var twoDaysAgo = new Date().getTime() - mAge;
+  const mAge = !maxAge || isNaN(maxAge) ? TWO_DAYS : maxAge;
+  const twoDaysAgo = new Date().getTime() - mAge;
 
-  var i;
-
-  for (i = cachedDataArray.length - 1; i >= 0; i--) {
-    /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-    var element = cachedDataArray[i];
-    if (
-      element !== null &&
-      element !== undefined &&
-      element.mills <= twoDaysAgo
-    ) {
-      cachedDataArray.splice(i, 1);
-    }
-  }
+  const recentCachedDataArray = cachedDataArray.filter(
+    (e) => !!e && e.mills > twoDaysAgo
+  );
 
   // If this is delta, calculate the difference, merge and sort
-  var diff = nsArrayDiff(cachedDataArray, receivedDataArray);
+  const diff = nsArrayDiff(recentCachedDataArray, receivedDataArray);
 
   // if there's updated elements, replace those in place
-  if (diff.updates.length > 0) {
-    for (i = 0; i < diff.updates.length; i++) {
-      var e = diff.updates[i];
-      for (var j = 0; j < cachedDataArray.length; j++) {
-        if (e.mills == cachedDataArray[j].mills) {
-          cachedDataArray.splice(j, 1, e);
-        }
-      }
-    }
-  }
-
-  // merge new items in
-  return cachedDataArray.concat(diff.new).sort(function (a, b) {
-    return a.mills - b.mills;
+  const mergedDataArray = recentCachedDataArray.map((e) => {
+    const foundUpdate = diff.updates.find((u) => u.mills === e.mills);
+    if (!!foundUpdate) return foundUpdate;
+    return e;
   });
+  return mergedDataArray.concat(diff.new).sort((a, b) => a.mills - b.mills);
 }
 
+/**
+ * @template {{_id?: string; mills: number; action?: string;}} DData
+ * @param {boolean | undefined} isDelta
+ * @param {DData[]} cachedDataArray
+ * @param {DData[]} receivedDataArray
+ */
 function mergeTreatmentUpdate(isDelta, cachedDataArray, receivedDataArray) {
   // If there was no delta data, just return the original data
-  if (!receivedDataArray) {
-    return cachedDataArray || [];
-  }
+  if (!receivedDataArray) return cachedDataArray || [];
 
   // If this is not a delta update, replace all data
-  if (!isDelta) {
-    return receivedDataArray || [];
-  }
+  if (!isDelta) return receivedDataArray || [];
 
-  // check for update, change, remove
-  var l = receivedDataArray.length;
-  var m = cachedDataArray.length;
-  for (var i = 0; i < l; i++) {
-    /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-    var no = receivedDataArray[i];
+  receivedDataArray.forEach((no) => {
     if (!no.action) {
       cachedDataArray.push(no);
-      continue;
-    }
-    for (var j = 0; j < m; j++) {
-      /* eslint-disable security/detect-object-injection */ // verified false positive
-      if (no._id === cachedDataArray[j]._id) {
+    } else {
+      const index = cachedDataArray.findIndex(
+        (cached) => cached._id === no._id
+      );
+      if (index !== -1) {
         if (no.action === "remove") {
-          cachedDataArray.splice(j, 1);
-          break;
-        }
-        if (no.action === "update") {
+          cachedDataArray.splice(index, 1);
+        } else if (no.action === "update") {
           delete no.action;
-          cachedDataArray.splice(j, 1, no);
-          break;
+          cachedDataArray.splice(index, 1, no);
         }
       }
     }
-  }
+  });
 
-  // If this is delta, calculate the difference, merge and sort
-  return cachedDataArray.sort(function (a, b) {
+  return cachedDataArray.sort((a, b) => {
     return a.mills - b.mills;
   });
 }
 
+/**
+ * @typedef Received
+ * @property {boolean} delta
+ * @property {import("../types").Sgv[]} sgvs
+ * @property {import("../types").Mbg[]} mbgs
+ * @property {import("../types").Treatment[]} treatments
+ * @property {import("../types").Food[]} food
+ * @property {import("../types").Cal[]} cals
+ * @property {import("../types").DeviceStatus[]} devicestatus
+ * @property {import("../types").DBStats} dbstats
+ */
+/**
+ * @param {Received} received
+ * @param {ReturnType<import("../data/ddata")>} ddata
+ * @param {ReturnType<import("../settings")>} settings
+ * @returns
+ */
 function receiveDData(received, ddata, settings) {
   if (!received) {
     return;
@@ -141,7 +124,7 @@ function receiveDData(received, ddata, settings) {
   ddata.treatments = mergeTreatmentUpdate(
     received.delta,
     ddata.treatments,
-    received.treatments,
+    received.treatments
   );
   ddata.food = mergeTreatmentUpdate(received.delta, ddata.food, received.food);
 
@@ -153,7 +136,7 @@ function receiveDData(received, ddata, settings) {
 
   if (received.cals) {
     ddata.cals = received.cals;
-    ddata.cal = _.last(ddata.cals);
+    ddata.cal = ddata.cals.at(-1);
   }
 
   if (received.devicestatus) {
@@ -165,7 +148,7 @@ function receiveDData(received, ddata, settings) {
       ddata.devicestatus = mergeDataUpdate(
         received.delta,
         ddata.devicestatus,
-        received.devicestatus,
+        received.devicestatus
       );
     } else {
       ddata.devicestatus = received.devicestatus;
@@ -176,9 +159,5 @@ function receiveDData(received, ddata, settings) {
     ddata.dbstats = received.dbstats;
   }
 }
-
-//expose for tests
-receiveDData.mergeDataUpdate = mergeDataUpdate;
-receiveDData.mergeTreatmentUpdate = mergeTreatmentUpdate;
 
 module.exports = receiveDData;

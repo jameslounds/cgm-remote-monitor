@@ -9,7 +9,7 @@ declare global {
       ];
     }[keyof T][];
   }
-  function isNaN(value: string | number): boolean;
+  function isNaN(value?: string | number): boolean;
 }
 
 export {};

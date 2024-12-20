@@ -22,6 +22,8 @@ class DData {
     this.mbgs = [];
     /** @type {import("../types").Cal[]} */
     this.cals = [];
+    /** @type {import("../types").Cal | undefined} */
+    this.cal = undefined;
     /** @type {import("../types").Profile[]} */
     this.profiles = [];
     /** @type {import("../types").DeviceStatus[]} */
@@ -30,8 +32,8 @@ class DData {
     this.food = [];
     /** @type {import("../types").Activity[]} */
     this.activity = [];
-    /** @type {import("../types").DBStats[]} */
-    this.dbstats = [];
+    /** @type {import("../types").DBStats} */
+    this.dbstats = {};
     /** @type {number} */
     this.lastUpdated = 0;
     /** @type {boolean | undefined} */

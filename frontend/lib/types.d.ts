@@ -14,7 +14,7 @@ export type Notify = NotifyBase & {
   debug?: any;
   isAnnouncement?: boolean;
 
-  pushoverSound?: string
+  pushoverSound?: string;
 };
 export type Snooze = NotifyBase & { lengthMills: number };
 
@@ -39,7 +39,7 @@ interface Plugin {
   name: string;
   pluginType: string;
   pillFlip?: boolean;
-};
+}
 
 export type Treatment = {
   mills: number;
@@ -73,17 +73,21 @@ export interface Entry {
   mgdl?: number;
   mmol?: number;
   scaled?: number | string;
-};
+}
 
-export interface Sgv extends Entry, Record<string, any> {};
-export interface Mbg extends Entry, Record<string, any> {};
-export interface Cal extends Entry, Record<string, any> {};
-export interface Food extends Entry, Record<string, any> {};
-export interface Activity extends Entry, Record<string, any> {};
-export interface DBStats extends Entry, Record<string, any> {};
+export interface Sgv extends Entry, Record<string, any> {}
+export interface Mbg extends Entry, Record<string, any> {}
+export interface Cal extends Entry, Record<string, any> {}
+export interface Food extends Entry, Record<string, any> {}
+export interface Activity extends Entry, Record<string, any> {}
+export interface DBStats extends Record<string, any> {
+  datasize?: number;
+  indexsize?: number;
+  dataSize?: number;
+}
 
 export type RemoveKeys<T, K extends string> = {
   [P in keyof T as P extends K ? never : P]: T[P] extends object
     ? RemoveKeys<T[P], K>
     : T[P];
-}
+};
