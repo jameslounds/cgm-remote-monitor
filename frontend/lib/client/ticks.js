@@ -1,7 +1,11 @@
 "use strict";
 
-function prepare(client, opts) {
-  opts = checkOptions(client, opts);
+/**
+ * @param {import("./index")} client
+ * @param {{scaleY?: string; high?: number; targetTop?: number; targetBottom?: number; low?: number}} [maybeOpts]
+ */
+function prepare(client, maybeOpts) {
+  const opts = checkOptions(client, maybeOpts);
 
   if (opts.scaleY === "linear") {
     return prepareLinear(client);
@@ -10,29 +14,28 @@ function prepare(client, opts) {
   }
 }
 
+/**
+ * @param {import("./index")} client
+ * @param {{scaleY?: string; high?: number; targetTop?: number; targetBottom?: number; low?: number}} [opts]
+ */
 function checkOptions(client, opts) {
-  opts = opts || {};
-  opts.scaleY = opts.scaleY || client.settings.scaleY;
-  //assume any values from opts are already scaled
-  //do any other scaling here
-  opts.high =
-    opts.high ||
-    Math.round(client.utils.scaleMgdl(client.settings.thresholds.bgHigh));
-  opts.targetTop =
-    opts.targetTop ||
-    Math.round(client.utils.scaleMgdl(client.settings.thresholds.bgTargetTop));
-  opts.targetBottom =
-    opts.targetBottom ||
-    Math.round(
-      client.utils.scaleMgdl(client.settings.thresholds.bgTargetBottom),
-    );
-  opts.low =
-    opts.low ||
-    Math.round(client.utils.scaleMgdl(client.settings.thresholds.bgLow));
-
-  return opts;
+  /** @param {number} n */
+  const scale = (n) => Math.round(client.utils.scaleMgdl(n));
+  return {
+    /** @type {string})*/
+    scaleY: opts?.scaleY || client.settings.scaleY,
+    high: opts?.high || scale(client.settings.thresholds.bgHigh),
+    targetTop: opts?.targetTop || scale(client.settings.thresholds.bgTargetTop),
+    targetBottom:
+      opts?.targetBottom || scale(client.settings.thresholds.bgTargetBottom),
+    low: opts?.low || scale(client.settings.thresholds.bgLow),
+  };
 }
 
+/**
+ * @param {import("./index")} client
+ * @param {{scaleY: string; high: number; targetTop: number; targetBottom: number; low: number}} opts
+ */
 function prepareLog(client, opts) {
   if (client.settings.units === "mmol") {
     return [
@@ -57,6 +60,7 @@ function prepareLog(client, opts) {
   }
 }
 
+/** @param {import("./index")} client  */
 function prepareLinear(client) {
   if (client.settings.units === "mmol") {
     return [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0];
