@@ -1,3 +1,5 @@
+import type { TranslationKey } from "./language";
+
 type NotifyBase = {
   level: Level;
   title: string;
@@ -91,4 +93,39 @@ export type RemoveKeys<T, K extends string> = {
   [P in keyof T as P extends K ? never : P]: T[P] extends object
     ? RemoveKeys<T[P], K>
     : T[P];
+};
+
+export type PluginEventType = {
+  val: string;
+  name: TranslationKey;
+  bg?: boolean;
+  insulin?: boolean;
+  carbs?: boolean;
+  protein?: boolean;
+  fat?: boolean;
+  prebolus?: boolean;
+  duration?: boolean;
+  percent?: boolean;
+  absolute?: boolean;
+  profile?: boolean;
+  split?: boolean;
+  sensor?: boolean;
+  targets?: boolean;
+  otp?: boolean;
+  remoteCarbs?: boolean;
+  remoteBolus?: boolean;
+  remoteAbsorption?: boolean;
+  reasons?: {
+    name: TranslationKey;
+    displayName?: TranslationKey;
+    duration?: number;
+    targetTop?: number;
+    targetBottom?: number;
+  }[];
+
+  submitHook?: (
+    client: import("./client"),
+    data: ReturnType<ReturnType<import("./client/careportal")>["gatherData"]>,
+    callback: (error?: boolean) => void
+  ) => void;
 };

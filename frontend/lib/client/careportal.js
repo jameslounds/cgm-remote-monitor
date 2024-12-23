@@ -1,313 +1,308 @@
 "use strict";
 
-var _ = require("lodash");
-var parse_duration = require("parse-duration"); // https://www.npmjs.com/package/parse-duration
-var times = require("../times");
-var consts = require("../constants");
-var Storages = require("js-storage");
+const parse_duration = require("parse-duration"); // https://www.npmjs.com/package/parse-duration
+const times = require("../times");
+const consts = require("../constants");
+const Storages = require("js-storage");
 
-function init(client, $) {
-  var careportal = {};
+/** @typedef {import("../types").PluginEventType} PluginEventType */
 
-  var translate = client.translate;
-  var storage = Storages.localStorage;
-  var units = client.settings.units;
+class Careportal {
+  /**
+   * @param {ReturnType<import(".")>} client
+   * @param {JQueryStatic} $
+   */
+  constructor(client, $) {
+    this.client = client;
+    this.$ = $;
 
-  var eventTime = $("#eventTimeValue");
-  var eventDate = $("#eventDateValue");
+    /** @type {ReturnType<import("../language")>} */
+    this.language = client.language;
+    /** @type {ReturnType<import("../language")>['translate']} */
+    this.translate = this.client.translate;
+    this.storage = Storages.localStorage;
+    this.units = this.client.settings.units;
 
-  function setDateAndTime(time) {
-    time = time || client.ctx.moment();
-    eventTime.val(time.hours() + ":" + time.minutes());
-    eventDate.val(time.toISOString().split("T")[0]);
-  }
+    this.eventTime = $("#eventTimeValue");
+    this.eventDate = $("#eventDateValue");
 
-  function mergeDateAndTime() {
-    return client.utils.mergeInputTime(eventTime.val(), eventDate.val());
-  }
+    /** @type {Record<string, Omit<PluginEventType, "submitHook" | "val" | "name">>} */
+    this.inputMatrix = {};
+    /** @type {Record<string, PluginEventType['submitHook']>} */
+    this.submitHooks = {};
+    /** @type {PluginEventType[]} */
+    this.allEventTypes = [];
+    /** @type {Pick<PluginEventType, "name" | "val">[]} */
+    this.events = [];
 
-  function updateTime(ele, time) {
-    ele.attr("oldminutes", time.minutes());
-    ele.attr("oldhours", time.hours());
-  }
+    this.#refreshEventTypes();
 
-  function maybePrevent(event) {
-    if (event) {
-      event.preventDefault();
-    }
-  }
-
-  var inputMatrix = {};
-  var submitHooks = {};
-
-  function refreshEventTypes() {
-    careportal.allEventTypes = client.plugins.getAllEventTypes(client.sbx);
-
-    careportal.events = _.map(careportal.allEventTypes, function each(event) {
-      return _.pick(event, ["val", "name"]);
+    /** @type {JQuery<HTMLAnchorElement>} */
+    const treatmentDrawerToggleEl = $("a#treatmentDrawerToggle");
+    treatmentDrawerToggleEl.on("click", (event) => {
+      this.client.browserUtils.toggleDrawer(
+        "#treatmentDrawer",
+        this.prepare.bind(this)
+      );
+      this.maybePrevent(event);
     });
 
-    inputMatrix = {};
-    submitHooks = {};
+    $("#treatmentDrawer").find("button").on("click", this.save.bind(this));
 
-    _.forEach(careportal.allEventTypes, function each(event) {
-      inputMatrix[event.val] = _.pick(event, [
-        "otp",
-        "remoteCarbs",
-        "remoteAbsorption",
-        "remoteBolus",
-        "bg",
-        "insulin",
-        "carbs",
-        "protein",
-        "fat",
-        "prebolus",
-        "duration",
-        "percent",
-        "absolute",
-        "profile",
-        "split",
-        "sensor",
-        "reasons",
-        "targets",
-      ]);
-      submitHooks[event.val] = event.submitHook;
-    });
-  }
+    /** @type {JQuery<HTMLInputElement>} */
+    const eventTimeRadioInput = $("#eventTime").find("input:radio");
+    eventTimeRadioInput.on("change", this.eventTimeTypeChange.bind(this));
 
-  refreshEventTypes();
-
-  careportal.filterInputs = function filterInputs(event) {
-    var eventType = $("#eventType").val();
-
-    function displayType(enabled) {
-      if (enabled) {
-        return "";
-      } else {
-        return "none";
-      }
-    }
-
-    function resetIfHidden(visible, id) {
-      if (!visible) {
-        $(id).val("");
-      }
-    }
-
-    // validate the eventType input - should never hit this but bail if we do
-    if (!Object.prototype.hasOwnProperty.call(inputMatrix, eventType)) {
+    const updateTime = this.updateTime.bind(this);
+    const mergeDateAndTime = this.mergeDateAndTime.bind(this);
+    const maybePrevent = this.maybePrevent;
+    /** @type {JQuery.TypeEventHandler<HTMLInputElement, undefined, HTMLInputElement, HTMLInputElement, "focus">} */
+    this.dateTimeFocus = function (event) {
+      $("#othertime").prop("checked", true);
+      updateTime($(this), mergeDateAndTime());
       maybePrevent(event);
+    };
+
+    /** @type {JQuery<HTMLInputElement>} */
+    const eventInputEls = $(".eventinput");
+    eventInputEls.on("focus", this.dateTimeFocus); // intentionally unbound
+    eventInputEls.on("change", this.dateTimeChange.bind(this));
+  }
+
+  /** @param {import("moment").Moment} time */
+  #setDateAndTime(time = this.client.ctx.moment()) {
+    this.eventTime.val(`${time.hours()}:${time.minutes()}`);
+    this.eventDate.val(time.toISOString().split("T")[0]);
+  }
+
+  mergeDateAndTime() {
+    return this.client.utils.mergeInputTime(
+      this.eventTime.val(),
+      this.eventDate.val()
+    );
+  }
+
+  /** @param {JQuery<Element>} el @param {import("moment").Moment} time */
+  updateTime(el, time) {
+    el.attr("oldminutes", time.minutes());
+    el.attr("oldhours", time.hours());
+  }
+
+  /** @param {JQuery.Event} [event] */
+  maybePrevent(event) {
+    if (event) event.preventDefault();
+  }
+
+  #refreshEventTypes() {
+    this.allEventTypes =
+      this.client.plugins.getAllEventTypes(this.client.sbx) ?? [];
+
+    this.events = this.allEventTypes.map((event) => ({
+      val: event.val,
+      name: event.name,
+    }));
+
+    this.inputMatrix = Object.fromEntries(
+      this.allEventTypes.map((event) => [
+        event.val,
+        {
+          otp: event.otp,
+          remoteCarbs: event.remoteCarbs,
+          remoteAbsorption: event.remoteAbsorption,
+          remoteBolus: event.remoteBolus,
+          bg: event.bg,
+          insulin: event.insulin,
+          carbs: event.carbs,
+          protein: event.protein,
+          fat: event.fat,
+          prebolus: event.prebolus,
+          duration: event.duration,
+          percent: event.percent,
+          absolute: event.absolute,
+          profile: event.profile,
+          split: event.split,
+          sensor: event.sensor,
+          reasons: event.reasons,
+          targets: event.targets,
+        },
+      ]) ?? []
+    );
+
+    this.submitHooks = Object.fromEntries(
+      this.allEventTypes.map((event) => [event.name, event.submitHook])
+    );
+  }
+
+  /** @param {JQuery.Event} event */
+  filterInputs(event) {
+    const $ = this.$;
+    const eventType = $("#eventType").val();
+    if (typeof eventType !== "string") {
+      this.maybePrevent(event);
       return;
     }
 
-    /* eslint-disable security/detect-object-injection */ // verified false positive by check above
-    var reasons = inputMatrix[eventType]["reasons"];
-    $("#reasonLabel").css(
-      "display",
-      displayType(reasons && reasons.length > 0),
-    );
-    $("#targets").css(
-      "display",
-      displayType(inputMatrix[eventType]["targets"]),
-    );
+    /** @param {boolean} [enabled] */
+    function displayType(enabled) {
+      return enabled ? "" : "none";
+    }
 
-    $("#otpLabel").css("display", displayType(inputMatrix[eventType]["otp"]));
-    $("#remoteCarbsLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["remoteCarbs"]),
-    );
+    /** @param {boolean | undefined} visible, @param {string} id */
+    function resetIfHidden(visible, id) {
+      if (!visible) $(id).val("");
+    }
+
+    const pluginEvent = this.inputMatrix[eventType];
+    const reasons = pluginEvent["reasons"] ?? [];
+
+    $("#reasonLabel").css("display", displayType(reasons && !!reasons.length));
+    $("#targets").css("display", displayType(pluginEvent.targets));
+
+    $("#otpLabel").css("display", displayType(pluginEvent.otp));
+    $("#remoteCarbsLabel").css("display", displayType(pluginEvent.remoteCarbs));
     $("#remoteAbsorptionLabel").css(
       "display",
-      displayType(inputMatrix[eventType]["remoteAbsorption"]),
+      displayType(pluginEvent.remoteAbsorption)
     );
-    $("#remoteBolusLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["remoteBolus"]),
-    );
+    $("#remoteBolusLabel").css("display", displayType(pluginEvent.remoteBolus));
 
-    $("#bg").css("display", displayType(inputMatrix[eventType]["bg"]));
-    $("#insulinGivenLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["insulin"]),
-    );
+    $("#bg").css("display", displayType(pluginEvent.bg));
+    $("#insulinGivenLabel").css("display", displayType(pluginEvent.insulin));
 
-    $("#carbsGivenLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["carbs"]),
-    );
-    $("#proteinGivenLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["protein"]),
-    );
-    $("#fatGivenLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["fat"]),
-    );
+    $("#carbsGivenLabel").css("display", displayType(pluginEvent.carbs));
+    $("#proteinGivenLabel").css("display", displayType(pluginEvent.protein));
+    $("#fatGivenLabel").css("display", displayType(pluginEvent.fat));
 
-    $("#sensorInfo").css(
-      "display",
-      displayType(inputMatrix[eventType]["sensor"]),
-    );
+    $("#sensorInfo").css("display", displayType(pluginEvent.sensor));
 
-    $("#durationLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["duration"]),
-    );
+    $("#durationLabel").css("display", displayType(pluginEvent.duration));
     $("#percentLabel").css(
       "display",
-      displayType(
-        inputMatrix[eventType]["percent"] && $("#absolute").val() === "",
-      ),
+      displayType(pluginEvent.percent && $("#absolute").val() === "")
     );
     $("#absoluteLabel").css(
       "display",
-      displayType(
-        inputMatrix[eventType]["absolute"] && $("#percent").val() === "",
-      ),
+      displayType(pluginEvent.absolute && $("#percent").val() === "")
     );
-    $("#profileLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["profile"]),
-    );
-    $("#preBolusLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["prebolus"]),
-    );
-    $("#insulinSplitLabel").css(
-      "display",
-      displayType(inputMatrix[eventType]["split"]),
-    );
+    $("#profileLabel").css("display", displayType(pluginEvent.profile));
+    $("#preBolusLabel").css("display", displayType(pluginEvent.prebolus));
+    $("#insulinSplitLabel").css("display", displayType(pluginEvent.split));
 
-    $("#reason").empty();
-    _.each(reasons, function eachReason(reason) {
-      $("#reason").append(
-        '<option value="' +
-          reason.name +
-          '">' +
-          translate(reason.displayName || reason.name) +
-          "</option>",
+    $("#reason")
+      .empty()
+      .append(
+        ...reasons.map(
+          (r) =>
+            `<option value="${r.name}">${this.translate(r.displayName ?? r.name)}</option>`
+        )
       );
-    });
 
-    careportal.reasonable();
+    this.reasonable();
 
-    resetIfHidden(inputMatrix[eventType]["otp"], "#otp");
-    resetIfHidden(inputMatrix[eventType]["remoteCarbs"], "#remoteCarbs");
-    resetIfHidden(
-      inputMatrix[eventType]["remoteAbsorption"],
-      "#remoteAbsorption",
-    );
-    resetIfHidden(inputMatrix[eventType]["remoteBolus"], "#remoteBolus");
+    resetIfHidden(pluginEvent.otp, "#otp");
+    resetIfHidden(pluginEvent.remoteCarbs, "#remoteCarbs");
+    resetIfHidden(pluginEvent.remoteAbsorption, "#remoteAbsorption");
+    resetIfHidden(pluginEvent.remoteBolus, "#remoteBolus");
 
-    resetIfHidden(inputMatrix[eventType]["insulin"], "#insulinGiven");
-    resetIfHidden(inputMatrix[eventType]["carbs"], "#carbsGiven");
-    resetIfHidden(inputMatrix[eventType]["protein"], "#proteinGiven");
-    resetIfHidden(inputMatrix[eventType]["fat"], "#fatGiven");
-    resetIfHidden(inputMatrix[eventType]["sensor"], "#sensorCode");
-    resetIfHidden(inputMatrix[eventType]["sensor"], "#transmitterId");
-    resetIfHidden(inputMatrix[eventType]["duration"], "#duration");
-    resetIfHidden(inputMatrix[eventType]["absolute"], "#absolute");
-    resetIfHidden(inputMatrix[eventType]["percent"], "#percent");
-    resetIfHidden(inputMatrix[eventType]["prebolus"], "#preBolus");
-    resetIfHidden(inputMatrix[eventType]["split"], "#insulinSplitNow");
-    resetIfHidden(inputMatrix[eventType]["split"], "#insulinSplitExt");
-    /* eslint-enable security/detect-object-injection */ // verified false positive
+    resetIfHidden(pluginEvent.insulin, "#insulinGiven");
+    resetIfHidden(pluginEvent.carbs, "#carbsGiven");
+    resetIfHidden(pluginEvent.protein, "#proteinGiven");
+    resetIfHidden(pluginEvent.fat, "#fatGiven");
+    resetIfHidden(pluginEvent.sensor, "#sensorCode");
+    resetIfHidden(pluginEvent.sensor, "#transmitterId");
+    resetIfHidden(pluginEvent.duration, "#duration");
+    resetIfHidden(pluginEvent.absolute, "#absolute");
+    resetIfHidden(pluginEvent.percent, "#percent");
+    resetIfHidden(pluginEvent.prebolus, "#preBolus");
+    resetIfHidden(pluginEvent.split, "#insulinSplitNow");
+    resetIfHidden(pluginEvent.split, "#insulinSplitExt");
 
-    maybePrevent(event);
-  };
+    this.maybePrevent(event);
+  }
 
-  careportal.reasonable = function reasonable() {
-    var eventType = $("#eventType").val();
-    var reasons = [];
+  reasonable() {
+    const eventType = $("#eventType").val();
+    /** @type {Exclude<PluginEventType['reasons'], undefined>} */
+    let reasons = [];
 
     // validate the eventType input before getting the reasons list
-    if (Object.prototype.hasOwnProperty.call(inputMatrix, eventType)) {
-      /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-      reasons = inputMatrix[eventType]["reasons"];
+    if (eventType === "string" && eventType in this.inputMatrix) {
+      reasons = this.inputMatrix[eventType]["reasons"] ?? [];
     }
-    var selected = $("#reason").val();
+    const selected = $("#reason").val();
 
-    var reason = _.find(reasons, function matches(r) {
-      return r.name === selected;
-    });
+    const reason = reasons.find((r) => r.name === selected);
 
-    if (reason && reason.targetTop) {
-      $("#targetTop").val(reason.targetTop);
-    } else {
-      $("#targetTop").val("");
-    }
+    if (!reason) return;
 
-    if (reason && reason.targetBottom) {
-      $("#targetBottom").val(reason.targetBottom);
-    } else {
-      $("#targetBottom").val("");
-    }
+    $("#duration").val(reason.duration ?? "");
+    $("#targetTop").val(reason.targetTop ?? "");
+    $("#targetBottom").val(reason.targetBottom ?? "");
+  }
 
-    if (reason) {
-      if (reason.duration) {
-        $("#duration").val(reason.duration);
-      } else {
-        $("#duration").val("");
-      }
-    }
-  };
-
-  careportal.prepareEvents = function prepareEvents() {
-    $("#eventType").empty();
-    _.each(careportal.events, function eachEvent(event) {
-      $("#eventType").append(
-        '<option value="' +
-          event.val +
-          '">' +
-          translate(event.name) +
-          "</option>",
+  prepareEvents() {
+    const $ = this.$;
+    $("#eventType")
+      .empty()
+      .append(
+        ...this.events.map(
+          (e) => `<option value="${e.val}">${this.translate(e.name)}</option>`
+        )
       );
-    });
-    $("#eventType").change(careportal.filterInputs);
-    $("#reason").change(careportal.reasonable);
-    $("#percent").on("input", careportal.filterInputs);
-    $("#absolute").on("input", careportal.filterInputs);
-    $("#insulinSplitNow").on("input", careportal.adjustSplit);
-    $("#insulinSplitExt").on("input", careportal.adjustSplit);
-    careportal.filterInputs();
-    careportal.adjustSplit();
-  };
 
-  careportal.adjustSplit = function adjustSplit(event) {
-    if ($(this).attr("id") === "insulinSplitNow") {
-      var nowval = parseInt($("#insulinSplitNow").val()) || 0;
-      $("#insulinSplitExt").val(100 - nowval);
-      $("#insulinSplitNow").val(nowval);
-    } else {
-      var extval = parseInt($("#insulinSplitExt").val()) || 0;
-      $("#insulinSplitNow").val(100 - extval);
-      $("#insulinSplitExt").val(extval);
+    /** @param {string} id @returns {JQuery<HTMLInputElement>} */
+    function getInputById(id) {
+      return $(id);
     }
 
-    maybePrevent(event);
-  };
+    getInputById("#eventType").on("change", this.filterInputs.bind(this));
+    getInputById("#reason").on("change", this.reasonable.bind(this));
+    getInputById("#percent").on("input", this.filterInputs.bind(this));
+    getInputById("#absolute").on("input", this.filterInputs.bind(this));
 
-  careportal.resolveEventName = function resolveEventName(value) {
-    _.each(careportal.events, function eachEvent(e) {
-      if (e.val === value) {
-        value = e.name;
-      }
+    const that = this;
+    getInputById("#insulinSplitNow").on("input", function (event) {
+      const nowVal = parseInt($("#insulinSplit").val()?.toString() ?? "0");
+      $("#insulinSplitNow").val(nowVal);
+      $("#insulinSplitExt").val(100 - nowVal);
+      that.maybePrevent(event);
     });
-    return value;
-  };
-
-  careportal.prepare = function prepare() {
-    refreshEventTypes();
-
-    $("#profile").empty();
-    client.profilefunctions.listBasalProfiles().forEach(function (p) {
-      $("#profile").append('<option val="' + p + '">' + p + "</option>");
+    getInputById("#insulinSplitExt").on("input", function (event) {
+      const nowVal = parseInt($("#insulinSplit").val()?.toString() ?? "0");
+      $("#insulinSplitNow").val(100 - nowVal);
+      $("#insulinSplitExt").val(nowVal);
+      that.maybePrevent(event);
     });
-    careportal.prepareEvents();
-    $("#eventType").val("<none>");
-    $("#glucoseValue")
+  }
+
+  /** @param {PluginEventType['val']} value */
+  resolveEventName(value) {
+    return this.events.find((e) => e.val === value)?.name;
+  }
+
+  prepare() {
+    const $ = this.$;
+    this.#refreshEventTypes();
+
+    $("#profile")
+      .empty()
+      .append(
+        ...this.client.profilefunctions
+          .listBasalProfiles()
+          .map(
+            /** @param {string} p */ (p) => `<option val="${p}">${p}</option>`
+          )
+      );
+
+    this.prepareEvents();
+
+    this.$("#eventType").val("<none>");
+    this.$("#glucoseValue")
       .val("")
-      .attr("placeholder", translate("Value in") + " " + client.settings.units);
+      .attr(
+        "placeholder",
+        `${this.translate("Value in")} ${this.client.settings.units}`
+      );
     $("#meter").prop("checked", true);
 
     $("#otp").val("");
@@ -324,94 +319,122 @@ function init(client, $) {
     $("#duration").val("");
     $("#percent").val("");
     $("#absolute").val("");
-    $("#profile").val(client.profilefunctions.activeProfileToTime());
+    $("#profile").val(this.client.profilefunctions.activeProfileToTime());
     $("#preBolus").val(0);
     $("#notes").val("");
     $("#enteredBy").val(
-      client.authorized
-        ? client.authorized.sub
-        : storage.get("enteredBy") || "",
+      this.client.authorized.sub ?? this.storage.get("enteredBy") ?? ""
     );
     $("#nowtime").prop("checked", true);
-    setDateAndTime();
-  };
 
-  function gatherData() {
-    var eventType = $("#eventType").val();
-    var selectedReason = $("#reason").val();
+    this.#setDateAndTime();
+  }
 
-    var data = {
-      enteredBy: $("#enteredBy").val(),
+  gatherData() {
+    const eventType = $("#eventType").val()?.toString() ?? "";
+    const selectedReason = $("#reason").val();
+
+    const duration =
+      parse_duration($("#duration").val()?.toString() ?? "") ?? NaN;
+
+    const glucoseType = $("#treatment-form")
+      .find("input[name=glucoseType]:checked")
+      .val()
+      ?.toString();
+    /** @satisfies {{[K in keyof PluginEventType]?: string | number} & Record<string, any>}} */
+    const data = {
+      enteredBy: $("#enteredBy").val()?.toString(),
       eventType: eventType,
-      otp: $("#otp").val(),
-      remoteCarbs: $("#remoteCarbs").val(),
-      remoteAbsorption: $("#remoteAbsorption").val(),
-      remoteBolus: $("#remoteBolus").val(),
-      glucose: $("#glucoseValue").val().replace(",", "."),
+      otp: $("#otp").val()?.toString(),
+      remoteCarbs: $("#remoteCarbs").val()?.toString(),
+      remoteAbsorption: $("#remoteAbsorption").val()?.toString(),
+      remoteBolus: $("#remoteBolus").val()?.toString(),
+      glucose: $("#glucoseValue").val()?.toString().replace(",", "."),
       reason: selectedReason,
-      targetTop: $("#targetTop").val().replace(",", "."),
-      targetBottom: $("#targetBottom").val().replace(",", "."),
-      glucoseType: $("#treatment-form")
-        .find("input[name=glucoseType]:checked")
-        .val(),
-      carbs: $("#carbsGiven").val(),
-      protein: $("#proteinGiven").val(),
-      fat: $("#fatGiven").val(),
+      /** @type {"" | number | undefined} */
+      targetTop: parseFloat(
+        $("#targetTop").val()?.toString().replace(",", ".") ?? ""
+      ),
+      /** @type {"" | number | undefined} */
+      targetBottom: parseFloat(
+        $("#targetBottom").val()?.toString().replace(",", ".") ?? ""
+      ),
+      /** @type {"Sensor" | "Finger" | undefined} */
+      glucoseType:
+        ((glucoseType === "Sensor" || glucoseType === "Finger") &&
+          glucoseType) ||
+        undefined,
+      carbs: $("#carbsGiven").val()?.toString(),
+      protein: $("#proteinGiven").val()?.toString(),
+      fat: $("#fatGiven").val()?.toString(),
       sensorCode: $("#sensorCode").val(),
       transmitterId: $("#transmitterId").val(),
-      insulin: $("#insulinGiven").val(),
+      insulin: parseFloat($("#insulinGiven").val()?.toString() ?? ""),
+      /** @type {string | number | undefined} */
       duration:
-        times.msecs(parse_duration($("#duration").val())).mins < 1
-          ? $("#duration").val()
-          : times.msecs(parse_duration($("#duration").val())).mins,
-      percent: $("#percent").val(),
-      profile: $("#profile").val(),
-      preBolus: $("#preBolus").val(),
+        times.msecs(duration).mins < 1
+          ? $("#duration").val()?.toString()
+          : times.msecs(duration).mins,
+      percent: $("#percent").val()?.toString(),
+      profile: $("#profile").val()?.toString(),
+      /** @type {number | undefined} */
+      preBolus: parseInt($("#preBolus").val()?.toString() ?? ""),
       notes: $("#notes").val(),
-      units: client.settings.units,
-    };
+      units: this.client.settings.units,
 
-    data.preBolus = parseInt(data.preBolus);
+      /** @type {string | undefined} */
+      reasonDisplay: undefined,
+      /** @type {number | undefined} */
+      absolute: undefined,
+      /** @type {Date | undefined} */
+      eventTime: undefined,
+      /** @type {string | undefined} */
+      created_at: undefined,
+      /** @type {number | undefined} */
+      splitNow: undefined,
+      /** @type {number | undefined} */
+      splitExt: undefined,
+    };
 
     if (isNaN(data.preBolus)) {
       delete data.preBolus;
     }
 
-    var reasons = [];
+    /** @type {Exclude<PluginEventType['reasons'], undefined>} */
+    let reasons = [];
 
     // validate the eventType input before getting the reasons list
-    if (Object.prototype.hasOwnProperty.call(inputMatrix, eventType)) {
-      /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-      reasons = inputMatrix[eventType]["reasons"];
-    }
-    var reason = _.find(reasons, function matches(r) {
-      return r.name === selectedReason;
-    });
-
-    if (reason) {
-      data.reasonDisplay = reason.displayName;
+    if (eventType in this.inputMatrix) {
+      reasons = this.inputMatrix[eventType].reasons ?? [];
     }
 
-    if (units == "mmol") {
-      data.targetTop = data.targetTop * consts.MMOL_TO_MGDL;
-      data.targetBottom = data.targetBottom * consts.MMOL_TO_MGDL;
+    const reason = reasons.find((r) => r.name === selectedReason);
+    if (reason) data.reasonDisplay = reason.displayName;
+
+    if (this.units === "mmol") {
+      if (data.targetTop) {
+        data.targetTop = data.targetTop * consts.MMOL_TO_MGDL;
+      }
+      if (data.targetBottom) {
+        data.targetBottom = data.targetBottom * consts.MMOL_TO_MGDL;
+      }
     }
 
     //special handling for absolute to support temp to 0
-    var absolute = $("#absolute").val();
-    if ("" !== absolute && !isNaN(absolute)) {
+    const absolute = $("#absolute").val()?.toString();
+    if (!isNaN(absolute)) {
       data.absolute = Number(absolute);
     }
 
     if ($("#othertime").is(":checked")) {
-      data.eventTime = mergeDateAndTime().toDate();
+      data.eventTime = this.mergeDateAndTime().toDate();
     }
 
     data.created_at = data.eventTime
       ? data.eventTime.toISOString()
       : new Date().toISOString();
 
-    if (!inputMatrix[data.eventType].profile) {
+    if (!this.inputMatrix[data.eventType].profile) {
       delete data.profile;
     }
 
@@ -427,78 +450,73 @@ function init(client, $) {
     }
 
     if (data.eventType.indexOf("Combo Bolus") > -1) {
-      data.splitNow = parseInt($("#insulinSplitNow").val()) || 0;
-      data.splitExt = parseInt($("#insulinSplitExt").val()) || 0;
+      data.splitNow =
+        parseInt($("#insulinSplitNow").val()?.toString() ?? "") || 0;
+      data.splitExt =
+        parseInt($("#insulinSplitExt").val()?.toString() ?? "") || 0;
     }
 
-    let d = {};
-    Object.keys(data).forEach(function (key) {
-      /* eslint-disable security/detect-object-injection */ // verified false positive
-      if (data[key] !== "" && data[key] !== null) {
-        d[key] = data[key];
-      }
-      /* eslint-enable security/detect-object-injection */ // verified false positive
-    });
-
-    return d;
+    return /** @type {{[K in keyof typeof data]: Exclude<(typeof data)[K], null | "">}} */ (
+      Object.fromEntries(
+        Object.entries(data).filter(([_, v]) => v !== "" && v !== null)
+      )
+    );
   }
 
-  careportal.save = function save(event) {
-    var data = gatherData();
-    confirmPost(data);
-    maybePrevent(event);
-  };
-
-  function validateData(data) {
-    let allOk = true;
-    let messages = [];
-
+  /**
+   * @param {ReturnType<Careportal['gatherData']>} data
+   */
+  validateData(data) {
     console.log("Validating careportal entry: ", data.eventType);
 
-    if (data.duration !== 0 && data.eventType == "Temporary Target") {
-      if (
-        isNaN(data.targetTop) ||
-        isNaN(data.targetBottom) ||
-        !data.targetBottom ||
-        !data.targetTop
-      ) {
-        console.log("Bottom or Top target missing");
-        allOk = false;
-        messages.push(
+    if (data.duration === 0 || data.eventType !== "Temporary Target")
+      return { allOk: true, messages: [] };
+
+    if (
+      isNaN(data.targetTop) ||
+      isNaN(data.targetBottom) ||
+      !data.targetBottom ||
+      !data.targetTop
+    ) {
+      console.log("Bottom or Top target missing");
+      return {
+        allOk: false,
+        messages: [
           "Please enter a valid value for both top and bottom target to save a Temporary Target",
-        );
-      } else {
-        let targetTop = parseInt(data.targetTop);
-        let targetBottom = parseInt(data.targetBottom);
+        ],
+      };
+    }
 
-        let minTarget = 4 * consts.MMOL_TO_MGDL;
-        let maxTarget = 18 * consts.MMOL_TO_MGDL;
+    const targetTop =
+      this.units === "mmol"
+        ? Math.round((data.targetTop / consts.MMOL_TO_MGDL) * 10) / 10
+        : data.targetTop;
+    const targetBottom =
+      this.units === "mmol"
+        ? Math.round((data.targetBottom / consts.MMOL_TO_MGDL) * 10) / 10
+        : data.targetBottom;
 
-        if (units == "mmol") {
-          targetTop = Math.round((targetTop / consts.MMOL_TO_MGDL) * 10) / 10;
-          targetBottom =
-            Math.round((targetBottom / consts.MMOL_TO_MGDL) * 10) / 10;
-          minTarget = Math.round((minTarget / consts.MMOL_TO_MGDL) * 10) / 10;
-          maxTarget = Math.round((maxTarget / consts.MMOL_TO_MGDL) * 10) / 10;
-        }
+    const minTarget = this.units === "mmol" ? 4 : 4 * consts.MMOL_TO_MGDL;
+    const maxTarget = this.units === "mmol" ? 18 : 18 * consts.MMOL_TO_MGDL;
 
-        if (targetTop > maxTarget) {
-          allOk = false;
-          messages.push("Temporary target high is too high");
-        }
+    let allOk = true;
+    const messages = [];
 
-        if (targetBottom < minTarget) {
-          allOk = false;
-          messages.push("Temporary target low is too low");
-        }
+    if (targetTop > maxTarget) {
+      allOk = false;
+      messages.push("Temporary target high is too high");
+    }
 
-        if (targetTop < targetBottom || targetBottom > targetTop) {
-          allOk = false;
-          messages.push(
-            "The low target must be lower than the high target and high target must be higher than the low target.",
-          );
-        }
-      }
+    if (targetBottom < minTarget) {
+      allOk = false;
+      messages.push("Temporary target low is too low");
+    }
+
+    if (targetTop < targetBottom || targetBottom > targetTop) {
+      allOk = false;
+      messages.push(
+        "The low target must be lower than the high target and high target must be higher than the low target."
+      );
     }
 
     // TODO: add check for remote (Bolus, Carbs, Absorption)
@@ -509,18 +527,20 @@ function init(client, $) {
     };
   }
 
-  function buildConfirmText(data) {
-    var text = [
+  /** @param {ReturnType<Careportal['gatherData']>} data */
+  buildConfirmText(data) {
+    const translate = this.translate;
+    const eventName = this.resolveEventName(data.eventType);
+    const text = [
       translate("Please verify that the data entered is correct") + ": ",
       translate("Event Type") +
         ": " +
-        translate(careportal.resolveEventName(data.eventType)),
+        ((eventName && translate(eventName)) ?? ""),
     ];
 
+    /** @param {boolean} check @param {string} valueText */
     function pushIf(check, valueText) {
-      if (check) {
-        text.push(valueText);
-      }
+      if (check) text.push(valueText);
     }
 
     if (data.duration === 0 && data.eventType === "Temporary Target") {
@@ -528,48 +548,58 @@ function init(client, $) {
     }
 
     pushIf(
-      data.remoteCarbs,
-      translate("Remote Carbs") + ": " + data.remoteCarbs,
+      !!data.remoteCarbs,
+      translate("Remote Carbs") + ": " + data.remoteCarbs
     );
     pushIf(
-      data.remoteAbsorption,
-      translate("Remote Absorption") + ": " + data.remoteAbsorption,
+      !!data.remoteAbsorption,
+      translate("Remote Absorption") + ": " + data.remoteAbsorption
     );
     pushIf(
-      data.remoteBolus,
-      translate("Remote Bolus") + ": " + data.remoteBolus,
+      !!data.remoteBolus,
+      translate("Remote Bolus") + ": " + data.remoteBolus
     );
-    pushIf(data.otp, translate("One Time Pascode") + ": " + data.otp);
+    pushIf(!!data.otp, translate("One Time Password") + ": " + data.otp);
 
-    pushIf(data.glucose, translate("Blood Glucose") + ": " + data.glucose);
+    pushIf(!!data.glucose, translate("Blood Glucose") + ": " + data.glucose);
     pushIf(
-      data.glucose,
-      translate("Measurement Method") + ": " + translate(data.glucoseType),
+      !!data.glucose,
+      translate("Measurement Method") +
+        ": " +
+        translate(data.glucoseType ?? "None")
     );
 
-    pushIf(data.reason, translate("Reason") + ": " + data.reason);
+    pushIf(!!data.reason, translate("Reason") + ": " + data.reason);
 
-    var targetTop = data.targetTop;
-    var targetBottom = data.targetBottom;
+    const targetTop = data.targetTop
+      ? this.units === "mmol"
+        ? Math.round((data.targetTop / consts.MMOL_TO_MGDL) * 10) / 10
+        : data.targetTop
+      : NaN;
+    const targetBottom = data.targetBottom
+      ? this.units === "mmol"
+        ? Math.round((data.targetBottom / consts.MMOL_TO_MGDL) * 10) / 10
+        : data.targetBottom
+      : NaN;
 
-    if (units == "mmol") {
-      targetTop = Math.round((data.targetTop / consts.MMOL_TO_MGDL) * 10) / 10;
-      targetBottom =
-        Math.round((data.targetBottom / consts.MMOL_TO_MGDL) * 10) / 10;
-    }
-
-    pushIf(data.targetTop, translate("Target Top") + ": " + targetTop);
-    pushIf(data.targetBottom, translate("Target Bottom") + ": " + targetBottom);
-
-    pushIf(data.carbs, translate("Carbs Given") + ": " + data.carbs);
-    pushIf(data.protein, translate("Protein Given") + ": " + data.protein);
-    pushIf(data.fat, translate("Fat Given") + ": " + data.fat);
-    pushIf(data.sensorCode, translate("Sensor Code") + ": " + data.sensorCode);
+    pushIf(!!data.targetTop, translate("Target Top") + ": " + targetTop);
     pushIf(
-      data.transmitterId,
-      translate("Transmitter ID") + ": " + data.transmitterId,
+      !!data.targetBottom,
+      translate("Target Bottom") + ": " + targetBottom
     );
-    pushIf(data.insulin, translate("Insulin Given") + ": " + data.insulin);
+
+    pushIf(!!data.carbs, translate("Carbs Given") + ": " + data.carbs);
+    pushIf(!!data.protein, translate("Protein Given") + ": " + data.protein);
+    pushIf(!!data.fat, translate("Fat Given") + ": " + data.fat);
+    pushIf(
+      !!data.sensorCode,
+      translate("Sensor Code") + ": " + data.sensorCode
+    );
+    pushIf(
+      !!data.transmitterId,
+      translate("Transmitter ID") + ": " + data.transmitterId
+    );
+    pushIf(!!data.insulin, translate("Insulin Given") + ": " + data.insulin.toFixed(2));
     pushIf(
       data.eventType === "Combo Bolus",
       translate("Combo Bolus") +
@@ -577,148 +607,124 @@ function init(client, $) {
         data.splitNow +
         "% : " +
         data.splitExt +
-        "%",
+        "%"
     );
     pushIf(
-      data.duration,
-      translate("Duration") + ": " + data.duration + " " + translate("mins"),
+      !!data.duration,
+      translate("Duration") + ": " + data.duration + " " + translate("mins")
     );
-    pushIf(data.percent, translate("Percent") + ": " + data.percent);
+    pushIf(!!data.percent, translate("Percent") + ": " + data.percent);
     pushIf("absolute" in data, translate("Basal value") + ": " + data.absolute);
-    pushIf(data.profile, translate("Profile") + ": " + data.profile);
+    pushIf(!!data.profile, translate("Profile") + ": " + data.profile);
     pushIf(
-      data.preBolus,
-      translate("Carb Time") + ": " + data.preBolus + " " + translate("mins"),
+      !!data.preBolus,
+      translate("Carb Time") + ": " + data.preBolus + " " + translate("mins")
     );
-    pushIf(data.notes, translate("Notes") + ": " + data.notes);
-    pushIf(data.enteredBy, translate("Entered By") + ": " + data.enteredBy);
+    pushIf(!!data.notes, translate("Notes") + ": " + data.notes);
+    pushIf(!!data.enteredBy, translate("Entered By") + ": " + data.enteredBy);
 
     text.push(
       translate("Event Time") +
         ": " +
         (data.eventTime
           ? data.eventTime.toLocaleString()
-          : new Date().toLocaleString()),
+          : new Date().toLocaleString())
     );
     return text.join("\n");
   }
 
-  function confirmPost(data) {
-    const validation = validateData(data);
+  /** @param {ReturnType<Careportal['gatherData']>} data */
+  confirmPost(data) {
+    const validation = this.validateData(data);
 
     if (!validation.allOk) {
-      let messages = "";
-
-      validation.messages.forEach(function (m) {
-        messages += translate(m) + "\n";
-      });
+      const messages = validation.messages.reduce((acc, m) => {
+        return acc + m + "\n";
+      }, "");
 
       window.alert(messages);
     } else {
-      if (window.confirm(buildConfirmText(data))) {
-        var submitHook = submitHooks[data.eventType];
+      if (window.confirm(this.buildConfirmText(data))) {
+        const submitHook = this.submitHooks[data.eventType];
         if (submitHook) {
-          submitHook(client, data, function (error) {
+          submitHook(this.client, data, (error) => {
             if (error) {
               console.log("submit error = ", error);
-              alert(translate("Error") + ": " + error);
+              alert(this.translate("Error") + ": " + error);
             } else {
-              client.browserUtils.closeDrawer("#treatmentDrawer");
+              this.client.browserUtils.closeDrawer("#treatmentDrawer");
             }
           });
         } else {
-          postTreatment(data);
+          this.postTreatment(data);
         }
       }
     }
   }
 
-  function postTreatment(data) {
+  /** @param {ReturnType<Careportal['gatherData']> & {insulin?: number; enteredinsulin?: number; relative?: number}} data */
+  postTreatment(data) {
     if (data.eventType === "Combo Bolus") {
       data.enteredinsulin = data.insulin;
-      data.insulin = (data.enteredinsulin * data.splitNow) / 100;
+      data.insulin = (data.enteredinsulin * (data.splitNow ?? NaN)) / 100;
       data.relative =
-        ((data.enteredinsulin * data.splitExt) / 100 / data.duration) * 60;
+        ((data.enteredinsulin * (data.splitExt ?? NaN)) /
+          100 /
+          parseFloat(data.duration?.toString() ?? "")) *
+        60;
     }
 
     $.ajax({
       method: "POST",
       url: "/api/v1/treatments/",
-      headers: client.headers(),
-      data: data,
+      headers: this.client.headers(),
+      data,
     })
-      .done(function treatmentSaved(response) {
+      .done((response) => {
         console.info("treatment saved", response);
       })
-      .fail(function treatmentSaveFail(response) {
+      .fail((response) => {
         console.info("treatment saved", response);
         alert(
-          translate("Entering record failed") +
+          this.translate("Entering record failed") +
             ". " +
-            translate("Status") +
+            this.translate("Status") +
             ": " +
-            response.status,
+            response.status
         );
       });
 
-    storage.set("enteredBy", data.enteredBy);
+    this.storage.set("enteredBy", data.enteredBy ?? null);
 
-    client.browserUtils.closeDrawer("#treatmentDrawer");
+    this.client.browserUtils.closeDrawer("#treatmentDrawer");
   }
 
-  careportal.dateTimeFocus = function dateTimeFocus(event) {
-    $("#othertime").prop("checked", true);
-    updateTime($(this), mergeDateAndTime());
-    maybePrevent(event);
-  };
-
-  careportal.dateTimeChange = function dateTimeChange(event) {
-    $("#othertime").prop("checked", true);
-
-    // Can't decipher why the following logic was in place
-    // and it's now bugging out and resetting any date set manually
-    // so I'm disabling this
-    /*
-    var ele = $(this);
-    var merged = mergeDateAndTime();
-
-    if (ele.attr('oldminutes') === '59' && merged.minutes() === 0) {
-      merged.add(1, 'hours');
-    }
-    if (ele.attr('oldminutes') === '0' && merged.minutes() === 59) {
-      merged.add(-1, 'hours');
-    }
-
-    setDateAndTime(merged);
-    updateTime(ele, merged);
-    */
-
-    maybePrevent(event);
-  };
-
-  careportal.eventTimeTypeChange = function eventTimeTypeChange(event) {
+  /** @param {JQuery.Event} event  */
+  eventTimeTypeChange(event) {
     if ($("#othertime").is(":checked")) {
-      eventTime.focus();
+      this.eventTime.trigger("focus");
     } else {
-      setDateAndTime();
+      this.#setDateAndTime();
     }
-    maybePrevent(event);
-  };
+    this.maybePrevent(event);
+  }
 
-  careportal.toggleDrawer = function toggleDrawer(event) {
-    client.browserUtils.toggleDrawer("#treatmentDrawer", careportal.prepare);
-    maybePrevent(event);
-  };
+  /** @param {JQuery.Event} event */
+  dateTimeChange(event) {
+    $("#othertime").prop("checked", true);
 
-  $("#treatmentDrawerToggle").click(careportal.toggleDrawer);
-  $("#treatmentDrawer").find("button").click(careportal.save);
-  $("#eventTime").find("input:radio").change(careportal.eventTimeTypeChange);
+    // body of this function removed in c1de8a5d8
 
-  $(".eventinput")
-    .focus(careportal.dateTimeFocus)
-    .change(careportal.dateTimeChange);
+    this.maybePrevent(event);
+  }
 
-  return careportal;
+  /** @param {JQuery.Event} event */
+  save(event) {
+    const data = this.gatherData();
+    this.confirmPost(data);
+    this.maybePrevent(event);
+  }
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof Careportal>} args */
+module.exports = (...args) => new Careportal(...args);
