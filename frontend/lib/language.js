@@ -86,6 +86,8 @@ class Language {
     this.translations =
       /** @type {import("../translations/en/en.json")} */ ({});
 
+    this.languages = Language.languages;
+
     if (fs) {
       this.loadLocalization(fs);
     }
