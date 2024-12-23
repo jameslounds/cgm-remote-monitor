@@ -58,6 +58,8 @@
     "@types/moment": "^2.11.29",
     "@types/moment-timezone": "^0.5.13",
     "assert": "^2.1.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-security": "^3.0.1",
     "fast-password-entropy": "^1.1.1",
     "happy-dom": "^15.11.7",
     "jsonwebtoken": "^9.0.2",
