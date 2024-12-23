@@ -108,7 +108,7 @@ class Chart {
     this.d3.select("tick").style("z-index", "10000");
 
     this.brush = this.d3
-      .brush()
+      .brushX()
       .on("start", this.#brushStarted.bind(this))
       .on("brush", () => {
         if (Date.now() - loadTime > 2000) this.client.loadRetroIfNeeded();
@@ -930,7 +930,6 @@ class Chart {
     this.theBrush.call(this.brush.move, currentBrushExtent.map(this.xScale2));
 
     this.#scrolling = false;
-
   }
 
   /** @param {number} nowDate */
@@ -959,7 +958,10 @@ class Chart {
     const points = pointTypes.reduce(
       /** @param {import("../plugins/pluginbase").ForecastPoint[]} points @param {string} type */
       (points, type) => {
-        return [...points, ...this.client.sbx.pluginBase.forecastPoints[type]];
+        return [
+          ...points,
+          ...(this.client.sbx.pluginBase.forecastPoints[type] ?? []),
+        ];
       },
       []
     );
