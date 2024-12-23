@@ -40,6 +40,15 @@ function headless(binding = {}) {
 
     console.log("HTML set", Date.now() - t);
 
+    if (
+      options.addChartContainer &&
+      !document.querySelector("#chartContainer")
+    ) {
+      const chartContainer = document.createElement("div");
+      chartContainer.id = "chartContainer";
+      document.appendChild(chartContainer);
+    }
+
     const $ = require("jquery"); // must be done *after* instantiating `new Window`
     $.localStorage = require(localStorage);
 

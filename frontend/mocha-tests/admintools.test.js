@@ -78,10 +78,11 @@ describe("admintools", function () {
         benvRequires: [path.resolve("./bundle/admin/admininit.js")],
         waitForLoad: true,
         htmlFile: path.resolve("./bundle/admin/index.html"),
+        addChartContainer: true,
       },
       () => {
         done();
-      },
+      }
     );
   });
 

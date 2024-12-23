@@ -96,6 +96,7 @@ describe("Profile editor", function () {
       mockProfileEditor: true,
       mockAjax: someData,
       benvRequires: [path.resolve("./bundle/profile/profileinit.js")],
+      addChartContainer: true
     };
     headless.setup(opts, (args) => {
       ({ window, document } = args);
