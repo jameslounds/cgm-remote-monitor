@@ -51,7 +51,7 @@ client.crashed = function crashed() {
 client.init = function init(callback) {
   client.browserUtils = require("./browser-utils")($);
 
-  var token = client.browserUtils.queryParms().token;
+  var token = client.browserUtils.queryParams().token;
   var secret =
     client.hashauth.apisecrethash || Storages.localStorage.get("apisecrethash");
 
@@ -901,7 +901,7 @@ client.load = function load(serverSettings, callback) {
 
   function playAlarm(audio) {
     // ?mute=true disables alarms to testers.
-    if (client.browserUtils.queryParms().mute !== "true") {
+    if (client.browserUtils.queryParams().mute !== "true") {
       audio.play();
     } else {
       client.browserUtils.showNotification("Alarm was muted (?mute=true)");
@@ -966,7 +966,7 @@ client.load = function load(serverSettings, callback) {
 
   function refreshAuthIfNeeded() {
     var clientToken = client.authorized ? client.authorized.token : null;
-    var token = client.browserUtils.queryParms().token || clientToken;
+    var token = client.browserUtils.queryParams().token || clientToken;
     if (token && client.authorized) {
       var renewTime =
         client.authorized.exp * 1000 -

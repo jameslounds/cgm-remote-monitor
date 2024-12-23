@@ -1,173 +1,166 @@
 "use strict";
 
-var SMALL_SCREEN = 500;
+const SMALL_SCREEN = 500;
 
-function init($) {
-  var lastOpenedDrawer = null;
+class BrowserUtils {
+  /** @param {JQueryStatic} $ */
+  constructor($) {
+    this.$ = $;
 
-  // Tooltips can remain in the way on touch screens.
-  if (!isTouch()) {
-    $(".tip").tooltip();
-  } else {
-    // Drawer info tips should be displayed on touchscreens.
-    $("#drawer").find(".tip").tooltip();
-  }
-  $.fn.tooltip.defaults = {
-    fade: true,
-    gravity: "n",
-    opacity: 0.75,
-  };
+    /** @type {string | null} */
+    this.lastOpenedDrawer = null;
 
-  $("#drawerToggle").click(function (event) {
-    toggleDrawer("#drawer");
-    event.preventDefault();
-  });
-
-  $("#notification").click(function (event) {
-    closeNotification();
-    event.preventDefault();
-  });
-
-  $(".navigation a").click(function navigationClick() {
-    closeDrawer("#drawer");
-  });
-
-  function reload() {
-    //strip '#' so form submission does not fail
-    var url = window.location.href;
-    url = url.replace(/#$/, "");
-    window.location.href = url;
+    this.#initTooltips();
+    this.#addClickListeners();
   }
 
-  function queryParms() {
-    var params = {};
-    if (typeof location !== "undefined" && location.search) {
-      location.search
-        .substr(1)
-        .split("&")
-        .forEach(function (item) {
-          // eslint-disable-next-line no-useless-escape
-          params[item.split("=")[0]] = item
-            .split("=")[1]
-            .replace(/[_\+]/g, " ");
-        });
+  #initTooltips() {
+    // Tooltips can remain in the way on touch screens.
+    if (!this.#isTouch()) {
+      this.$(".tip").tooltip();
+    } else {
+      // Drawer info tips should be displayed on touchscreens.
+      this.$("#drawer").find(".tip").tooltip();
     }
-    return params;
+
+    // @ts-expect-error npm module `jquery.tooltips` does not have any types
+    this.$.fn.tooltip.defaults = {
+      fade: true,
+      gravity: "n",
+      opacity: 0.75,
+    };
   }
 
-  function isTouch() {
+  #isTouch() {
     try {
       document.createEvent("TouchEvent");
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
 
-  function closeLastOpenedDrawer(callback) {
-    if (lastOpenedDrawer) {
-      closeDrawer(lastOpenedDrawer, callback);
-    } else if (callback) {
-      callback();
-    }
-  }
+  #addClickListeners() {
+    this.$("#drawerToggle").on("click", (event) => {
+      this.toggleDrawer("#drawer");
+      event.preventDefault();
+    });
 
-  function closeDrawer(id, callback) {
-    lastOpenedDrawer = null;
-    $("html, body").css({ scrollTop: 0 });
-    $(id).css({ display: "none", right: "-300px" });
-    if (callback) {
-      callback();
-    }
-  }
+    $("#notification").on("click", (event) => {
+      this.closeNotification();
+      event.preventDefault();
+    });
 
-  function openDrawer(id, prepare) {
-    function closeOpenDraw(callback) {
-      if (lastOpenedDrawer) {
-        closeDrawer(lastOpenedDrawer, callback);
-      } else {
-        callback();
-      }
-    }
-
-    closeOpenDraw(function () {
-      lastOpenedDrawer = id;
-      if (prepare) {
-        prepare();
-      }
-
-      var style = { display: "block", right: "0" };
-
-      var windowWidth = $(window).width();
-      var windowHeight = $(window).height();
-      //var chartTop = $('#chartContainer').offset().top - 45;
-      //var chartHeight = windowHeight - chartTop - 45;
-      if (
-        windowWidth < SMALL_SCREEN ||
-        (windowHeight < SMALL_SCREEN && windowWidth < 800)
-      ) {
-        style.top = "0px";
-        style.height = windowHeight + "px";
-        style.width = windowWidth + "px";
-        //TODO: maybe detect iOS and do this, doesn't work good with android
-        //if (chartHeight > windowHeight * 0.4) {
-        //  style.top = chartTop + 'px';
-        //  style.height = chartHeight + 'px';
-        //}
-      } else {
-        style.top = "0px";
-        style.height = windowHeight - 45 + "px";
-        style.width = "350px";
-      }
-
-      $(id).css(style);
+    $(".navigation a").on("click", () => {
+      this.closeDrawer("#drawer");
     });
   }
 
-  function toggleDrawer(id, openPrepare, closeCallback) {
-    if (lastOpenedDrawer === id) {
-      closeDrawer(id, closeCallback);
+  reload() {
+    // strip '#' so form submission does not fail
+    window.location.href = window.location.href.replace(/#$/, "");
+  }
+
+  queryParams() {
+    if (typeof location === undefined || !location.search) return {};
+
+    return Object.fromEntries(
+      location.search
+        .substring(1)
+        .split("&")
+        .map((kvpair) => {
+          const [k, v] = kvpair.split("=");
+          return [k, v.replace(/[_\^]/g, " ")];
+        })
+    );
+  }
+
+  /**
+   * @param {string} selector
+   * @param {() => void} [openPrepare] - a function to be called after closing any
+   * already opened drawers and before opening the drawer matching `selector`.
+   * Typically used to add placeholder/default value for content in the drawer
+   */
+  toggleDrawer(selector, openPrepare) {
+    if (this.lastOpenedDrawer === selector) {
+      this.closeDrawer(selector);
     } else {
-      openDrawer(id, openPrepare);
+      this.openDrawer(selector, openPrepare);
     }
   }
 
-  function closeNotification() {
-    var notify = $("#notification");
-    notify.hide();
-    notify.find("span").html("");
+  /**
+   * @param {string} selector
+   * @param {() => void} [prepare] - a function to be called after closing any
+   * already opened drawers and before opening the drawer matching `selector`.
+   * Typically used to add placeholder/default value for content in the drawer
+   */
+  openDrawer(selector, prepare) {
+    this.closeLastOpenedDrawer();
+
+    this.lastOpenedDrawer = selector;
+    if (prepare) prepare();
+
+    const windowWidth = this.$(window).width() ?? NaN;
+    const windowHeight = this.$(window).height() ?? NaN;
+
+    const isSmallScreen =
+      windowWidth < SMALL_SCREEN ||
+      (windowHeight < SMALL_SCREEN && windowWidth < 800);
+
+    this.$(selector).css({
+      display: "block",
+      right: "0",
+      top: "0px",
+      height: `${isSmallScreen ? windowHeight : windowHeight - 45}px`,
+      width: `${isSmallScreen ? windowWidth : 250}px`,
+    });
   }
 
-  function showNotification(note, type) {
-    var notify = $("#notification");
+  /** @param {string} selector */
+  closeDrawer(selector) {
+    this.lastOpenedDrawer = null;
+
+    $("html, body").css({ scrollTop: 0 });
+    $(selector).css({ display: "none", right: "-300px" });
+  }
+
+  closeLastOpenedDrawer() {
+    if (this.lastOpenedDrawer) {
+      this.closeDrawer(this.lastOpenedDrawer);
+    }
+  }
+
+  closeNotification() {
+    this.$("#notification").hide().find("span").html("");
+  }
+
+  /** @param {string} note @param {string} type */
+  showNotifications(note, type) {
+    const notify = this.$("#notification");
+
+    const windowWidth = this.$(window).width() ?? NaN;
+    const notifyWidth = notify.width() ?? NaN;
+
+    const left = (windowWidth - notifyWidth) / 2;
+
     notify.hide();
 
     // Notification types: 'info', 'warn', 'success', 'urgent'.
     // - default: 'urgent'
-    notify.removeClass("info warn urgent");
-    notify.addClass(type ? type : "urgent");
-
+    notify
+      .removeClass(["info", "warn", "urgent"])
+      .addClass(type ? type : "urgent");
+    notify.css({ left: `${left}px` });
     notify.find("span").html(note);
-    var windowWidth = $(window).width();
-    var left = (windowWidth - notify.width()) / 2;
-    notify.css("left", left + "px");
+
     notify.show();
   }
 
-  function getLastOpenedDrawer() {
-    return lastOpenedDrawer;
+  getLastOpenedDrawer() {
+    return this.lastOpenedDrawer;
   }
-
-  return {
-    reload: reload,
-    queryParms: queryParms,
-    closeDrawer: closeDrawer,
-    closeLastOpenedDrawer: closeLastOpenedDrawer,
-    toggleDrawer: toggleDrawer,
-    closeNotification: closeNotification,
-    showNotification: showNotification,
-    getLastOpenedDrawer: getLastOpenedDrawer,
-  };
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof BrowserUtils>} args */
+module.exports = (...args) => new BrowserUtils(...args);
