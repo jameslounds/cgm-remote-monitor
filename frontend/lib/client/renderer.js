@@ -51,11 +51,11 @@ function init(client, d3) {
     return radius / focusRangeAdjustment();
   };
 
-  function tooltipLeft() {
+  function tooltipLeft(event) {
     var windowWidth = $(client.tooltip.node()).parent().parent().width();
     var left =
-      d3.event.pageX + TOOLTIP_WIDTH < windowWidth
-        ? d3.event.pageX
+      event.pageX + TOOLTIP_WIDTH < windowWidth
+        ? event.pageX
         : windowWidth - TOOLTIP_WIDTH - 10;
     return left + "px";
   }
@@ -147,7 +147,7 @@ function init(client, d3) {
       return sel;
     }
 
-    function focusCircleTooltip(d) {
+    function focusCircleTooltip(event, d) {
       if (d.type !== "sgv" && d.type !== "mbg" && d.type !== "forecast") {
         return;
       }
@@ -201,8 +201,8 @@ function init(client, d3) {
             ":</strong> " +
             client.formatTime(getOrAddDate(d)),
         )
-        .style("left", tooltipLeft())
-        .style("top", d3.event.pageY + 15 + "px");
+        .style("left", tooltipLeft(event))
+        .style("top", event.pageY + 15 + "px");
     }
 
     // CGM data
