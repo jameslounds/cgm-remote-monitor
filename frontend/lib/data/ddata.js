@@ -28,7 +28,7 @@ class DData {
     this.profiles = [];
     /** @type {import("../types").DeviceStatus[]} */
     this.devicestatus = [];
-    /** @type {import("../types").Food[]} */
+    /** @type {(import("../types").Food| import("../types").QuickPick)[]} */
     this.food = [];
     /** @type {import("../types").Activity[]} */
     this.activity = [];

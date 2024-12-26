@@ -42,6 +42,7 @@
     "lib/data/ddata.js",
     "lib/settings.js",
     "lib/plugins/pluginbase.js",
-    "lib/client/hashauth.js"
+    "lib/client/hashauth.js",
+    "lib/client/boluscalc.js"
   ]
 }

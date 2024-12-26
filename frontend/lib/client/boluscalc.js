@@ -1,181 +1,270 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
-var Storages = require("js-storage");
+const times = require("../times");
+const Storages = require("js-storage");
 
-function init(client, $) {
-  var boluscalc = {};
+/**
+ * @typedef Client
+ * @prop {ReturnType<import("../language")>['translate']} translate
+ * @prop {ReturnType<import("../plugins")>} plugins
+ * @prop {ReturnType<import("../settings")>} settings
+ * @prop {ReturnType<import("../utils")>} utils
+ * @prop {ReturnType<import("../profilefunctions")>} profilefunctions
+ * @prop {ReturnType<import("../sandbox")>} sbx
+ * @prop {ReturnType<import("./browser-utils")>} browserUtils
+ * @prop {() => Record<string, string>} headers
+ * @prop {import("../types").Entry[]} entries
+ */
 
-  var translate = client.translate;
-  var storage = Storages.localStorage;
-  var iob = client.plugins("iob");
-  var cob = client.plugins("cob");
-
-  var eventTime = $("#bc_eventTimeValue");
-  var eventDate = $("#bc_eventDateValue");
-
-  var quickpicks = [];
-  var foods = [];
-
-  var icon_remove =
+class BolusCalc {
+  static icon_remove =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACrElEQVQ4T42Ty2sTQRzHv5tmk2yyjRNtpfZhL8V6s2KoUNC2XqwgaCsVQcGiFqpHi0c9iRdR/ANE9KR40FIQX4cueKoPaKFoLdSYNtE0abKT1+5s9iW7aUMiHtzTzO7v85md+c6PA4DrHbsPCKIgOWO1pA7dT6YXnXH949SE/F63pqwZtRrO+SCKgjQ5NUV+azpmHj2krMwaJC4c8Erj+/eRyloMMwWFKgbn1nC3ervlK1evkXBLGBZT8SOewotnTylTNLdgeg/pDgZDC2cPHSR8bB22DVC9hFe0SG/H0xFXcHlykjRHRDBWgJcZSCY38Xx2lhqMnRYE34Px/sN9vlQWeoHBAx2yXsRruVAVuFsIBaSJ8+eJGPaBqQV4NROJjTzez89jLBoFn6FgybQL54wS3uTyVDFQ3cL2IYpBv3RhdJSIIQ80tQyv7gEqJvS8AmUlBs7UXPhtjtZgh3UFNYngk86NHCfNAg9dMwHVBPu+CpsVkTXKeJeVG+AGgTOZ3tt6MSKKjy+NjEBjFrR4ElZmA4pdxstMFsyyJu6tZZ7Ux9vwB6EAL50ZGiRECEPPUOixVTRxHlicgSVWxEdZpuZWfNuS2hk48NjwMIkIYZglBnV5Cbqtws/5IaAJmsfCglrEl2y2QeKmEBJ80tixKmxrFpSVr0gV0viQoxho2YUuPohmeFD22PiklLC4ma5JuBvdrfLJI0dJd0s7bM0ES8aR/BXDXGaTskqlL+D3Lwy0tZEePoAd4EA5YF4tYymdonfjmQh3s6dTPjU4SHYGwjAKecSXFyGlM1TdytntE56T+ts7SC/vhw3gm6njc2Kd3vm5Ub1IwQAvnYhGiZpYw1wiWYPrIw7wnBTt7CLOOwdmut14kQQvqt24tfK/utGR6LaF+iRqMf4N/O/8D28HiiCRYqzAAAAAAElFTkSuQmCC";
+  /**
+   *
+   * @param {Client} client
+   * @param {JQueryStatic} $
+   */
+  constructor(client, $) {
+    this.client = client;
+    this.$ = $;
 
-  function roundTo(x, step) {
-    if (x) {
-      return Math.round(x / step) * step;
+    /** @type {ReturnType<import("../language")>['translate']} */
+    this.translate = this.client.translate;
+    this.storage = Storages.localStorage;
+
+    this.iob = this.client.plugins("iob");
+    this.cob = this.client.plugins("cob");
+
+    this.eventTime = this.$("#bc_eventTimeValue");
+    this.eventDate = this.$("#bc_eventDateValue");
+
+    /** @type {import("../types").QuickPick[]} */
+    this.quickpicks = [];
+    /** @type {import("../types").Food[]} */
+    this.foods = [];
+
+    /** @type {ReturnType<BolusCalc["gatherBoluscalcData"]>} */
+    this.record;
+
+    /** @type {Partial<Record<string, Record<string, boolean>>>} */
+    this.categories = {};
+    /** @type {import("../types").Food[]} */
+    this.foodlist = [];
+    this.databaseloaded = false;
+    this.filter = {
+      category: "",
+      subcategory: "",
+      name: "",
+    };
+
+    if (this.#isTouch()) {
+      // Make it faster on mobile devices
+      this.$(".insulincalculationpart").on("change", (ev) =>
+        this.calculateInsulin(ev)
+      );
+    } else {
+      this.$(".insulincalculationpart").on("input", (ev) =>
+        this.calculateInsulin(ev)
+      );
+      this.$("input:checkbox.insulincalculationpart").on("change", (ev) =>
+        this.calculateInsulin(ev)
+      );
     }
+
+    this.$("#bc_bgfrommeter").on("change", (ev) => this.calculateInsulin(ev));
+    this.$("#bc_addfromdatabase").on("click", (ev) =>
+      this.#addFoodFromDatabase(ev)
+    );
+    this.$("#bc_bgfromsensor").on("change", (event) => {
+      this.updateVisualisations(this.client.sbx);
+      this.calculateInsulin();
+      this.#maybePrevent(event);
+    });
+
+    this.$("#boluscalcDrawerToggle").on("click", (ev) => this.toggleDrawer(ev));
+    this.$("#boluscalcDrawer")
+      .find("button")
+      .on("click", (ev) => this.submit(ev));
+    this.$("#bc_eventTime input:radio").on("change", (ev) =>
+      this.eventTimeTypeChange(ev)
+    );
+
+    $(".bc_eventtimeinput")
+      .on("focus", (ev) => this.dateTimeFocus(ev))
+      .on("change", (ev) => this.dateTimeChange(ev));
+
+    this.loadFoodQuickpicks();
+    this.#setDateAndTime();
+  }
+
+  /** @param {number | undefined} x @param {number} step */
+  #roundTo(x, step) {
+    if (x) return Math.round(x / step) * step;
     return 0;
   }
 
-  function maybePrevent(event) {
-    if (event) {
-      event.preventDefault();
-    }
+  /** @param {JQuery.Event | Event} [event] */
+  #maybePrevent(event) {
+    if (event) event.preventDefault();
   }
 
-  function isProfileEnabled(profiles) {
+  /** @param {string[]} profiles */
+  #isProfileEnabled(profiles) {
     return (
-      client.settings.enable.indexOf("profile") > -1 &&
-      client.settings.extendedSettings.profile &&
-      client.settings.extendedSettings.profile.multiple &&
+      this.client.settings.enable.includes("profile") &&
+      this.client.settings.extendedSettings.profile?.multiple &&
       profiles.length > 1
     );
   }
 
-  function isTouch() {
+  #isTouch() {
     try {
       document.createEvent("TouchEvent");
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
 
-  function setDateAndTime(time) {
-    time = time || new Date();
-    eventTime.val(time.getHours() + ":" + time.getMinutes());
-    eventDate.val(time.toISOString().split("T")[0]);
+  /** @param {Date} time */
+  #setDateAndTime(time = new Date()) {
+    this.eventTime.val(`${time.getHours()}:${time.getMinutes()}`);
+    this.eventDate.val(time.toISOString().split("T")[0]);
   }
 
-  function mergeDateAndTime() {
-    return client.utils.mergeInputTime(eventTime.val(), eventDate.val());
+  #mergeDateAndTime() {
+    return this.client.utils.mergeInputTime(
+      this.eventTime.val()?.toString() ?? "",
+      this.eventDate.val()?.toString() ?? ""
+    );
   }
 
-  function updateTime(ele, time) {
-    ele.attr("oldminutes", time.minutes());
-    ele.attr("oldhours", time.hours());
+  /** @param {JQuery<HTMLElement>} el @param {import("moment").Moment} time */
+  #updateTime(el, time) {
+    el.attr("oldminutes", time.minutes());
+    el.attr("oldhours", time.hours());
   }
 
-  function setBG(sgv, selectedTime) {
-    var sensorbg = 0;
-    boluscalc.oldbg = false;
-    if (sgv) {
-      sensorbg = sgv.mgdl;
-      if (sensorbg < 39) {
-        sensorbg = 0;
-      } else {
-        sensorbg = client.utils.scaleMgdl(sensorbg);
-      }
-      if (selectedTime.getTime() - sgv.mills > 10 * 60 * 1000) {
-        boluscalc.oldbg = true; // Do not use if record is older than 10 min
-        sensorbg = 0;
-      }
+  /** @param {import("../types").Sgv} sgv @param {Date} selectedTime */
+  #getBG(sgv, selectedTime) {
+    if (selectedTime.getTime() - sgv.mills > 10 * 60_000) {
+      this.oldbg = true; // Do not use if record is older than 10 min
+      return 0;
     }
 
-    // Set BG
-    if ($("#bc_bgfromsensor").is(":checked")) {
-      $("#bc_bg").val(sensorbg ? sensorbg : "");
+    if (sgv.mgdl < 39) return 0;
+    else return this.client.utils.scaleMgdl(sgv.mgdl);
+  }
+
+  /** @param {import("../types").Sgv | null | undefined} sgv @param {Date} selectedTime */
+  #setBG(sgv, selectedTime) {
+    this.oldbg = false;
+
+    if (this.$("#bc_bgfromsensor").is(":checked")) {
+      this.$("#bc_bg").val(sgv ? this.#getBG(sgv, selectedTime) : "");
     }
   }
 
-  boluscalc.updateVisualisations = function updateVisualisations(sbx) {
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  updateVisualisations(sbx) {
     // update BG in GUI
-    setBG(sbx.lastSGVEntry(), mergeDateAndTime().toDate());
+    this.#setBG(sbx.lastSGVEntry(), this.#mergeDateAndTime().toDate());
 
-    if (client.browserUtils.getLastOpenedDrawer !== "#boluscalcDrawer") {
+    if (this.client.browserUtils.lastOpenedDrawer !== "#boluscalcDrawer") {
       return;
     }
-    if ($("#bc_nowtime").is(":checked")) {
+    if (this.$("#bc_nowtime").is(":checked")) {
       // Update time
-      setDateAndTime();
+      this.#setDateAndTime();
 
-      boluscalc.calculateInsulin();
+      this.calculateInsulin();
     }
-  };
+  }
 
-  boluscalc.dateTimeFocus = function dateTimeFocus(event) {
+  /** @param {JQuery.FocusEvent} event */
+  dateTimeFocus(event) {
     $("#bc_othertime").prop("checked", true);
-    updateTime($(this), mergeDateAndTime());
-    maybePrevent(event);
-  };
+    this.#updateTime($(event.currentTarget), this.#mergeDateAndTime());
+    this.#maybePrevent(event);
+  }
 
-  boluscalc.dateTimeChange = function dateTimeChange(event) {
+  /** @param {JQuery.ChangeEvent} event */
+  dateTimeChange(event) {
     $("#bc_othertime").prop("checked", true);
     //    client.utils.setYAxisOffset(50); //50% of extend
-    var ele = $(this);
-    var merged = mergeDateAndTime();
+    const el = $(event.currentTarget);
+    const merged = this.#mergeDateAndTime();
 
-    if (ele.attr("oldminutes") === "59" && merged.minutes() === 0) {
+    if (el.attr("oldminutes") === "59" && merged.minutes() === 0) {
       merged.add(1, "hours");
     }
-    if (ele.attr("oldminutes") === "0" && merged.minutes() === 59) {
+    if (el.attr("oldminutes") === "0" && merged.minutes() === 59) {
       merged.add(-1, "hours");
     }
 
-    setDateAndTime(merged);
-    updateTime(ele, merged);
-    boluscalc.eventTimeTypeChange();
+    this.#setDateAndTime(merged.toDate());
+    this.#updateTime(el, merged);
+    this.eventTimeTypeChange();
 
     // update BG from sgv to this time
-    setBG(findClosestSGVToPastTime(merged.toDate()), merged.toDate());
+    this.#setBG(
+      this.#findClosestSGVToPastTime(merged.toDate()),
+      merged.toDate()
+    );
 
-    boluscalc.calculateInsulin();
-    maybePrevent(event);
-  };
+    this.calculateInsulin();
+    this.#maybePrevent(event);
+  }
 
-  boluscalc.eventTimeTypeChange = function eventTimeTypeChange(event) {
-    if ($("#bc_othertime").is(":checked")) {
-      $("#bc_eventTimeValue").focus();
+  /** @param {JQuery.Event} [event] */
+  eventTimeTypeChange(event) {
+    if (this.$("#bc_othertime").is(":checked")) {
+      this.$("#bc_eventTimeValue").trigger("focus");
       $("#bc_retro").css("display", "");
-      if (mergeDateAndTime() < Date.now()) {
+
+      if (this.#mergeDateAndTime().valueOf() < Date.now()) {
         $("#bc_retro")
           .css("background-color", "red")
-          .text(translate("RETRO MODE"));
-      } else if (mergeDateAndTime() > Date.now()) {
+          .text(this.translate("RETRO MODE"));
+      } else if (this.#mergeDateAndTime().valueOf() > Date.now()) {
         $("#bc_retro")
           .css("background-color", "blue")
-          .text(translate("IN THE FUTURE"));
+          .text(this.translate("IN THE FUTURE"));
       } else {
         $("#bc_retro").css("display", "none");
       }
     } else {
       $("#bc_retro").css("display", "none");
-      setDateAndTime();
-      boluscalc.updateVisualisations(client.sbx);
+
+      this.#setDateAndTime();
+      this.updateVisualisations(this.client.sbx);
+
       if (event) {
-        boluscalc.calculateInsulin();
+        this.calculateInsulin();
       }
       //        Nightscout.utils.setYAxisOffset(50); //50% of extend
       //        Nightscout.utils.updateBrushToTime(Nightscout.utils.mergeInputTime($('#bc_eventTimeValue').val(), $('#bc_eventDateValue').val()).toDate());
     }
-    maybePrevent(event);
-  };
 
-  boluscalc.toggleDrawer = function toggleDrawer(event) {
-    boluscalc.prepare();
-    client.browserUtils.toggleDrawer("#boluscalcDrawer");
-    maybePrevent(event);
-  };
+    this.#maybePrevent(event);
+  }
 
-  boluscalc.prepare = function prepare() {
-    foods = [];
+  /** @param {JQuery.Event} [event] */
+  toggleDrawer(event) {
+    this.prepare();
+    this.client.browserUtils.toggleDrawer("#boluscalcDrawer");
+    this.#maybePrevent(event);
+  }
+
+  prepare() {
+    this.foods = [];
+
     $("#bc_profile").empty();
-    var profiles = client.profilefunctions.listBasalProfiles();
-    profiles.forEach(function (p) {
-      $("#bc_profile").append('<option val="' + p + '">' + p + "</option>");
+    const profiles = this.client.profilefunctions.listBasalProfiles() ?? [];
+    profiles.forEach((p) => {
+      $("#bc_profile").append(`<option val="${p}">${p}</option>`);
     });
-    $("#bc_profileLabel").toggle(isProfileEnabled(profiles));
+    $("#bc_profileLabel").toggle(this.#isProfileEnabled(profiles));
 
     $("#bc_usebg").prop("checked", "checked");
     $("#bc_usecarbs").prop("checked", "checked");
@@ -186,34 +275,34 @@ function init(client, $) {
     $("#bc_quickpick").val(-1);
     $("#bc_preBolus").val(0);
     $("#bc_notes").val("");
-    $("#bc_enteredBy").val(Storages.localStorage.get("enteredBy") || "");
+    $("#bc_enteredBy").val(this.storage.get("enteredBy")?.toString() ?? "");
     $("#bc_nowtime").prop("checked", true);
     $("#bc_othercorrection").val(0);
-    $("#bc_profile").val(client.profilefunctions.activeProfileToTime());
-    setDateAndTime();
-    boluscalc.eventTimeTypeChange();
-    boluscalc.updateVisualisations(client.sbx);
-    boluscalc.calculateInsulin();
-  };
+    $("#bc_profile").val(this.client.profilefunctions.activeProfileToTime());
 
-  boluscalc.calculateInsulin = function calculateInsulin(event) {
-    maybePrevent(event);
-    boluscalc.gatherBoluscalcData();
-    boluscalc.updateGui(boluscalc.record);
-    return boluscalc.record;
-  };
+    this.#setDateAndTime();
+    this.eventTimeTypeChange();
+    this.updateVisualisations(this.client.sbx);
+    this.calculateInsulin();
+  }
 
-  boluscalc.updateGui = function updateGui(record) {
-    record = record || boluscalc.record;
+  /** @param {JQuery.Event} [event] */
+  calculateInsulin(event) {
+    this.#maybePrevent(event);
+    this.gatherBoluscalcData();
+    this.updateGui(this.record);
+    return this.record;
+  }
 
-    if (record.eventTime === undefined) {
-      return;
-    }
+  updateGui(record = this.record) {
+    if (!record || record.eventTime === undefined) return;
 
-    var targetBGLow = record.targetBGLow;
-    var targetBGHigh = record.targetBGHigh;
-    var isf = record.isf;
-    var ic = record.ic;
+    const $ = this.$;
+
+    const targetBGLow = record.targetBGLow;
+    const targetBGHigh = record.targetBGHigh;
+    const isf = record.isf;
+    const ic = record.ic;
 
     // Clear results before calculation
     $("#bc_insulintotal").text("0.00");
@@ -241,7 +330,7 @@ function init(client, $) {
     if ($("#bc_usebg").is(":checked")) {
       if (
         record.bg === 0 ||
-        (boluscalc.oldbg && $("#bc_bgfromsensor").is(":checked"))
+        (this.oldbg && $("#bc_bgfromsensor").is(":checked"))
       ) {
         $("#bc_bg").css("background-color", "red");
       } else {
@@ -250,14 +339,9 @@ function init(client, $) {
       $("#bc_inzulinbg").text(record.insulinbg.toFixed(2));
       $("#bc_inzulinbg").attr(
         "title",
-        "Target BG range: " +
-          targetBGLow +
-          " - " +
-          targetBGHigh +
-          "\nISF: " +
-          isf +
-          "\nBG diff: " +
-          record.bgdiff.toFixed(1),
+        `Target BG range: ${targetBGLow} - ${targetBGHigh}
+        ISF: ${isf}
+        BG diff: ${record.bgdiff.toFixed(1)}`
       );
     } else {
       $("#bc_inzulinbgtd").css("background-color", "");
@@ -268,43 +352,43 @@ function init(client, $) {
 
     // Show foods
     if (record.foods.length) {
-      var html =
-        '<table  style="float:right;margin-right:20px;font-size:12px">';
+      var html = '<table style="float:right;margin-right:20px;font-size:12px">';
       var carbs = 0;
-      for (var fi = 0; fi < record.foods.length; fi++) {
-        /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-        var f = record.foods[fi];
+      record.foods.forEach((f, index) => {
         carbs += f.carbs * f.portions;
+
         html += "<tr>";
+
         html += "<td>";
-        if ($("#bc_quickpick").val() < 0) {
+        if (Number($("#bc_quickpick").val()) < 0) {
           // do not allow deleting while quickpick active
-          html +=
-            '<img style="cursor:pointer" title="Delete record" src="' +
-            icon_remove +
-            '" href="#" class="deleteFoodRecord" index="' +
-            fi +
-            '">';
+          html += `
+          <img
+            style="cursor:pointer"
+            title="Delete record"
+            src="${BolusCalc.icon_remove}"
+            href="#"
+            class="deleteFoodRecord"
+            index="${index}"
+          />`;
         }
         html += "</td>";
         html += "<td>" + f.name + "</td>";
-        html +=
-          "<td>" +
-          (f.portion * f.portions).toFixed(1) +
-          " " +
-          translate(f.unit) +
-          "</td>";
-        html += "<td>(" + (f.carbs * f.portions).toFixed(1) + " g)</td>";
+        html += `<td>${(f.portion * f.portions).toFixed(1)} ${this.translate(f.unit)}</td>`;
+        html += `<td>(${(f.carbs * f.portions).toFixed(1)} g)</td>`;
+
         html += "</tr>";
-      }
+      });
+
       html += "</table>";
+
       $("#bc_food").html(html);
-      $(".deleteFoodRecord").click(deleteFoodRecord);
+      $(".deleteFoodRecord").on("click", (ev) => this.#deleteFoodRecord(ev));
       $("#bc_carbs").val(carbs.toFixed(0));
-      $("#bc_carbs").attr("disabled", true);
+      $("#bc_carbs").attr("disabled", "true");
       $("#bc_gi").css("display", "none");
       $("#bc_gicalculated").css("display", "");
-      $("#bc_gicalculated").text(record.gi);
+      $("#bc_gicalculated").text(record.gi?.toString());
     } else {
       $("#bc_food").html("");
       $("#bc_carbs").attr("disabled", false);
@@ -317,7 +401,9 @@ function init(client, $) {
     if ($("#bc_usecarbs").is(":checked")) {
       if ($("#bc_carbs").val() === "") {
         $("#bc_carbs").css("background-color", "");
-      } else if (isNaN(parseInt($("#bc_carbs").val().replace(",", ".")))) {
+      } else if (
+        isNaN($("#bc_carbs").val()?.toString()?.replace(",", ".") ?? "")
+      ) {
         $("#bc_carbs").css("background-color", "red");
       } else {
         $("#bc_carbs").css("background-color", "");
@@ -365,489 +451,470 @@ function init(client, $) {
     }
 
     // Show basal rate
-    var basal = client.sbx.data.profile.getTempBasal(record.eventTime);
-    var tempMark = "";
-    tempMark += basal.treatment ? "T" : "";
-    tempMark += basal.combobolustreatment ? "C" : "";
-    tempMark += tempMark ? ": " : "";
-    $("#bc_basal").text(tempMark + basal.totalbasal.toFixed(3));
-  };
+    const basal = this.client.sbx.data.profile?.getTempBasal(
+      record.eventTime.valueOf(),
+      ""
+    );
+    if (basal) {
+      let tempMark = "";
+      tempMark += basal.treatment ? "T" : "";
+      tempMark += basal.combobolustreatment ? "C" : "";
+      tempMark += tempMark ? ": " : "";
+      $("#bc_basal").text(tempMark + basal.totalbasal.toFixed(3));
+    }
+  }
 
-  boluscalc.gatherBoluscalcData = function gatherBoluscalcData() {
-    boluscalc.record = {};
-    var record = boluscalc.record;
+  gatherBoluscalcData() {
+    const $ = this.$;
+    this.record = undefined;
 
-    if (!client.sbx) {
+    if (!this.client.sbx) {
       console.log("No sandbox data yet. Exiting gatherBoluscalcData()");
       return;
     }
 
-    record.profile = $("#bc_profile").val();
-    if (!record.profile) {
-      delete record.profile;
+    const profile = $("#bc_profile").val()?.toString();
+    if (!profile || !this.client.sbx.data.profile) {
       console.log("No profile data. Exiting gatherBoluscalcData()");
       return;
     }
 
     // Calculate event time from date & time
-    record.eventTime = new Date();
-    if ($("#bc_othertime").is(":checked")) {
-      record.eventTime = mergeDateAndTime().toDate();
-    }
+    const eventTime = $("#bc_othertime").is(":checked")
+      ? this.#mergeDateAndTime().toDate()
+      : new Date();
+    const eventMills = eventTime.valueOf();
 
     // Load profile
-    var targetBGLow = client.sbx.data.profile.getLowBGTarget(
-      record.eventTime,
-      record.profile,
-    );
-    targetBGLow = targetBGLow || 0;
-    var targetBGHigh = client.sbx.data.profile.getHighBGTarget(
-      record.eventTime,
-      record.profile,
-    );
-    targetBGHigh = targetBGHigh || 0;
-    var isf = client.sbx.data.profile.getSensitivity(
-      record.eventTime,
-      record.profile,
-    );
-    isf = isf || 0;
-    var ic = client.sbx.data.profile.getCarbRatio(
-      record.eventTime,
-      record.profile,
-    );
-    ic = ic || 0;
-    record.targetBGLow = targetBGLow;
-    record.targetBGHigh = targetBGHigh;
-    record.isf = isf;
-    record.ic = ic;
+    const targetBGLow =
+      this.client.sbx.data.profile.getLowBGTarget(eventMills, profile) ?? 0;
+    const targetBGHigh =
+      this.client.sbx.data.profile.getHighBGTarget(eventMills, profile) ?? 0;
+    const isf =
+      this.client.sbx.data.profile.getSensitivity(eventMills, profile) ?? 0;
+    const ic =
+      this.client.sbx.data.profile.getCarbRatio(eventMills, profile) ?? 0;
 
     if (targetBGLow === 0 || targetBGHigh === 0 || isf === 0 || ic === 0) {
       $("#bc_inzulinbgtd").css("background-color", "red");
-      boluscalc.record = {};
       return;
-    } else {
-      $("#bc_inzulinbgtd").css("background-color", "");
     }
-
-    if (ic === 0) {
-      $("#bc_inzulincarbstd").css("background-color", "red");
-      boluscalc.record = {};
-      return;
-    } else {
-      $("#bc_inzulincarbstd").css("background-color", "");
-    }
+    $("#bc_inzulinbgtd").css("background-color", "");
+    $("#bc_inzulincarbstd").css("background-color", "");
 
     // Load IOB
-    record.iob = 0;
-    if ($("#bc_useiob").is(":checked")) {
-      record.iob = roundTo(
-        iob.calcTotal(
-          client.sbx.data.treatments,
-          client.sbx.data.devicestatus,
-          client.sbx.data.profile,
-          record.eventTime,
-          record.profile,
-        ).iob,
-        0.01,
-      );
-    }
+    const iob = $("#bc_useiob").is(":checked")
+      ? this.#roundTo(
+          this.iob.calcTotal(
+            this.client.sbx.data.treatments,
+            this.client.sbx.data.devicestatus,
+            this.client.sbx.data.profile,
+            eventTime,
+            profile
+          ).iob,
+          0.01
+        )
+      : 0;
 
     // Load COB
-    record.cob = 0;
-    record.insulincob = 0;
-    if ($("#bc_usecob").is(":checked")) {
-      record.cob = roundTo(
-        cob.cobTotal(
-          client.sbx.data.treatments,
-          client.sbx.data.devicestatus,
-          client.sbx.data.profile,
-          record.eventTime,
-          record.profile,
-        ).cob,
-        0.01,
-      );
-      record.insulincob = roundTo(record.cob / ic, 0.01);
-    }
+    const cob = $("#bc_usecob").is(":checked")
+      ? this.#roundTo(
+          this.cob.cobTotal(
+            this.client.sbx.data.treatments,
+            this.client.sbx.data.devicestatus,
+            this.client.sbx.data.profile,
+            eventTime,
+            profile
+          ).cob,
+          0.01
+        )
+      : 0;
+    const insulincob = $("#bc_usecob").is(":checked")
+      ? this.#roundTo(cob / ic, 0.01)
+      : 0;
 
     // Load BG
-    record.bg = 0;
-    record.insulinbg = 0;
-    record.bgdiff = 0;
-    if ($("#bc_usebg").is(":checked")) {
-      record.bg = parseFloat($("#bc_bg").val().replace(",", "."));
-      if (isNaN(record.bg)) {
-        record.bg = 0;
-      }
-      if (record.bg <= targetBGLow) {
-        record.bgdiff = record.bg - targetBGLow;
-      } else if (record.bg >= targetBGHigh) {
-        record.bgdiff = record.bg - targetBGHigh;
-      }
-      record.bgdiff = roundTo(record.bgdiff, 0.1);
-      if (record.bg !== 0) {
-        record.insulinbg = roundTo(record.bgdiff / isf, 0.01);
-      }
-    }
+    const bg = $("#bc_usebg").is(":checked")
+      ? parseFloat($("#bc_bg").val()?.toString().replace(",", ".") ?? "") || 0
+      : 0;
+
+    const bgdiff = this.#roundTo(
+      bg <= targetBGLow
+        ? bg - targetBGLow
+        : bg >= targetBGHigh
+          ? bg - targetBGHigh
+          : 0,
+      0.1
+    );
+    const insulinbg = this.#roundTo(bgdiff / isf, 0.01);
 
     // Load foods
-    record.carbs = 0;
-    record.foods = _.cloneDeep(foods);
-    if (record.foods.length) {
-      var gisum = 0;
-      for (var fi = 0; fi < record.foods.length; fi++) {
-        /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-        var f = record.foods[fi];
-        record.carbs += f.carbs * f.portions;
-        gisum += f.carbs * f.portions * f.gi;
-      }
-      record.gi = (gisum / record.carbs).toFixed(2);
-    } else {
-      record.gi = $("#bc_gi").val();
-    }
+    const foods = structuredClone(this.foods);
+    let { carbs, gisum } = foods.reduce(
+      (acc, food) => ({
+        carbs: acc.carbs + food.carbs * food.portions,
+        gisum: acc.gisum + food.carbs * food.portions * food.gi,
+      }),
+      { gisum: 0, carbs: 0 }
+    );
+    const gi = foods.length ? (gisum / carbs).toFixed(2) : $("#bc_gi").val();
 
     // Load Carbs
-    record.insulincarbs = 0;
     if ($("#bc_usecarbs").is(":checked")) {
-      if (record.carbs === 0) {
+      if (carbs === 0) {
         // not set from foods
-        record.carbs = parseInt($("#bc_carbs").val().replace(",", "."));
+        carbs =
+          parseInt($("#bc_carbs").val()?.toString().replace(",", ".") ?? "") ||
+          0;
       }
-      if (isNaN(record.carbs)) {
-        record.carbs = 0;
-      }
-      record.insulincarbs = roundTo(record.carbs / ic, 0.01);
     }
+    const insulincarbs = $("#bc_usecarbs").is(":checked")
+      ? this.#roundTo(carbs / ic, 0.01)
+      : 0;
 
     // Corrections
-    record.othercorrection = parseFloat($("#bc_othercorrection").val());
+    const othercorrection = parseFloat(
+      $("#bc_othercorrection").val()?.toString() ?? ""
+    );
 
     // Total & rounding
-    var total = 0;
-    if ($("#bc_useinsulin").is(":checked")) {
-      total =
-        record.insulinbg +
-        record.insulincarbs +
-        record.insulincob -
-        record.iob +
-        record.othercorrection;
-    }
-    record.insulin = roundTo(total, 0.05);
-    record.roundingcorrection = record.insulin - total;
+    const total = $("#bc_usecarbs").is(":checked")
+      ? insulinbg + insulincarbs + insulincob - iob + othercorrection
+      : 0;
+
+    const insulin = this.#roundTo(total, 0.05);
+    const roundingcorrection = insulin - total;
 
     // Carbs needed if too much iob
-    record.carbsneeded = 0;
-    if (record.insulin < 0) {
-      record.carbsneeded = Math.ceil(-total * ic);
-    }
+    const carbsneeded = insulin < 0 ? Math.ceil(-total * ic) : 0;
 
+    const record = {
+      profile,
+      eventTime,
+      targetBGLow,
+      targetBGHigh,
+      isf,
+      ic,
+      iob,
+      cob,
+      insulincob,
+      bg,
+      insulinbg,
+      bgdiff,
+      carbs,
+      foods,
+      gi,
+      insulincarbs,
+      othercorrection,
+      insulin,
+      roundingcorrection,
+      carbsneeded,
+    };
     console.log("Insulin calculation result: ", record);
+    this.record = record;
     return record;
-  };
+  }
 
-  function gatherData() {
-    var data = {};
-    data.boluscalc = boluscalc.calculateInsulin();
-    if (!data.boluscalc) {
+  /** @protected */
+  gatherData() {
+    const boluscalc = this.calculateInsulin();
+    if (!boluscalc) {
       alert("Calculation not completed!");
       return null;
     }
 
-    data.enteredBy = $("#bc_enteredBy").val();
-    data.eventType = "Bolus Wizard";
-    if ($("#bc_bg").val() !== 0) {
-      data.glucose = $("#bc_bg").val().replace(",", ".");
-      data.glucoseType = $("#boluscalc-form")
-        .find("input[name=bc_bginput]:checked")
-        .val();
-      data.units = client.settings.units;
-    }
-    data.carbs = $("#bc_carbs").val().replace(",", ".");
-    data.insulin = $("#bc_insulintotal").text();
-    if (data.insulin <= 0) {
-      delete data.insulin;
-    }
-    data.preBolus = parseInt($("#bc_preBolus").val());
-    data.notes = $("#bc_notes").val();
+    const $ = this.$;
 
-    if ($("#bc_othertime").is(":checked")) {
-      data.eventTime = mergeDateAndTime().toDate();
-    }
-
-    // replace boluscalc.eventTime by ISO string
-    data.boluscalc.eventTime = data.boluscalc.eventTime.toISOString();
-
-    return data;
+    return {
+      boluscalc: { ...boluscalc, eventTime: boluscalc.eventTime.toISOString() },
+      enteredBy: $("#bc_enteredBy").val(),
+      eventType: /** @type {const} */ ("Bolus Wizard"),
+      ...($("#bc_bg").val() !== 0 && {
+        glucose: $("#bc_bg").val()?.toString().replace(",", "."),
+        glucoseType: /** @type {"Sensor" | "Finger" | "Manual"} */ (
+          $("#boluscalc-form").find("input[name=bc_bginput]:checked").val()
+        ),
+        units: this.client.settings.units,
+      }),
+      carbs: $("#bc_carbs").val()?.toString().replace(",", "."),
+      insulin: Number($("#bc_insulintotal").text()),
+      preBolus: parseInt($("#bc_preBolus").val()?.toString() ?? ""),
+      notes: $("#bc_notes").val(),
+      ...($("#bc_othertime").is(":checked") && {
+        eventTime: this.#mergeDateAndTime().toDate(),
+      }),
+    };
   }
 
-  boluscalc.submit = function submit(event) {
-    var data = gatherData();
+  /** @param {JQuery.ClickEvent} event */
+  submit(event) {
+    const data = this.gatherData();
     if (data) {
-      confirmPost(data);
+      this.#confirmPost(data);
     }
-    maybePrevent(event);
+    this.#maybePrevent(event);
     return false;
-  };
+  }
 
-  function buildConfirmText(data) {
-    var text = [
-      translate("Please verify that the data entered is correct") + ": ",
-      translate("Event Type") + ": " + translate(data.eventType),
+  /** @param {Exclude<ReturnType<BolusCalc["gatherData"]>, null>} data */
+  #buildConfirmText(data) {
+    const text = [
+      this.translate("Please verify that the data entered is correct") + ": ",
+      this.translate("Event Type") + ": " + this.translate(data.eventType),
     ];
 
+    /** @param {boolean} check, @param {string} valueText */
     function pushIf(check, valueText) {
-      if (check) {
-        text.push(valueText);
-      }
+      if (check) text.push(valueText);
     }
 
-    pushIf(data.glucose, translate("Blood Glucose") + ": " + data.glucose);
     pushIf(
-      data.glucose,
-      translate("Measurement Method") + ": " + translate(data.glucoseType),
-    );
-
-    pushIf(data.carbs, translate("Carbs Given") + ": " + data.carbs);
-    pushIf(data.insulin, translate("Insulin Given") + ": " + data.insulin);
-    pushIf(
-      data.boluscalc.othercorrection,
-      translate("Other correction") + ": " + data.boluscalc.othercorrection,
+      !!data.glucose,
+      `${this.translate("Blood Glucose")}: ${data.glucose}`
     );
     pushIf(
-      data.preBolus,
-      translate("Carb Time") + ": " + data.preBolus + " " + translate("mins"),
+      !!data.glucoseType,
+      `${this.translate("Measurement Method")}: ${this.translate(data.glucoseType ?? "(none)")}`
     );
-    pushIf(data.notes, translate("Notes") + ": " + data.notes);
-    pushIf(data.enteredBy, translate("Entered By") + ": " + data.enteredBy);
+    pushIf(!!data.carbs, `${this.translate("Carbs Given")}: ${data.carbs}`);
+    pushIf(
+      !!data.insulin,
+      `${this.translate("Insulin Given")}: ${data.insulin}`
+    );
+    pushIf(
+      !!data.boluscalc.othercorrection,
+      `${this.translate("Other correction")}: ${data.boluscalc.othercorrection}`
+    );
+    pushIf(
+      !!data.preBolus,
+      `${this.translate("Carb Time")}: ${data.preBolus} ${this.translate("mins")}`
+    );
+    pushIf(!!data.notes, `${this.translate("Notes")}: ${data.notes}`);
+    pushIf(
+      !!data.enteredBy,
+      `${this.translate("Entered By")}: ${data.enteredBy}`
+    );
 
     text.push(
-      translate("Event Time") +
-        ": " +
-        (data.eventTime
-          ? data.eventTime.toLocaleString()
-          : new Date().toLocaleString()),
+      `${this.translate("Event Time")}: ${(data.eventTime ?? new Date()).toLocaleString()}`
     );
+
     return text.join("\n");
   }
 
-  function confirmPost(data) {
-    if (window.confirm(buildConfirmText(data))) {
-      $.ajax({
-        method: "POST",
-        url: "/api/v1/treatments/",
-        headers: client.headers(),
-        data: data,
+  /** @param {Exclude<ReturnType<BolusCalc["gatherData"]>, null>} data */
+  #confirmPost(data) {
+    if (!window.confirm(this.#buildConfirmText(data))) return;
+
+    this.$.ajax({
+      method: "POST",
+      url: "/api/v1/treatments/",
+      headers: this.client.headers(),
+      data: data,
+    })
+      .done((response) => {
+        console.info("treatment saved", response);
       })
-        .done(function treatmentSaved(response) {
-          console.info("treatment saved", response);
-        })
-        .fail(function treatmentSaveFail(response) {
-          console.info("treatment saved", response);
-          alert(
-            translate("Entering record failed") +
-              ". " +
-              translate("Status") +
-              ": " +
-              response.status,
-          );
-        });
+      .fail((response) => {
+        console.info("treatment saved", response);
+        alert(
+          `${this.translate("Entering record failed")}.
+          ${this.translate("Status")}: ${response.status}`
+        );
+      });
 
-      storage.set("enteredBy", data.enteredBy);
+    if (data.enteredBy)
+      this.storage.set("enteredBy", data.enteredBy.toString());
 
-      quickpickHideFood();
-      client.browserUtils.closeDrawer("#boluscalcDrawer");
-    }
+    this.#quickpickHideFood();
+    this.client.browserUtils.closeDrawer("#boluscalcDrawer");
   }
 
-  // Food manipulation
-  function deleteFoodRecord(event) {
-    var index = $(this).attr("index");
-    foods.splice(index, 1);
+  /** @param {JQuery.ClickEvent} event */
+  #deleteFoodRecord(event) {
+    const index = parseInt($(event.currentTarget).attr("index") ?? "0");
+    this.foods.splice(index, 1);
     $("#bc_carbs").val("");
-    boluscalc.calculateInsulin();
-    maybePrevent(event);
+    this.calculateInsulin();
+    this.#maybePrevent(event);
     return false;
   }
 
-  function quickpickChange(event) {
-    var qpiselected = $("#bc_quickpick").val();
+  /** @param {JQuery.ChangeEvent} event */
+  #quickpickChange(event) {
+    const qpiselected = $("#bc_quickpick").val()?.toString() ?? "";
 
     if (qpiselected === null || qpiselected === "-1") {
       // (none)
-      $("#bc_carbs").val(0);
-      foods = [];
-      $("#bc_addfoodarea").css("display", "");
+      this.$("#bc_carbs").val(0);
+      this.foods = [];
+      this.$("#bc_addfoodarea").css("display", "");
     } else {
-      var qp = quickpicks[parseInt(qpiselected)];
-      foods = _.cloneDeep(qp.foods);
-      $("#bc_addfoodarea").css("display", "none");
+      const qp = this.quickpicks[parseInt(qpiselected)];
+      this.foods = structuredClone(qp.foods);
+      this.$("#bc_addfoodarea").css("display", "none");
     }
 
-    boluscalc.calculateInsulin();
-    maybePrevent(event);
+    this.calculateInsulin();
+    this.#maybePrevent(event);
   }
 
-  function quickpickHideFood() {
-    var qpiselected = $("#bc_quickpick").val();
+  #quickpickHideFood() {
+    const qpiselected = parseInt($("#bc_quickpick").val()?.toString() ?? "");
 
     if (qpiselected >= 0) {
-      var qp = quickpicks[parseInt(qpiselected)];
+      const qp = this.quickpicks[qpiselected];
       if (qp.hideafteruse) {
         qp.hidden = true;
 
-        $.ajax({
+        this.$.ajax({
           method: "PUT",
           url: "/api/v1/food/",
-          headers: client.headers(),
+          headers: this.client.headers(),
           data: qp,
         })
-          .done(function treatmentSaved(response) {
+          .done((response) => {
             console.info("quick pick saved", response);
           })
-          .fail(function treatmentSaveFail(response) {
+          .fail((response) => {
             console.info("quick pick failed to save", response);
           });
       }
     }
 
-    boluscalc.calculateInsulin();
-    maybePrevent(event);
+    this.calculateInsulin();
   }
 
-  var categories = [];
-  var foodlist = [];
-  var databaseloaded = false;
-  var filter = {
-    category: "",
-    subcategory: "",
-    name: "",
-  };
-
-  boluscalc.loadFoodDatabase = function loadFoodDatabase(event, callback) {
-    categories = [];
-    foodlist = [];
-    var records = client.sbx.data.food || [];
-    records.forEach(function (r) {
-      if (r.type == "food") {
-        foodlist.push(r);
-        if (r.category && !categories[r.category]) {
-          categories[r.category] = {};
+  /** @param {JQuery.Event | Event} [event] @param {() => any} [callback] */
+  loadFoodDatabase(event, callback) {
+    this.categories = {};
+    this.foodlist = [];
+    const records = this.client.sbx.data.food || [];
+    records.forEach((r) => {
+      if (r.type === "food") {
+        this.foodlist.push(r);
+        if (r.category && !this.categories[r.category]) {
+          this.categories[r.category] = {};
         }
         if (r.category && r.subcategory) {
-          categories[r.category][r.subcategory] = true;
+          // @ts-expect-error `this.categories[r.category]` *is* defined, typescipt thinks it might not be
+          this.categories[r.category][r.subcategory] = true;
         }
       }
     });
-    databaseloaded = true;
+
+    this.databaseloaded = true;
     console.log("Food database loaded");
-    fillForm();
-    maybePrevent(event);
-    if (callback) {
-      callback();
-    }
-  };
 
-  boluscalc.loadFoodQuickpicks = function loadFoodQuickpicks() {
+    this.#fillForm();
+
+    this.#maybePrevent(event);
+    if (callback) callback();
+  }
+
+  loadFoodQuickpicks() {
     // Load quickpicks
-    quickpicks = [];
-    var records = client.sbx.data.food || [];
-    records.forEach(function (r) {
-      if (r.type == "quickpick") {
-        quickpicks.push(r);
-      }
-    });
-    $("#bc_quickpick")
+    const records = this.client.sbx.data.food || [];
+    this.quickpicks = records.filter(
+      /** @returns {r is import("../types").QuickPick}*/ (r) =>
+        r.type === "quickpick"
+    );
+
+    this.$("#bc_quickpick")
       .empty()
-      .append('<option value="-1">' + translate("(none)") + "</option>");
-    for (var i = 0; i < records.length; i++) {
-      /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-      var r = records[i];
-      $("#bc_quickpick").append(
-        '<option value="' + i + '">' + r.name + " (" + r.carbs + " g)</option>",
+      .append(`<option value="-1">${this.translate("(none)")}</option>`);
+
+    records.forEach((r, i) => {
+      this.$("#bc_quickpick").append(
+        `<option value="${i}">${r.name} (${r.carbs} g)</option>`
       );
-    }
+    });
+
     $("#bc_quickpick").val(-1);
-    $("#bc_quickpick").change(quickpickChange);
-  };
+    $("#bc_quickpick").on("change", (ev) => this.#quickpickChange(ev));
+  }
 
-  function fillForm(event) {
-    $("#bc_filter_category")
+  /** @param {JQuery.Event | Event} [event] */
+  #fillForm(event) {
+    this.$("#bc_filter_category")
       .empty()
-      .append('<option value="">' + translate("(none)") + "</option>");
-    Object.keys(categories).forEach(function eachCategory(s) {
-      $("#bc_filter_category").append(
-        '<option value="' + s + '">' + s + "</option>",
-      );
+      .append(`<option value="">${this.translate("(none)")}</option>`);
+    Object.keys(this.categories).forEach((s) => {
+      $("#bc_filter_category").append(`<option value="${s}">${s}</option>`);
     });
-    filter.category = "";
-    fillSubcategories();
+    this.filter.category = "";
+    this.#fillSubcategories();
 
-    $("#bc_filter_category").change(fillSubcategories);
-    $("#bc_filter_subcategory").change(doFilter);
-    $("#bc_filter_name").on("input", doFilter);
+    $("#bc_filter_category").on("change", (ev) => this.#fillSubcategories(ev));
+    $("#bc_filter_subcategory").on("change", (ev) => this.#doFilter(ev));
+    $("#bc_filter_name").on("input", (ev) => this.#doFilter(ev));
 
-    maybePrevent(event);
+    this.#maybePrevent(event);
     return false;
   }
 
-  function fillSubcategories(event) {
-    maybePrevent(event);
-    filter.category = $("#bc_filter_category").val();
-    filter.subcategory = "";
+  /** @param {JQuery.Event | Event} [event] */
+  #fillSubcategories(event) {
+    this.#maybePrevent(event);
+
+    this.filter.category = $("#bc_filter_category").val()?.toString() ?? "";
+    this.filter.subcategory = "";
+
     $("#bc_filter_subcategory")
       .empty()
-      .append('<option value="">' + translate("(none)") + "</option>");
-    if (filter.category !== "") {
-      Object.keys(categories[filter.category]).forEach(
-        function eachSubcategory(s) {
-          $("#bc_filter_subcategory").append(
-            '<option value="' + s + '">' + s + "</option>",
-          );
-        },
-      );
+      .append(`<option value="">${this.translate("(none)")}</option>`);
+
+    if (this.filter.category !== "") {
+      Object.keys(this.categories[this.filter.category]).forEach((s) => {
+        $("#bc_filter_subcategory").append(
+          `<option value="${s}">${s}</option>`
+        );
+      });
     }
-    doFilter();
+    this.#doFilter();
   }
 
-  function doFilter(event) {
+  /** @param {JQuery.Event | Event} [event] */
+  #doFilter(event) {
     if (event) {
-      filter.category = $("#bc_filter_category").val();
-      filter.subcategory = $("#bc_filter_subcategory").val();
-      filter.name = $("#bc_filter_name").val();
+      this.filter = {
+        category: $("#bc_filter_category").val()?.toString() ?? "",
+        subcategory: $("#bc_filter_subcategory").val()?.toString() ?? "",
+        name: $("#bc_filter_name").val()?.toString() ?? "",
+      };
     }
+
     $("#bc_data").empty();
-    for (var i = 0; i < foodlist.length; i++) {
-      /* eslint-disable security/detect-object-injection */ // verified false positive
-      if (filter.category !== "" && foodlist[i].category !== filter.category) {
-        continue;
-      }
+    this.foodlist.forEach((food, i) => {
       if (
-        filter.subcategory !== "" &&
-        foodlist[i].subcategory !== filter.subcategory
+        (this.filter.category !== "" &&
+          food.category !== this.filter.category) ||
+        (this.filter.subcategory !== "" &&
+          food.subcategory !== this.filter.subcategory) ||
+        (this.filter.name !== "" &&
+          food.name.toLowerCase().includes(this.filter.name.toLowerCase()))
       ) {
-        continue;
+        return;
       }
-      if (
-        filter.name !== "" &&
-        foodlist[i].name.toLowerCase().indexOf(filter.name.toLowerCase()) < 0
-      ) {
-        continue;
-      }
-      var o = "";
-      o += foodlist[i].name + " | ";
-      o += "Portion: " + foodlist[i].portion + " ";
-      o += foodlist[i].unit + " | ";
-      o += "Carbs: " + foodlist[i].carbs + " g";
-      $("#bc_data").append('<option value="' + i + '">' + o + "</option>");
-      /* eslint-enable security/detect-object-injection */ // verified false positive
-    }
+
+      this.$("#bc_data").append(`
+        <option value="${i}">
+          Portion: ${food.portion} |
+          Unit: ${food.unit} |
+          Carbs: ${food.carbs} g
+        </option>
+      `);
+    });
+
     $("#bc_addportions").val("1");
 
-    maybePrevent(event);
+    this.#maybePrevent(event);
   }
 
-  function addFoodFromDatabase(event) {
-    if (!databaseloaded) {
-      boluscalc.loadFoodDatabase(event, addFoodFromDatabase);
+  /** @param {JQuery.Event | Event} [event] */
+  #addFoodFromDatabase(event) {
+    if (!this.databaseloaded) {
+      this.loadFoodDatabase(event, this.#addFoodFromDatabase);
       return;
     }
 
@@ -857,90 +924,65 @@ function init(client, $) {
       height: 400,
       buttons: [
         {
-          text: translate("Add"),
-          click: function () {
-            var index = $("#bc_data").val();
-            var portions = parseFloat(
-              $("#bc_addportions").val().replace(",", "."),
+          text: this.translate("Add"),
+          click: (event) => {
+            const index = parseInt($("#bc_data").val()?.toString() ?? "");
+            const portions = parseFloat(
+              $("#bc_addportions").val()?.toString().replace(",", ".") ?? ""
             );
-            if (index !== null && !isNaN(portions) && portions > 0) {
-              index = parseInt(index);
-              /* eslint-disable security/detect-object-injection */ // verified false positive
-              foodlist[index].portions = portions;
-              foods.push(_.cloneDeep(foodlist[index]));
-              /* eslint-enable security/detect-object-injection */ // verified false positive
-              $(this).dialog("close");
-              boluscalc.calculateInsulin();
+            if (!isNaN(index) && !isNaN(portions) && portions > 0) {
+              this.foodlist[index].portions = portions;
+              this.foods.push(structuredClone(this.foodlist[index]));
+
+              $(event.currentTarget).dialog("close");
+              this.calculateInsulin();
             }
           },
         },
         {
-          text: translate("Reload database"),
+          text: this.translate("Reload database"),
           class: "leftButton",
-          click: boluscalc.loadFoodDatabase,
+          click: (ev) => this.loadFoodDatabase(ev),
         },
       ],
-      open: function () {
-        $(this).parent().css("box-shadow", "20px 20px 20px 0px black");
-        $(this)
+      open: (event) => {
+        $(event.currentTarget)
+          .parent()
+          .css("box-shadow", "20px 20px 20px 0px black");
+        $(event.currentTarget)
           .parent()
           .find(".ui-dialog-buttonset")
           .css({ width: "100%", "text-align": "right" });
-        $(this)
+        $(event.currentTarget)
           .parent()
-          .find('button:contains("' + translate("Add") + '")')
+          .find('button:contains("' + this.translate("Add") + '")')
           .css({ float: "left" });
-        $("#bc_filter_name").focus();
+
+        $("#bc_filter_name").trigger("focus");
       },
     });
-    maybePrevent(event);
+    this.#maybePrevent(event);
     return false;
   }
 
-  function findClosestSGVToPastTime(time) {
-    var nowData = client.entries.filter(function (d) {
-      return d.type === "sgv" && d.mills <= time.getTime();
-    });
-    var focusPoint = _.last(nowData);
+  /** @param {Date} time */
+  #findClosestSGVToPastTime(time) {
+    const nowData = this.client.entries.filter(
+      /** @returns {d is import("../types").Sgv} */
+      (d) => d.type === "sgv" && d.mills <= time.getTime()
+    );
+    const focusPoint = nowData.at(-1);
 
     if (
       !focusPoint ||
-      focusPoint.mills + times.mins(10).mills < time.getTime()
+      focusPoint.mills + times.mins(10).msecs < time.getTime()
     ) {
       return null;
     }
+
     return focusPoint;
   }
-
-  if (isTouch()) {
-    // Make it faster on mobile devices
-    $(".insulincalculationpart").change(boluscalc.calculateInsulin);
-  } else {
-    $(".insulincalculationpart").on("input", boluscalc.calculateInsulin);
-    $("input:checkbox.insulincalculationpart").change(
-      boluscalc.calculateInsulin,
-    );
-  }
-  $("#bc_bgfrommeter").change(boluscalc.calculateInsulin);
-  $("#bc_addfromdatabase").click(addFoodFromDatabase);
-  $("#bc_bgfromsensor").change(function bc_bgfromsensor_click(event) {
-    boluscalc.updateVisualisations(client.sbx);
-    boluscalc.calculateInsulin();
-    maybePrevent(event);
-  });
-
-  $("#boluscalcDrawerToggle").click(boluscalc.toggleDrawer);
-  $("#boluscalcDrawer").find("button").click(boluscalc.submit);
-  $("#bc_eventTime input:radio").change(boluscalc.eventTimeTypeChange);
-
-  $(".bc_eventtimeinput")
-    .focus(boluscalc.dateTimeFocus)
-    .change(boluscalc.dateTimeChange);
-
-  boluscalc.loadFoodQuickpicks();
-  setDateAndTime();
-
-  return boluscalc;
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof BolusCalc>} args */
+module.exports = (...args) => new BolusCalc(...args);

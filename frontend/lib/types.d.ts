@@ -32,6 +32,15 @@ export type Profile = {
   mills?: number;
   time?: string;
   timeAsSeconds?: number;
+  units?: "mmol" | "mgdl";
+  sens?: number;
+  carbratio?: number;
+  basal: number;
+  timezone?: string;
+  dia?: number;
+  target_low?: number;
+  target_high?: number;
+  carbs_hr?: number;
   store?: {
     [K in string]: Omit<Profile, "store">;
   };
@@ -78,24 +87,40 @@ export type DeviceStatus = {
   device: any;
 };
 
-export interface Entry {
-  type: "sgv" | "mbg" | "cal" | "food" | "activity";
+export interface EntryBase {
   mills: number;
   mgdl: number;
   mmol?: number;
   scaled?: number | string;
 }
 
-export interface Sgv extends Entry, Record<string, any> {}
-export interface Mbg extends Entry, Record<string, any> {}
-export interface Cal extends Entry, Record<string, any> {}
-export interface Food extends Entry, Record<string, any> {}
-export interface Activity extends Entry, Record<string, any> {}
+export interface Sgv extends EntryBase, Record<string, any> {
+  type: "sgv";
+}
+export interface Mbg extends EntryBase, Record<string, any> {
+  type: "mbg";
+}
+export interface Cal extends EntryBase, Record<string, any> {
+  type: "cal";
+}
+export interface Food extends EntryBase, Record<string, any> {
+  type: "food";
+  category?: string;
+  subcategory?: string;
+}
+export interface QuickPick extends EntryBase, Record<string, any> {
+  type: "quickpick";
+}
+export interface Activity extends EntryBase, Record<string, any> {
+  type: "activity";
+}
 export interface DBStats extends Record<string, any> {
   datasize?: number;
   indexsize?: number;
   dataSize?: number;
 }
+
+export type Entry = Sgv | Mbg | Cal | Food | QuickPick | Activity;
 
 export type RemoveKeys<T, K extends string> = {
   [P in keyof T as P extends K ? never : P]: T[P] extends object

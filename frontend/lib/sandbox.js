@@ -203,7 +203,7 @@ class Sandbox {
     return entry && this.time - entry.mills <= times.mins(15).msecs;
   }
 
-  /** @param {import("./types.js").Entry[]} [entries] */
+  /** @template {import("./types").Entry} T @param {T[]} [entries] */
   lastEntry(entries) {
     return entries
       ?.slice()
@@ -212,7 +212,8 @@ class Sandbox {
   }
 
   /**
-   * @param {import("./types.js").Entry[]} entries
+   * @template {import("./types").Entry} T 
+   * @param {T[]} entries
    * @param {number} n
    */
   lastNEntries(entries, n) {
@@ -222,7 +223,7 @@ class Sandbox {
       .reverse();
   }
 
-  /** @param {import("./types.js").Entry[]} entries */
+  /** @template {import("./types").Entry} T  @param {T[]} entries */
   prevEntry(entries) {
     const last2 = this.lastNEntries(entries, 2);
     return last2.at(0);

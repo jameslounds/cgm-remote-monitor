@@ -67,6 +67,7 @@ class ProfileFunctions {
           startDate: profile.startDate || "1980-01-01",
           _id: profile.id,
           convertedOnTheFly: true,
+          basal: /** @type {number} */ (/** @type {unknown} */ (undefined)),
           store: {
             Default: {
               startDate: undefined,
@@ -114,7 +115,7 @@ class ProfileFunctions {
 
   /**
    * @param {number | undefined} time
-   * @param {string} valueType
+   * @param {keyof Omit<Profile, "store">} valueType
    * @param {string} spec_profile
    */
   getValueByTime(time, valueType, spec_profile) {
@@ -149,7 +150,7 @@ class ProfileFunctions {
     // TODO: Better warnings to user for missing configuration
 
     const t = this.getTimezone(spec_profile)
-      ? this.moment(minuteTime).tz(this.getTimezone(spec_profile))
+      ? this.moment(minuteTime).tz(this.getTimezone(spec_profile) ?? "")
       : this.moment(minuteTime);
 
     // Convert to seconds from midnight
@@ -169,7 +170,7 @@ class ProfileFunctions {
     }
 
     if (returnValue) {
-      returnValue = parseFloat(returnValue);
+      returnValue = parseFloat(returnValue?.toString());
       if (isCcpProfile) {
         switch (valueType) {
           case "sens":
@@ -192,7 +193,7 @@ class ProfileFunctions {
    *
    * @param {number | undefined | null} time
    * @param {string} spec_profile
-   * @returns
+   * @returns {Omit<Profile, "store">}
    */
   getCurrentProfile(time, spec_profile) {
     time = time || Date.now();
@@ -208,7 +209,7 @@ class ProfileFunctions {
     const currProfile =
       data && data.store && data.store[timeprofile]
         ? data.store[timeprofile]
-        : {};
+        : /** @type {Omit<Profile, "store">} */ ({});
 
     this.cache.put(cacheKey, currProfile, cacheTTL);
     return currProfile;
@@ -234,11 +235,12 @@ class ProfileFunctions {
     return !!this.data;
   }
 
-  /** @param {string} valueType */
+  /** @template {keyof Omit<Profile, "store">} T @param {T} valueType */
   #makeValueTypeGetter(valueType) {
     /**
      * @param {string | number} time
      * @param {string} spec_profile
+     * @returns {Profile[T]}
      */
     return (time, spec_profile) => {
       return this.getValueByTime(Number(time), valueType, spec_profile);
@@ -420,7 +422,9 @@ class ProfileFunctions {
    *
    * @param {number} time
    * @param {string} spec_profile
-   * @returns
+   * @returns {(
+   *  Record<"basal" | "combobolusbasal" | "tempbasal" | "totalbasal", number>
+   * & Record<"treatment" | "combobolustreatment", import("./types").Treatment | undefined>)}
    */
   getTempBasal(time, spec_profile) {
     const minuteTime = Math.round(time / 60000) * 60000;
@@ -450,7 +454,7 @@ class ProfileFunctions {
 
     const returnValue = {
       basal,
-      treatment,
+      treatment: treatment ?? undefined,
       combobolustreatment,
       combobolusbasal,
       tempbasal,
