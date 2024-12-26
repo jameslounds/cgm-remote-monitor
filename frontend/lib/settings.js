@@ -210,8 +210,12 @@ class Settings {
     this.password = undefined;
     /** @type {string[]} */
     this.enable = [];
+    /** @type {string[]} */
+    this.disable = [];
     /**@type {string[]} the names of properties we've mapped with `valueMappers` */
     this.wasSet = [];
+    /** @type {string | undefined} */
+    this.pushoverApiToken = undefined;
   }
 
   /**
@@ -316,53 +320,72 @@ class Settings {
     );
   }
 
-  /** @param {string} key @param {string} [nameType]  */
-  #nameFromKey(key, nameType) {
-    return nameType === "env" ? _.snakeCase(key).toUpperCase() : key;
-  }
+  /** @typedef {"snoozeFirstMinsForAlarmEvent" | "snoozeMinsForAlarmEvent" | "eachSetting" | "eachSettingAsEnv" | "filteredSettings" | "isAlarmEventEnabled" | "isEnabled"} MethodNames */
 
-  /** @param {string} [nameType] */
-  #eachSettingAs(nameType) {
+  /** @typedef {Exclude<keyof Settings, MethodNames> | keyof Settings['thresholds']} AccessorArg */
+  /** @typedef {(k: AccessorArg) => any} Accessor */
+  /** @typedef {(k: string) => any} EnvAccessor */
+
+  /** @param {Accessor} accessor */
+  eachSetting(accessor) {
     const valueMappers = Settings.valueMappers;
-    /** @param {(name: string) => any} accessor @param {Record<string, any>} keys */
+
+    /**@param {Accessor} accessor @param {Partial<Record<AccessorArg, any>>} keys */
+    const mapKeys = (accessor, keys) => {
+      Object.keys(keys).forEach(
+        /** @template {AccessorArg} TKey @param {TKey} key */ (key) => {
+          const value = keys[key];
+          if (this.#isSimple(value)) {
+            const newVal = accessor(key);
+
+            if (newVal !== undefined) {
+              const mapper = _.has(valueMappers, key) && valueMappers[key];
+              this.wasSet.push(key);
+              keys[key] =
+                typeof mapper === "function" ? mapper(newVal) : newVal;
+            }
+          }
+        }
+      );
+    };
+
+    mapKeys(accessor, this);
+    mapKeys(accessor, this.thresholds);
+    this.#enableAndDisableFeatures(accessor);
+  }
+  /** @param {EnvAccessor} accessor */
+  eachSettingAsEnv(accessor) {
+    const valueMappers = Settings.valueMappers;
+
+    /**@param {EnvAccessor} accessor @param {Record<string, any>} keys */
     const mapKeys = (accessor, keys) => {
       Object.keys(keys).forEach((key) => {
         const value = keys[key];
         if (this.#isSimple(value)) {
-          const newVal = accessor(this.#nameFromKey(key, nameType));
-          if (newVal !== undefined && _.has(valueMappers, key)) {
-            const mapper =
-              /** @type {valueMappers[keyof valueMappers]} */
-              (valueMappers[key]);
+          const newVal = accessor(_.snakeCase(key).toUpperCase());
+
+          if (newVal !== undefined) {
+            const mapper = _.has(valueMappers, key) && valueMappers[key];
             this.wasSet.push(key);
-            keys[key] = mapper ? mapper(newVal) : newVal;
+            keys[key] = typeof mapper === "function" ? mapper(newVal) : newVal;
           }
         }
       });
     };
 
-    /** @param {(name: string) => any} accessor */
-    return (accessor) => {
-      mapKeys(accessor, this);
-      mapKeys(accessor, this.thresholds);
-      this.#enableAndDisableFeatures(accessor, nameType);
-    };
-  }
-  /** @param {(name: string) => any} accessor */
-  eachSetting(accessor) {
-    return this.#eachSettingAs()(accessor);
-  }
-  /** @param {(name: string) => any} accessor */
-  eachSettingAsEnv(accessor) {
-    return this.#eachSettingAs("env")(accessor);
+    mapKeys(accessor, this);
+    mapKeys(accessor, this.thresholds);
+    this.#enableAndDisableFeatures((a) =>
+      accessor(_.snakeCase(a).toUpperCase())
+    );
   }
 
-  /** @param {(name: string) => any} accessor @param {string} [nameType] */
-  #enableAndDisableFeatures(accessor, nameType) {
+  /** @param {Accessor} accessor  */
+  #enableAndDisableFeatures(accessor) {
     /** @type {string[]} */
-    /** @param {string} key */
+    /** @param {AccessorArg} key */
     const getAndPrepare = (key) => {
-      const raw = accessor(this.#nameFromKey(key, nameType)) || "";
+      const raw = accessor(key) || "";
       const cleaned = decodeURIComponent(raw).toLowerCase()?.split(" ") ?? [];
       return cleaned.filter((e) => !!e);
     };
@@ -393,10 +416,7 @@ class Settings {
     this.alarmTypes = prepareAlarmTypes();
 
     //don't require pushover to be enabled to preserve backwards compatibility if there are extendedSettings for it
-    enableIf(
-      "pushover",
-      accessor(this.#nameFromKey("pushoverApiToken", nameType))
-    );
+    enableIf("pushover", accessor("pushoverApiToken"));
 
     enableIf(
       "treatmentnotify",

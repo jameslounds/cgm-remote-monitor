@@ -13,6 +13,7 @@ var units = require("../units")();
 var levels = require("../levels");
 var times = require("../times");
 var receiveDData = require("./receiveddata");
+const BrowserSettings = require("./browser-settings");
 
 var brushing = false;
 
@@ -130,8 +131,8 @@ client.init = function init(callback) {
 client.loadLanguage = function loadLanguage(serverSettings, callback) {
   $("#loadingMessageText").html("Loading language file");
 
-  browserSettings = require("./browser-settings");
-  client.settings = browserSettings(client, serverSettings, $);
+  browserSettings = new BrowserSettings(client, serverSettings, $);
+  client.settings = browserSettings.settings;
   console.log("language is", client.settings.language);
 
   let filename = language.getFilename(client.settings.language);
@@ -208,7 +209,7 @@ client.load = function load(serverSettings, callback) {
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-  client.settings = browserSettings(client, serverSettings, $);
+  client.settings = new BrowserSettings(client, serverSettings, $).settings;
 
   language.set(client.settings.language).DOMtranslate($);
   client.translate = language.translate;

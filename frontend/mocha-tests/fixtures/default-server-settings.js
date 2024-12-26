@@ -22,7 +22,7 @@ module.exports = {
     alarmTimeagoUrgent: true,
     alarmTimeagoUrgentMins: 30,
     language: "en",
-    enable: "iob rawbg careportal delta direction upbat errorcodes",
+    enable: ["iob", "rawbg", "careportal", "delta", "direction", "upbat", "errorcodes"],
     showPlugins: "iob",
     alarmTypes: "predict",
     thresholds: {

@@ -17,6 +17,10 @@ declare global {
       thisArg?: any
     ): { [K in keyof this]: U };
   }
+
+  interface String {
+    startsWith<T extends string>(prefix: T): this is `${T}${string}`
+  }
 }
 
 export {};

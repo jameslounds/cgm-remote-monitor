@@ -38,10 +38,18 @@ export type Profile = {
 };
 
 interface Plugin {
-  name: string;
+  name: TranslationKey;
   pluginType: string;
+  label: TranslationKey;
   pillFlip?: boolean;
+  getClientPrefs?: () => PluginClientPrefs[];
 }
+
+type PluginClientPrefs = {
+  label: TranslationKey;
+  id: string;
+  type: string;
+};
 
 export type Treatment = {
   mills: number;
@@ -128,4 +136,9 @@ export type PluginEventType = {
     data: ReturnType<ReturnType<import("./client/careportal")>["gatherData"]>,
     callback: (error?: boolean) => void
   ) => void;
+};
+
+/** Removes methods from a class */
+export type ClassAsObj<T> = {
+  [K in keyof T as T[K] extends Function ? never : K]: T[K];
 };
