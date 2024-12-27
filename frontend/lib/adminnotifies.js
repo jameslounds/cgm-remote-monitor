@@ -3,13 +3,26 @@
 const { ONE_HOUR } = require("./constants");
 
 class AdminNotifies {
+  /**
+   * @param {{
+   *   bus: ReturnType<import("./bus")>;
+   *   settings: ReturnType<import("./settings")>;
+   * }} ctx
+   */
   constructor(ctx) {
+    /** @protected */
     this.ctx = ctx;
+    /** @type {import("./types").NotifyBase[]} */
     this.notifies = [];
 
     this.ctx.bus.on("admin-notify", this.addNotify);
     this.ctx.bus.on("tick", this.clean);
   }
+
+  /**
+   * @param {Omit<import("./types").NotifyBase, "count" | "lastRecorded">
+   *   | import("./types").NotifyBase} notify
+   */
   addNotify(notify) {
     if (!this.ctx.settings.adminNotifiesEnabled) {
       console.log("Admin notifies disabled, skipping notify", notify);
@@ -18,8 +31,8 @@ class AdminNotifies {
 
     if (!notify) return;
 
-    if (!notify.title) notify.title = "No title";
-    if (!notify.message) notify.message = "No message";
+    notify.title ||= "None";
+    notify.message ||= "None";
 
     const existingMessage = this.notifies.find(
       ({ message }) => message === notify.message
@@ -29,9 +42,7 @@ class AdminNotifies {
       existingMessage.count += 1;
       existingMessage.lastRecorded = Date.now();
     } else {
-      notify.count = 1;
-      notify.lastRecorded = Date.now();
-      this.notifies.push(notify);
+      this.notifies.push({ ...notify, count: 1, lastRecorded: Date.now() });
     }
   }
 
@@ -50,4 +61,5 @@ class AdminNotifies {
   }
 }
 
-module.exports = (ctx) => new AdminNotifies(ctx);
+/** @param {ConstructorParameters<typeof AdminNotifies>} args */
+module.exports = (...args) => new AdminNotifies(...args);

@@ -2,9 +2,13 @@ import type { TranslationKey } from "./language";
 
 type NotifyBase = {
   level: Level;
-  title: string;
-  message: string;
+  title: TranslationKey;
+  message: TranslationKey;
   group: string;
+  lastRecorded: number;
+  count: number;
+
+  persistent?: boolean;
 };
 export type Notify = NotifyBase & {
   clear?: boolean;

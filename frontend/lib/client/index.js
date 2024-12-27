@@ -14,6 +14,7 @@ var levels = require("../levels");
 var times = require("../times");
 var receiveDData = require("./receiveddata");
 const BrowserSettings = require("./browser-settings");
+const AdminNotifiesClient = require("./adminnotifiesclient");
 
 var brushing = false;
 
@@ -268,7 +269,7 @@ client.load = function load(serverSettings, callback) {
   //After plugins are initialized with browser settings;
   browserSettings.loadAndWireForm();
 
-  client.adminnotifies = require("./adminnotifiesclient")(client, $);
+  client.notifies = new AdminNotifiesClient(client, $);
 
   if (serverSettings && serverSettings.authorized) {
     client.authorized = serverSettings.authorized;
