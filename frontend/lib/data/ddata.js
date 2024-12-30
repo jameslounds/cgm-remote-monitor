@@ -2,6 +2,7 @@
 
 const times = require("../times");
 const consts = require("../constants");
+const profilefunctions = require("../profilefunctions");
 
 const DEVICE_TYPE_FIELDS =
   /** @type {(keyof import("../types").DeviceStatus)[]} */ ([
@@ -28,7 +29,7 @@ class DData {
     this.profiles = [];
     /** @type {import("../types").DeviceStatus[]} */
     this.devicestatus = [];
-    /** @type {(import("../types").Food| import("../types").QuickPick)[]} */
+    /** @type {(import("../types").Food | import("../types").QuickPick)[]} */
     this.food = [];
     /** @type {import("../types").Activity[]} */
     this.activity = [];
@@ -43,10 +44,19 @@ class DData {
   }
 
   /**
-   * Convert Mongo ids to strings and ensure all objects have the mills property for
-   * significantly faster processing than constant date parsing, plus simplified
-   * logic
-   * @template {Record<string, {_id?: string; mills?: number; created_at?: string | number; sysTime?: string | number}>} T
+   * Convert Mongo ids to strings and ensure all objects have the mills property
+   * for significantly faster processing than constant date parsing, plus
+   * simplified logic
+   *
+   * @template {Record<
+   *   string,
+   *   {
+   *     _id?: string;
+   *     mills?: number;
+   *     created_at?: string | number;
+   *     sysTime?: string | number;
+   *   }
+   * >} T
    * @param {T} data;
    */
   processRawDataForRuntime(data) {
@@ -70,8 +80,10 @@ class DData {
   }
 
   /**
-   * Merge two arrays based on _id string, preferring new objects when a collision is found
-   * @template {{_id: string}} T
+   * Merge two arrays based on _id string, preferring new objects when a
+   * collision is found
+   *
+   * @template {{ _id: string }} T
    * @param {T[]} oldData
    * @param {T[]} newData
    */
@@ -111,7 +123,6 @@ class DData {
       "insulinchangeTreatments",
       "lastUpdated",
       "mbgs",
-      "profile",
       "profileTreatments",
       "profiles",
       "sensorTreatments",
@@ -129,6 +140,11 @@ class DData {
         cloned[propertyName] = structuredClone(this[propertyName]);
       }
     );
+
+    if (this.profile) {
+      cloned.profile = profilefunctions([], { moment: this.profile.moment });
+      cloned.profile.data = this.profile.data;
+    }
 
     return cloned;
   }
@@ -156,9 +172,7 @@ class DData {
     };
   }
 
-  /**
-   * @param {number} time
-   */
+  /** @param {number} time */
   recentDeviceStatus(time) {
     const deviceAndTypes = this.devicestatus
       .map((status) =>
@@ -214,12 +228,13 @@ class DData {
    * @overload
    * @param {import("../types").Treatment[]} treatments
    * @param {false} [keepzeroduratiot]
-   * @returns {(import("../types").Treatment & {duration: number})[]}
+   * @returns {(import("../types").Treatment & { duration: number })[]}
    */
   /**
    * @param {import("../types").Treatment[]} treatments
    * @param {boolean} [keepzeroduration]
-   * @returns {(import("../types").Treatment)[] | (import("../types").Treatment & {duration: number})[]}
+   * @returns {import("../types").Treatment[]
+   *   | (import("../types").Treatment & { duration: number })[]}
    */
   processDurations(treatments, keepzeroduration) {
     const seenMills = new Set();
@@ -236,8 +251,7 @@ class DData {
     });
 
     /**
-     *
-     * @param {import("../types").Treatment & {duration: number}} base
+     * @param {import("../types").Treatment & { duration: number }} base
      * @param {import("../types").Treatment} end
      */
     function cutIfInInterval(base, end) {
@@ -343,7 +357,16 @@ class DData {
     );
   }
 
-  /** @param {(import("../types").Treatment | (import("../types").Treatment & {units: "mmol" | "mg/dl"; targetTop: number; targetBottom: number;}))[]} treatments */
+  /**
+   * @param {(
+   *   | import("../types").Treatment
+   *   | (import("../types").Treatment & {
+   *       units: "mmol" | "mg/dl";
+   *       targetTop: number;
+   *       targetBottom: number;
+   *     })
+   * )[]} treatments
+   */
   #convertTempTargetUnits(treatments) {
     return structuredClone(treatments).map((t) => {
       if ("units" in t && t.units === "mmol") {
