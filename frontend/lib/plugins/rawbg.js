@@ -1,64 +1,65 @@
 "use strict";
 
-var _ = require("lodash");
+/** @typedef {import("../types").Plugin} Plugin */
+/** @implements {Plugin} */
+class RawBg {
+  name = "rawbg";
+  label = "Raw BG";
+  pluginType = "bg-status";
+  pillFlip = true;
 
-function init(ctx) {
-  var translate = ctx.language.translate;
+  /** @param {import(".").PluginCtx} ctx */
+  constructor(ctx) {
+    this.translate = ctx.language.translate;
+  }
 
-  var rawbg = {
-    name: "rawbg",
-    label: "Raw BG",
-    pluginType: "bg-status",
-    pillFlip: true,
-  };
-
-  rawbg.getPrefs = function getPrefs(sbx) {
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  getPrefs(sbx) {
     return {
       display:
         sbx && sbx.extendedSettings.display
           ? sbx.extendedSettings.display
           : "unsmoothed",
     };
-  };
+  }
 
-  rawbg.setProperties = function setProperties(sbx) {
-    sbx.offerProperty("rawbg", function setRawBG() {
-      var result = {};
-      var currentSGV = sbx.lastSGVEntry();
+  /** @param {import("../sandbox").InitializedSandbox} sbx */
+  setProperties(sbx) {
+    sbx.offerProperty("rawbg", () => {
+      const currentSGV = sbx.lastSGVEntry();
 
       //TODO:OnlyOneCal - currently we only load the last cal, so we can't ignore future data
-      var currentCal = _.last(sbx.data.cals);
+      const currentCal = sbx.data.cals.at(-1);
 
-      var staleAndInRetroMode =
+      const staleAndInRetroMode =
         sbx.data.inRetroMode && !sbx.isCurrent(currentSGV);
 
-      if (!staleAndInRetroMode && currentSGV && currentCal) {
-        result.mgdl = rawbg.calc(currentSGV, currentCal, sbx);
-        result.noiseLabel = rawbg.noiseCodeToDisplay(
-          currentSGV.mgdl,
-          currentSGV.noise,
-        );
-        result.sgv = currentSGV;
-        result.cal = currentCal;
-        result.displayLine = [
-          "Raw BG:",
-          sbx.scaleMgdl(result.mgdl),
-          sbx.unitsLabel,
-          result.noiseLabel,
-        ].join(" ");
-      }
+      if (staleAndInRetroMode || !currentSGV || !currentCal) return {};
 
-      return result;
+      const mgdl = this.calc(currentSGV, currentCal, sbx);
+      const noiseLabel = this.noiseCodeToDisplay(
+        currentSGV.mgdl,
+        currentSGV.noise
+      );
+
+      return {
+        mgdl,
+        noiseLabel,
+        sgv: currentSGV,
+        cal: currentCal,
+        displayLine: `Raw BG: ${sbx.scaleMgdl(mgdl)} ${sbx.unitsLabel} ${noiseLabel}`,
+      };
     });
-  };
+  }
 
-  rawbg.updateVisualisation = function updateVisualisation(sbx) {
-    var prop = sbx.properties.rawbg;
+  /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  updateVisualisation(sbx) {
+    const prop = sbx.properties.rawbg;
 
-    var options =
+    const options =
       prop &&
       prop.sgv &&
-      rawbg.showRawBGs(prop.sgv.mgdl, prop.sgv.noise, prop.cal, sbx)
+      this.showRawBGs(prop.sgv.mgdl, prop.sgv.noise, prop.cal, sbx)
         ? {
             hide: !prop || !prop.mgdl,
             value: sbx.scaleMgdl(prop.mgdl),
@@ -68,122 +69,138 @@ function init(ctx) {
             hide: true,
           };
 
-    sbx.pluginBase.updatePillText(rawbg, options);
-  };
+    sbx.pluginBase.updatePillText(this, options);
+  }
 
-  rawbg.calc = function calc(sgv, cal, sbx) {
-    var raw = 0;
-    var cleaned = cleanValues(sgv, cal);
+  /**
+   * @param {import("../types").Sgv} sgv
+   * @param {import("../types").Cal} cal
+   * @param {ReturnType<import("../sandbox")>} sbx
+   */
+  calc(sgv, cal, sbx) {
+    const cleaned = this.cleanValues(sgv, cal);
 
-    var prefs = rawbg.getPrefs(sbx);
+    const prefs = this.getPrefs(sbx);
 
     if (
       cleaned.slope === 0 ||
       cleaned.unfiltered === 0 ||
       cleaned.scale === 0
     ) {
-      raw = 0;
-    } else if (
+      return 0;
+    }
+
+    if (
       cleaned.filtered === 0 ||
       sgv.mgdl < 40 ||
       prefs.display === "unfiltered"
     ) {
-      raw =
+      return Math.round(
         (cleaned.scale * (cleaned.unfiltered - cleaned.intercept)) /
-        cleaned.slope;
-    } else if (prefs.display === "filtered") {
-      raw =
-        (cleaned.scale * (cleaned.filtered - cleaned.intercept)) /
-        cleaned.slope;
-    } else {
-      var ratio =
-        (cleaned.scale * (cleaned.filtered - cleaned.intercept)) /
-        cleaned.slope /
-        sgv.mgdl;
-      raw =
-        (cleaned.scale * (cleaned.unfiltered - cleaned.intercept)) /
-        cleaned.slope /
-        ratio;
+          cleaned.slope
+      );
     }
 
-    return Math.round(raw);
-  };
+    if (prefs.display === "filtered") {
+      return Math.round(
+        (cleaned.scale * (cleaned.filtered - cleaned.intercept)) / cleaned.slope
+      );
+    }
 
-  rawbg.isEnabled = function isEnabled(sbx) {
+    const ratio =
+      (cleaned.scale * (cleaned.filtered - cleaned.intercept)) /
+      cleaned.slope /
+      sgv.mgdl;
+    return Math.round(
+      (cleaned.scale * (cleaned.unfiltered - cleaned.intercept)) /
+        cleaned.slope /
+        ratio
+    );
+  }
+
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  isEnabled(sbx) {
     return sbx.settings.isEnabled("rawbg");
-  };
+  }
 
-  rawbg.showRawBGs = function showRawBGs(mgdl, noise, cal, sbx) {
+  /**
+   * @param {number} mgdl
+   * @param {number} noise
+   * @param {import("../types").Cal} cal
+   * @param {ReturnType<import("../sandbox")>} sbx
+   */
+  showRawBGs(mgdl, noise, cal, sbx) {
     return (
       cal &&
-      rawbg.isEnabled(sbx) &&
+      this.isEnabled(sbx) &&
       (sbx.settings.showRawbg === "always" ||
         (sbx.settings.showRawbg === "noise" && (noise >= 2 || mgdl < 40)))
     );
-  };
+  }
 
-  rawbg.noiseCodeToDisplay = function noiseCodeToDisplay(mgdl, noise) {
-    var display;
-    switch (parseInt(noise)) {
+  /** @param {number} mgdl @param {number} noise */
+  noiseCodeToDisplay(mgdl, noise) {
+    switch (Math.floor(noise)) {
       case 0:
-        display = "---";
-        break;
+        return "---";
       case 1:
-        display = translate("Clean");
-        break;
+        return this.translate("Clean");
       case 2:
-        display = translate("Light");
-        break;
+        return this.translate("Light");
       case 3:
-        display = translate("Medium");
-        break;
+        return this.translate("Medium");
       case 4:
-        display = translate("Heavy");
-        break;
-      default:
-        if (mgdl < 40) {
-          display = translate("Heavy");
-        } else {
-          display = "~~~";
-        }
-        break;
+        return this.translate("Heavy");
     }
-    return display;
-  };
+    if (mgdl < 40) return this.translate("Heavy");
+    return "~~~";
+  }
 
-  function virtAsstRawBGHandler(next, slots, sbx) {
-    var rawBg = _.get(sbx, "properties.rawbg.mgdl");
+  /**
+   * @param {(a: string, response: string) => void} next
+   * @param {unknown} _slots
+   * @param {ReturnType<import("../sandbox")>} sbx
+   * @protected
+   */
+  virtAsstRawBGHandler(next, _slots, sbx) {
+    /** @type {number} @see {@link RawBg#setProperties} */
+    const rawBg = sbx.properties.rawbg?.mgdl;
     if (rawBg) {
-      var response = translate("virtAsstRawBG", {
-        params: [rawBg],
-      });
-      next(translate("virtAsstTitleRawBG"), response);
+      next(
+        this.translate("virtAsstTitleRawBG"),
+        this.translate("virtAsstRawBG", {
+          params: [rawBg.toString()],
+        })
+      );
     } else {
-      next(translate("virtAsstTitleRawBG"), translate("virtAsstUnknown"));
+      next(
+        this.translate("virtAsstTitleRawBG"),
+        this.translate("virtAsstUnknown")
+      );
     }
   }
 
-  rawbg.virtAsst = {
+  virtAsst = /** @type {const} */ ({
     intentHandlers: [
       {
         intent: "MetricNow",
         metrics: ["raw bg", "raw blood glucose"],
-        intentHandler: virtAsstRawBGHandler,
+        intentHandler: this.virtAsstRawBGHandler.bind(this),
       },
     ],
-  };
+  });
 
-  return rawbg;
+  /** @protected @param {import("../types").Sgv} sgv @param {import("../types").Cal} cal */
+  cleanValues(sgv, cal) {
+    return {
+      unfiltered: parseInt(sgv.unfiltered) || 0,
+      filtered: parseInt(sgv.filtered) || 0,
+      scale: parseFloat(cal.scale) || 0,
+      intercept: parseFloat(cal.intercept) || 0,
+      slope: parseFloat(cal.slope) || 0,
+    };
+  }
 }
 
-function cleanValues(sgv, cal) {
-  return {
-    unfiltered: parseInt(sgv.unfiltered) || 0,
-    filtered: parseInt(sgv.filtered) || 0,
-    scale: parseFloat(cal.scale) || 0,
-    intercept: parseFloat(cal.intercept) || 0,
-    slope: parseFloat(cal.slope) || 0,
-  };
-}
-
-module.exports = init;
+/** @param {import(".").PluginCtx} ctx */
+module.exports = (ctx) => new RawBg(ctx);
