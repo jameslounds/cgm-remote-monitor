@@ -8,8 +8,9 @@ const Storages = require("js-storage");
 /** @typedef {import("../types").PluginEventType} PluginEventType */
 
 class Careportal {
+  // * @param {import(".").Stage2InitializedClient} client
   /**
-   * @param {ReturnType<import(".")>} client
+   * @param {import(".")} client
    * @param {JQueryStatic} $
    */
   constructor(client, $) {
@@ -18,7 +19,7 @@ class Careportal {
 
     /** @type {ReturnType<import("../language")>} */
     this.language = client.language;
-    /** @type {ReturnType<import("../language")>['translate']} */
+    /** @type {ReturnType<import("../language")>["translate"]} */
     this.translate = this.client.translate;
     this.storage = Storages.localStorage;
     this.units = this.client.settings.units;
@@ -26,9 +27,14 @@ class Careportal {
     this.eventTime = $("#eventTimeValue");
     this.eventDate = $("#eventDateValue");
 
-    /** @type {Record<string, Omit<PluginEventType, "submitHook" | "val" | "name">>} */
+    /**
+     * @type {Record<
+     *   string,
+     *   Omit<PluginEventType, "submitHook" | "val" | "name">
+     * >}
+     */
     this.inputMatrix = {};
-    /** @type {Record<string, PluginEventType['submitHook']>} */
+    /** @type {Record<string, PluginEventType["submitHook"]>} */
     this.submitHooks = {};
     /** @type {PluginEventType[]} */
     this.allEventTypes = [];
@@ -56,7 +62,15 @@ class Careportal {
     const updateTime = this.updateTime.bind(this);
     const mergeDateAndTime = this.mergeDateAndTime.bind(this);
     const maybePrevent = this.maybePrevent;
-    /** @type {JQuery.TypeEventHandler<HTMLInputElement, undefined, HTMLInputElement, HTMLInputElement, "focus">} */
+    /**
+     * @type {JQuery.TypeEventHandler<
+     *   HTMLInputElement,
+     *   undefined,
+     *   HTMLInputElement,
+     *   HTMLInputElement,
+     *   "focus"
+     * >}
+     */
     this.dateTimeFocus = function (event) {
       $("#othertime").prop("checked", true);
       updateTime($(this), mergeDateAndTime());
@@ -77,8 +91,8 @@ class Careportal {
 
   mergeDateAndTime() {
     return this.client.utils.mergeInputTime(
-      this.eventTime.val(),
-      this.eventDate.val()
+      this.eventTime.val()?.toString() ?? "",
+      this.eventDate.val()?.toString() ?? ""
     );
   }
 
@@ -222,7 +236,7 @@ class Careportal {
 
   reasonable() {
     const eventType = $("#eventType").val();
-    /** @type {Exclude<PluginEventType['reasons'], undefined>} */
+    /** @type {Exclude<PluginEventType["reasons"], undefined>} */
     let reasons = [];
 
     // validate the eventType input before getting the reasons list
@@ -275,7 +289,7 @@ class Careportal {
     });
   }
 
-  /** @param {PluginEventType['val']} value */
+  /** @param {PluginEventType["val"]} value */
   resolveEventName(value) {
     return this.events.find((e) => e.val === value)?.name;
   }
@@ -287,11 +301,9 @@ class Careportal {
     $("#profile")
       .empty()
       .append(
-        ...this.client.profilefunctions
-          .listBasalProfiles()
-          .map(
-            /** @param {string} p */ (p) => `<option val="${p}">${p}</option>`
-          )
+        ...(this.client.profilefunctions.listBasalProfiles() ?? []).map(
+          /** @param {string} p */ (p) => `<option val="${p}">${p}</option>`
+        )
       );
 
     this.prepareEvents();
@@ -323,7 +335,9 @@ class Careportal {
     $("#preBolus").val(0);
     $("#notes").val("");
     $("#enteredBy").val(
-      this.client.authorized.sub ?? this.storage.get("enteredBy") ?? ""
+      this.client.authorized?.sub ??
+        this.storage.get("enteredBy")?.toString() ??
+        ""
     );
     $("#nowtime").prop("checked", true);
 
@@ -342,7 +356,12 @@ class Careportal {
       .find("input[name=glucoseType]:checked")
       .val()
       ?.toString();
-    /** @satisfies {{[K in keyof PluginEventType]?: string | number} & Record<string, any>}} */
+    /**
+     * @satisfies {{ [K in keyof PluginEventType]?: string | number } & Record<
+     *   string,
+     *   any
+     * >} }
+     */
     const data = {
       enteredBy: $("#enteredBy").val()?.toString(),
       eventType: eventType,
@@ -401,7 +420,7 @@ class Careportal {
       delete data.preBolus;
     }
 
-    /** @type {Exclude<PluginEventType['reasons'], undefined>} */
+    /** @type {Exclude<PluginEventType["reasons"], undefined>} */
     let reasons = [];
 
     // validate the eventType input before getting the reasons list
@@ -456,18 +475,25 @@ class Careportal {
         parseInt($("#insulinSplitExt").val()?.toString() ?? "") || 0;
     }
 
-    return /** @type {{[K in keyof typeof data]: Exclude<(typeof data)[K], null | "">}} */ (
-      Object.fromEntries(
-        Object.entries(data).filter(([_, v]) => v !== "" && v !== null)
+    return (
+      /**
+       * @type {{
+       *   [K in keyof typeof data]: NonNullable<(typeof data)[K]>;
+       * }}
+       */ (
+        Object.fromEntries(
+          Object.entries(data).filter(([_, v]) => v !== "" && v !== null)
+        )
       )
     );
   }
 
-  /**
-   * @param {ReturnType<Careportal['gatherData']>} data
-   */
+  /** @param {ReturnType<Careportal["gatherData"]>} data */
   validateData(data) {
-    console.log("Validating careportal entry: ", data.eventType);
+    console.log(
+      "Validating careportal entry: ",
+      data.eventType
+    );
 
     if (data.duration === 0 || data.eventType !== "Temporary Target")
       return { allOk: true, messages: [] };
@@ -527,7 +553,7 @@ class Careportal {
     };
   }
 
-  /** @param {ReturnType<Careportal['gatherData']>} data */
+  /** @param {ReturnType<Careportal["gatherData"]>} data */
   buildConfirmText(data) {
     const translate = this.translate;
     const eventName = this.resolveEventName(data.eventType);
@@ -599,7 +625,10 @@ class Careportal {
       !!data.transmitterId,
       translate("Transmitter ID") + ": " + data.transmitterId
     );
-    pushIf(!!data.insulin, translate("Insulin Given") + ": " + data.insulin.toFixed(2));
+    pushIf(
+      !!data.insulin,
+      translate("Insulin Given") + ": " + data.insulin.toFixed(2)
+    );
     pushIf(
       data.eventType === "Combo Bolus",
       translate("Combo Bolus") +
@@ -633,7 +662,7 @@ class Careportal {
     return text.join("\n");
   }
 
-  /** @param {ReturnType<Careportal['gatherData']>} data */
+  /** @param {ReturnType<Careportal["gatherData"]>} data */
   confirmPost(data) {
     const validation = this.validateData(data);
 
@@ -662,7 +691,13 @@ class Careportal {
     }
   }
 
-  /** @param {ReturnType<Careportal['gatherData']> & {insulin?: number; enteredinsulin?: number; relative?: number}} data */
+  /**
+   * @param {ReturnType<Careportal["gatherData"]> & {
+   *   insulin?: number;
+   *   enteredinsulin?: number;
+   *   relative?: number;
+   * }} data
+   */
   postTreatment(data) {
     if (data.eventType === "Combo Bolus") {
       data.enteredinsulin = data.insulin;
@@ -699,7 +734,7 @@ class Careportal {
     this.client.browserUtils.closeDrawer("#treatmentDrawer");
   }
 
-  /** @param {JQuery.Event} event  */
+  /** @param {JQuery.Event} event */
   eventTimeTypeChange(event) {
     if ($("#othertime").is(":checked")) {
       this.eventTime.trigger("focus");
@@ -726,5 +761,6 @@ class Careportal {
   }
 }
 
+// /** @param {import(".").Stage2InitializedClient} client @param {JQueryStatic} $ */
 /** @param {ConstructorParameters<typeof Careportal>} args */
 module.exports = (...args) => new Careportal(...args);

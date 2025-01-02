@@ -106,6 +106,7 @@ function mergeTreatmentUpdate(isDelta, cachedDataArray, receivedDataArray) {
  * @property {import("../types").Cal[]} cals
  * @property {import("../types").DeviceStatus[]} devicestatus
  * @property {import("../types").DBStats} dbstats
+ * @property {import("../profilefunctions").Profile[]} profiles
  */
 /**
  * @param {Received} received

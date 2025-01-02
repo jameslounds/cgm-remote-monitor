@@ -6,6 +6,7 @@ type NotifyBase = {
   message: TranslationKey;
   group: string;
   lastRecorded: number;
+  timestamp: number;
   count: number;
 
   persistent?: boolean;
@@ -13,7 +14,6 @@ type NotifyBase = {
 export type Notify = NotifyBase & {
   clear?: boolean;
   eventName?: string;
-  /** maybe nto actully a string */
   plugin?: {
     name: string;
   };
@@ -93,6 +93,7 @@ export type DeviceStatus = {
 
 export interface EntryBase {
   mills: number;
+  date?: Date;
   mgdl: number;
   mmol?: number;
   scaled?: number | string;
@@ -103,6 +104,10 @@ export interface Sgv extends EntryBase, Record<string, any> {
 }
 export interface Mbg extends EntryBase, Record<string, any> {
   type: "mbg";
+}
+export interface Rawbg extends EntryBase, Record<string, any> {
+  color: string;
+  type: "rawbg";
 }
 export interface Cal extends EntryBase, Record<string, any> {
   type: "cal";
@@ -124,7 +129,7 @@ export interface DBStats extends Record<string, any> {
   dataSize?: number;
 }
 
-export type Entry = Sgv | Mbg | Cal | Food | QuickPick | Activity;
+export type Entry = Sgv | Mbg | Rawbg | Cal | Food | QuickPick | Activity;
 
 export type RemoveKeys<T, K extends string> = {
   [P in keyof T as P extends K ? never : P]: T[P] extends object

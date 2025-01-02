@@ -4,6 +4,8 @@ const { THIRTY_MINUTES } = require("./constants");
 
 const DEFAULT_GROUPS = ["default"];
 
+/** @typedef {Alarm} CAlarm */
+
 class Alarm {
   /** @type {number} */
   silenceTime = THIRTY_MINUTES;
@@ -33,7 +35,7 @@ class Notifications {
   /**
    *
    * @param {{testMode?: boolean}} env
-   * @param {{levels: import("./levels"); bus: ReturnType<import("./bus")>; ddata: ReturnType<import("./data/ddata")>}} ctx
+   * @param {{levels: import("./levels"); bus: ReturnType<import("./bus")>; ddata?: ReturnType<import("./data/ddata")>}} ctx
    */
   constructor(env, ctx) {
     this.env = env;
@@ -107,6 +109,7 @@ class Notifications {
    * @param {import("./types").Notify} notify
    */
   #emitNotification(notify) {
+    if(!this.ctx.ddata) return
     const alarm = this.#getAlarm(notify.level, notify.group);
     if (this.ctx.ddata.lastUpdated > alarm.lastAckTime + alarm.silenceTime) {
       this.ctx.bus.emit("notification", notify);
@@ -387,4 +390,6 @@ class Notifications {
 }
 
 /** @param {ConstructorParameters<typeof Notifications>} args */
-module.exports = (...args) => new Notifications(...args);
+const fn = (...args) => new Notifications(...args);
+
+module.exports = Object.assign(fn, {Alarm});

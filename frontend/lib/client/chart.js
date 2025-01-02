@@ -844,7 +844,7 @@ class Chart {
   }
 
   /** @param {ReturnType<import("./index")['dataExtent']>} dataRange */
-  updateContext(dataRange = this.client.dateExtent()) {
+  updateContext(dataRange = this.client.dataExtent()) {
     if (this.client.documentHidden) {
       console.info("Document Hidden, not updating - " + new Date());
       return;

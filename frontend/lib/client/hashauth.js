@@ -164,7 +164,7 @@ class HashAuth {
     return false;
   }
 
-  /** @param {Event | ((success: boolean) => void)} [eventOrNext] */
+  /** @param {JQuery.Event | Event | ((success: boolean) => void)} [eventOrNext] */
   requestAuthentication(eventOrNext) {
     const translate = this.client.translate;
     this.injectHtml();

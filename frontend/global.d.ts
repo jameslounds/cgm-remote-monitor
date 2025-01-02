@@ -19,8 +19,11 @@ declare global {
   }
 
   interface String {
-    startsWith<T extends string>(prefix: T): this is `${T}${string}`
+    startsWith<T extends string>(prefix: T): this is `${T}${string}`;
   }
+
+  const io: typeof import("socket.io-client");
+  const $: JQueryStatic
 }
 
 export {};

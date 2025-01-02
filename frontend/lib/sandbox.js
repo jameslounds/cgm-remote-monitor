@@ -1,5 +1,6 @@
 "use strict";
 
+const ddata = require("./data/ddata");
 const units = require("./units.js")();
 const times = require("./times");
 /**
@@ -7,6 +8,12 @@ const times = require("./times");
  *   notifications: ReturnType<ReturnType<import("./sandbox")>['safeNotifications']>;
  *   settings: ReturnType<import("./settings.js")>
  * }} InitializedSandbox
+ */
+
+/**
+ * @typedef {InitializedSandbox & {
+ *   pluginBase: ReturnType<import("./plugins/pluginbase")>
+ * }} ClientInitializedSandbox
  */
 
 class Sandbox {
@@ -148,9 +155,9 @@ class Sandbox {
    * @param {ClientInitCtx} ctx - specific settings from the client, starting with the defaults
    * @param {number} time - could be a retro time
    * @param {ReturnType<import("./data/ddata")>} data - svgs, treatments, profile, etc
-   * @returns {InitializedSandbox}
+   * @returns {ClientInitializedSandbox}
    */
-  clientInit(ctx, time, data) {
+  clientInit(ctx, time, data=ddata()) {
     this.reset();
 
     this.runtimeEnvironment = "client";
@@ -179,7 +186,7 @@ class Sandbox {
 
     this.extend();
 
-    return /** @type {InitializedSandbox} */ (this);
+    return /** @type {ClientInitializedSandbox} */ (this);
   }
 
   /**

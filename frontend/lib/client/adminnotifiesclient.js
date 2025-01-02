@@ -69,16 +69,18 @@ class AdminNotifiesClient {
     <p><b>${title}</b></p>
     <p class="adminNotifyMessage">${message}</p>
     <p class="adminNotifyMessageAdditionalInfo">
-      ${count && count > 1 ? translate("Event repeated %1 times.", count) : ""}
+      ${count && count > 1 ? translate("Event repeated %1 times.", { params: [count.toString()] }) : ""}
       ${
         !persistent
-          ? translate(
-              "Last recorded %1 %2 ago.",
-              !!ago && ago > 60
-                ? Math.round((ago / 60 + Number.EPSILON) * 10) / 10
-                : ago || translate("less than 1"),
-              translate(!!ago && ago > 60 ? "hours" : "minutes")
-            )
+          ? translate("Last recorded %1 %2 ago.", {
+              params: [
+                (!!ago && ago > 60
+                  ? Math.round((ago / 60 + Number.EPSILON) * 10) / 10
+                  : ago || translate("less than 1")
+                ).toString(),
+                translate(!!ago && ago > 60 ? "hours" : "minutes"),
+              ],
+            })
           : ""
       }
     </p>`;

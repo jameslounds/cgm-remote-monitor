@@ -33,6 +33,7 @@ function headless(binding = {}) {
     global.window = self.window = window;
     global.document = window.document;
     global.location = window.location;
+    global.history = window.history;
 
     const indexHtml = fs.readFileSync(htmlFile, "utf8");
     const regex = /<script[^>]*>[\s\S]*?<\/script>/g;

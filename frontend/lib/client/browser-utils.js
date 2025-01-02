@@ -135,8 +135,8 @@ class BrowserUtils {
     this.$("#notification").hide().find("span").html("");
   }
 
-  /** @param {string} note @param {string} type */
-  showNotifications(note, type) {
+  /** @param {string} note @param {string} [type] */
+  showNotification(note, type) {
     const notify = this.$("#notification");
 
     const windowWidth = this.$(window).width() ?? NaN;
@@ -162,5 +162,4 @@ class BrowserUtils {
   }
 }
 
-/** @param {ConstructorParameters<typeof BrowserUtils>} args */
-module.exports = (...args) => new BrowserUtils(...args);
+module.exports = BrowserUtils

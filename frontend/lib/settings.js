@@ -4,7 +4,7 @@ const _ = require("lodash");
 const constants = require("./constants");
 
 class Settings {
-  /** @satisfies {(keyof  Settings)[]} */
+  /** @satisfies {(keyof Settings)[]} */
   static secureSettings = [
     "apnsKey",
     "apnsKeyId",
@@ -117,7 +117,7 @@ class Settings {
     this.alarmTimeagoUrgentMins = 30;
     /** @type {boolean} */
     this.alarmPumpBatteryLow = false;
-    /** @type {string} */
+    /** @type { "bg" | "cs" | "de" | "en" | "es" | "fi" | "fr" | "he" | "it" | "pl" | "pt" | "ro" | "ru"} */
     this.language = "en";
     /** @type {string} */
     this.scaleY = "log";
@@ -133,7 +133,12 @@ class Settings {
     this.baseURL = "";
     /** @type {string} */
     this.authDefaultRoles = "readable";
-    /** @type {Record<"bgHigh" | "bgTargetTop" | "bgTargetBottom" | "bgLow", number>} */
+    /**
+     * @type {Record<
+     *   "bgHigh" | "bgTargetTop" | "bgTargetBottom" | "bgLow",
+     *   number
+     * >}
+     */
     this.thresholds = {
       bgHigh: 260,
       bgTargetTop: 180,
@@ -212,10 +217,12 @@ class Settings {
     this.enable = [];
     /** @type {string[]} */
     this.disable = [];
-    /**@type {string[]} the names of properties we've mapped with `valueMappers` */
+    /** @type {string[]} the Names of properties we've mapped with `valueMappers` */
     this.wasSet = [];
     /** @type {string | undefined} */
     this.pushoverApiToken = undefined;
+    /** @type {boolean | undefined} */
+    this.testMode = undefined;
   }
 
   /**
@@ -312,7 +319,10 @@ class Settings {
     }
   }
 
-  /** @param {unknown} value @returns {value is any[] | string | number | boolean | Symbol | bigint | undefined} */
+  /**
+   * @param {unknown} value @returns {value is any[] | string | number | boolean
+   *   | Symbol | bigint | undefined}
+   */
   #isSimple(value) {
     return (
       Array.isArray(value) ||
@@ -320,9 +330,20 @@ class Settings {
     );
   }
 
-  /** @typedef {"snoozeFirstMinsForAlarmEvent" | "snoozeMinsForAlarmEvent" | "eachSetting" | "eachSettingAsEnv" | "filteredSettings" | "isAlarmEventEnabled" | "isEnabled"} MethodNames */
+  /**
+   * @typedef {"snoozeFirstMinsForAlarmEvent"
+   *   | "snoozeMinsForAlarmEvent"
+   *   | "eachSetting"
+   *   | "eachSettingAsEnv"
+   *   | "filteredSettings"
+   *   | "isAlarmEventEnabled"
+   *   | "isEnabled"} MethodNames
+   */
 
-  /** @typedef {Exclude<keyof Settings, MethodNames> | keyof Settings['thresholds']} AccessorArg */
+  /**
+   * @typedef {Exclude<keyof Settings, MethodNames>
+   *   | keyof Settings["thresholds"]} AccessorArg
+   */
   /** @typedef {(k: AccessorArg) => any} Accessor */
   /** @typedef {(k: string) => any} EnvAccessor */
 
@@ -330,7 +351,10 @@ class Settings {
   eachSetting(accessor) {
     const valueMappers = Settings.valueMappers;
 
-    /**@param {Accessor} accessor @param {Partial<Record<AccessorArg, any>>} keys */
+    /**
+     * @param {Accessor} accessor @param {Partial<Record<AccessorArg, any>>}
+     *   keys
+     */
     const mapKeys = (accessor, keys) => {
       Object.keys(keys).forEach(
         /** @template {AccessorArg} TKey @param {TKey} key */ (key) => {
@@ -357,7 +381,7 @@ class Settings {
   eachSettingAsEnv(accessor) {
     const valueMappers = Settings.valueMappers;
 
-    /**@param {EnvAccessor} accessor @param {Record<string, any>} keys */
+    /** @param {EnvAccessor} accessor @param {Record<string, any>} keys */
     const mapKeys = (accessor, keys) => {
       Object.keys(keys).forEach((key) => {
         const value = keys[key];
@@ -380,7 +404,7 @@ class Settings {
     );
   }
 
-  /** @param {Accessor} accessor  */
+  /** @param {Accessor} accessor */
   #enableAndDisableFeatures(accessor) {
     /** @type {string[]} */
     /** @param {AccessorArg} key */

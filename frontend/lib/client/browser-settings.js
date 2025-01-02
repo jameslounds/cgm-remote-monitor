@@ -6,12 +6,12 @@ const Storages = require("js-storage");
 
 const Settings = require("../settings");
 
+/**
+ * @typedef ServerSettings
+ * @prop {ReturnType<import("../settings")>} settings
+ * @prop {ReturnType<import("../settings")>['extendedSettings']} extendedSettings
+ */
 class BrowserSettings {
-  /**
-   * @typedef ServerSettings
-   * @prop {ReturnType<import("../settings")>} settings
-   * @prop {ReturnType<import("../settings")>['extendedSettings']} extendedSettings
-   */
   /**
    * @param {import(".")} client
    * @param {ServerSettings} serverSettings
@@ -161,7 +161,7 @@ class BrowserSettings {
         $("<option></option>")
           .attr("value", optionValue)
           .text(
-            this.client.translate("%1 U and Over", { params: [optionValue] })
+            this.client.translate("%1 U and Over", { params: [optionValue.toString()] })
           )
       );
     });
