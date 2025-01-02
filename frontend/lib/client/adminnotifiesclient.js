@@ -11,7 +11,7 @@ class AdminNotifiesClient {
     /** @protected */
     this.$ = $;
 
-    /** @protected @type {import("../types").Notify[]} */
+    /** @protected @type {(import("../types").Notify & {[K in "count" | "lastRecorded"]: NonNullable<import("../types").Notify>})[]} */
     this.notifies = [];
     /** @protected @type {number | undefined} */
     this.notifyCount = undefined;
@@ -57,13 +57,14 @@ class AdminNotifiesClient {
   }
 
   /**
-   * @param {string} title
-   * @param {string} message
-   * @param {number} [count]
-   * @param {number} [ago]
-   * @param {boolean} [persistent]
+   * @param {object} opts
+   * @param {string} opts.title
+   * @param {string} opts.message
+   * @param {number} [opts.count]
+   * @param {number} [opts.ago]
+   * @param {boolean} [opts.persistent]
    */
-  #wrapmessage(title, message, count, ago, persistent) {
+  #wrapmessage({ title, message, count, ago, persistent }) {
     const translate = this.client.translate;
     return `<hr />
     <p><b>${title}</b></p>
@@ -92,17 +93,17 @@ class AdminNotifiesClient {
 
     if (!this.notifies) {
       if (this.notifyCount) {
-        return this.#wrapmessage(
-          translate("Admin messages in queue"),
-          translate(
+        return this.#wrapmessage({
+          title: translate("Admin messages in queue"),
+          message: translate(
             "Please sign in using the API_SECRET to see your administration messages"
-          )
-        );
+          ),
+        });
       } else {
-        return this.#wrapmessage(
-          translate("Queue empty"),
-          translate("There are no admin messages in queue")
-        );
+        return this.#wrapmessage({
+          title: translate("Queue empty"),
+          message: translate("There are no admin messages in queue"),
+        });
       }
     }
 
@@ -110,13 +111,17 @@ class AdminNotifiesClient {
     <div id="adminNotifyContent">
       <p><b>${translate("You have administration messages")}</b></p>
       ${this.notifies.map((m) =>
-        this.#wrapmessage(
-          translate(m.title),
-          translate(m.message),
-          m.count,
-          Math.round((Date.now() - m.lastRecorded) / 60000),
-          m.persistent
-        )
+        this.#wrapmessage({
+          title: this.client.language.isTranslationKey(m.title)
+            ? translate(m.title)
+            : m.title,
+          message: this.client.language.isTranslationKey(m.message)
+            ? translate(m.message)
+            : m.message,
+          count: m.count,
+          ago: Math.round((Date.now() - m.lastRecorded) / 60000),
+          persistent: m.persistent,
+        })
       )}
       <br />
     </div>

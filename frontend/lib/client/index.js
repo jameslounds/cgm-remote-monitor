@@ -1465,6 +1465,7 @@ class Client {
           this.translate(display.label),
         level: status === "urgent" ? levels.URGENT : 1,
         group: "Time Ago",
+        message: "",
       };
       const sound = status === "warn" ? this.alarmSound : this.urgentAlarmSound;
       this.generateAlarm(sound, notify);

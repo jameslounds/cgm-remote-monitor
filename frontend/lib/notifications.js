@@ -26,25 +26,29 @@ class Alarm {
 }
 
 /**
- * list of alarms with their thresholds
+ * List of alarms with their thresholds
+ *
  * @type {Partial<Record<string, Alarm>>}
  */
 let alarms = {};
 
 class Notifications {
   /**
-   *
-   * @param {{testMode?: boolean}} env
-   * @param {{levels: import("./levels"); bus: ReturnType<import("./bus")>; ddata?: ReturnType<import("./data/ddata")>}} ctx
+   * @param {{ testMode?: boolean }} env
+   * @param {{
+   *   levels: import("./levels");
+   *   bus: ReturnType<import("./bus")>;
+   *   ddata?: ReturnType<import("./data/ddata")>;
+   * }} ctx
    */
   constructor(env, ctx) {
     this.env = env;
     this.ctx = ctx;
 
     this.requests = {
-      /**@type {import("./types").Notify[]} */
+      /** @type {import("./types").Notify[]} */
       notifies: [],
-      /**@type {import("./types").Snooze[]} */
+      /** @type {import("./types").Snooze[]} */
       snoozes: [],
     };
     // noitifies might look like {level: string; group: string; isAnnouncement?: boolean}
@@ -54,7 +58,6 @@ class Notifications {
   }
 
   /**
-   *
    * @param {import("./types").Level} level
    * @param {string} group
    */
@@ -74,9 +77,11 @@ class Notifications {
   }
 
   /**
-   * should only be used when auto acking the alarms after going back in range or when an error corrects
-   * setting the silence time to 1ms so the alarm will be re-triggered as soon as the condition changes
-   * since this wasn't ack'd by a user action
+   * Should only be used when auto acking the alarms after going back in range
+   * or when an error corrects setting the silence time to 1ms so the alarm will
+   * be re-triggered as soon as the condition changes since this wasn't ack'd by
+   * a user action
+   *
    * @param {string} group
    */
   #autoAckAlarms(group) {
@@ -105,11 +110,9 @@ class Notifications {
     }
   }
 
-  /**
-   * @param {import("./types").Notify} notify
-   */
+  /** @param {import("./types").Notify} notify */
   #emitNotification(notify) {
-    if(!this.ctx.ddata) return
+    if (!this.ctx.ddata) return;
     const alarm = this.#getAlarm(notify.level, notify.group);
     if (this.ctx.ddata.lastUpdated > alarm.lastAckTime + alarm.silenceTime) {
       this.ctx.bus.emit("notification", notify);
@@ -126,16 +129,18 @@ class Notifications {
   }
 
   /**
-   * Only the tests use this, not sure if they actually use this to init,
-   * or if they use it to clear
-   * */
+   * Only the tests use this, not sure if they actually use this to init, or if
+   * they use it to clear
+   */
   initRequests() {
     this.requests = { notifies: [], snoozes: [] };
   }
 
   /**
    * Find the first URGENT or first WARN
-   * @param {string} [group="default"] - group to search in. Defaults to `"default"`
+   *
+   * @param {string} [group="default"] - Group to search in. Defaults to
+   *   `"default"`. Default is `"default"`
    */
   findHighestAlarm(group = "default") {
     const filtered = this.requests.notifies.filter(
@@ -153,10 +158,7 @@ class Notifications {
     );
   }
 
-  /**
-   *
-   * @param {import("./types").Notify} notify
-   */
+  /** @param {import("./types").Notify} notify */
   snoozedBy(notify) {
     if (notify.isAnnouncement) return false;
 
@@ -172,8 +174,10 @@ class Notifications {
   }
 
   /**
-   *
-   * @param {import("./types").Notify} notify
+   * @param {(
+   *   | Omit<import("./types").Notify, "group">
+   *   | import("./types").Notify
+   * ) & { plugin: NonNullable<import("./types").Notify["plugin"]> }} notify
    */
   requestNotify(notify) {
     if (
@@ -191,15 +195,11 @@ class Notifications {
       return;
     }
 
-    if (!notify.group) notify.group = "default";
-
+    notify.group ??= "default";
     this.requests.notifies.push(notify);
   }
 
-  /**
-   *
-   * @param {import("./types").Snooze} snooze
-   */
+  /** @param {import("./types").Snooze} snooze */
   requestSnooze(snooze) {
     if (
       !snooze.level ||
@@ -253,7 +253,6 @@ class Notifications {
   }
 
   /**
-   *
    * @param {import("./types").Level} level
    * @param {string} group
    * @param {number} time
@@ -392,4 +391,4 @@ class Notifications {
 /** @param {ConstructorParameters<typeof Notifications>} args */
 const fn = (...args) => new Notifications(...args);
 
-module.exports = Object.assign(fn, {Alarm});
+module.exports = Object.assign(fn, { Alarm });

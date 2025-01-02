@@ -12,17 +12,20 @@ class AdminNotifies {
   constructor(ctx) {
     /** @protected */
     this.ctx = ctx;
-    /** @type {import("./types").NotifyBase[]} */
+    /**
+     * @type {(import("./types").NotifyBase & {
+     *   [K in "count" | "lastRecorded"]: NonNullable<
+     *     import("./types").NotifyBase[K]
+     *   >;
+     * })[]}
+     */
     this.notifies = [];
 
     this.ctx.bus.on("admin-notify", this.addNotify);
     this.ctx.bus.on("tick", this.clean);
   }
 
-  /**
-   * @param {Omit<import("./types").NotifyBase, "count" | "lastRecorded">
-   *   | import("./types").NotifyBase} notify
-   */
+  /** @param {import("./types").NotifyBase} notify */
   addNotify(notify) {
     if (!this.ctx.settings.adminNotifiesEnabled) {
       console.log("Admin notifies disabled, skipping notify", notify);
