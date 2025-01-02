@@ -98,8 +98,23 @@ export interface EntryBase {
   scaled?: number | string;
 }
 
+type SGVDirection =
+  | "NONE"
+  | "TripleUp"
+  | "DoubleUp"
+  | "SingleUp"
+  | "FortyFiveUp"
+  | "Flat"
+  | "FortyFiveDown"
+  | "SingleDown"
+  | "DoubleDown"
+  | "TripleDown"
+  | "NOT COMPUTABLE"
+  | "RATE OUT OF RANGE";
+
 export interface Sgv extends EntryBase, Record<string, any> {
   type: "sgv";
+  direction?: SGVDirection
 }
 export interface Mbg extends EntryBase, Record<string, any> {
   type: "mbg";

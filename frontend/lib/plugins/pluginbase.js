@@ -4,17 +4,16 @@ const TOOLTIP_WIDTH = 275; //min-width + padding
 
 /**
  * @typedef ForecastPoint
- * @prop {string} type
- * @prop {ForecastInfo} info
- * @prop {number} mgdl
- * @prop {string} color
- * @prop {number} mills
+ * @property {string} type
+ * @property {ForecastInfo} info
+ * @property {number} mgdl
+ * @property {string} color
+ * @property {number} mills
  */
-/** @typedef {{label: string; value: string; type: string}} ForecastInfo */
+/** @typedef {{ label: string; value: string; type: string }} ForecastInfo */
 
 class PluginBase {
   /**
-   *
    * @param {JQuery<HTMLElement>} majorPills
    * @param {JQuery<HTMLElement>} minorPills
    * @param {JQuery<HTMLElement>} statusPills
@@ -79,34 +78,46 @@ class PluginBase {
 
   /**
    * @typedef UpdatePillTextOptionsBase
-   * @prop {string} label
-   * @prop {boolean} [hide]
-   * @prop {string} pillClass
-   * @prop {string | number | null | undefined} value
-   * @prop {{label: string; value: string}[]} [info]
+   * @property {boolean} [hide]
+   * @property {string} [pillClass]
+   * @property {{ label: string; value: string }[]} [info]
    */
   /**
    * @typedef {UpdatePillTextOptionsBase & {
-   *   labelClass: string,
-   *   valueClass: string,
-   *   directHTML?: never,
-   *   directText?: never
+   *   labelClass: string;
+   *   valueClass: string;
+   *   directHTML?: never;
+   *   directText?: never;
+   *   label: string;
+   *   value: string;
    * }} UpdatePillTextOptionsNoDirect
    */
   /**
    * @typedef {UpdatePillTextOptionsBase & {
-   *   directHTML: true,
-   *   directText?: never
+   *   directHTML: true;
+   *   directText?: never;
+   *   label: string;
    * }} UpdatePillTextOptionsDirectHTML
    */
   /**
    * @typedef {UpdatePillTextOptionsBase & {
-   *   directHTML?: never,
-   *   directText: true
+   *   directHTML?: never;
+   *   directText: true;
+   *   label: string;
    * }} UpdatePillTextOptionsDirectText
    */
-  /** @typedef {UpdatePillTextOptionsNoDirect | UpdatePillTextOptionsDirectHTML | UpdatePillTextOptionsDirectText} UpdatePillTextOptions */
-  /** @param {import("../types").Plugin} plugin @param {UpdatePillTextOptions} options */
+  /**
+   * @typedef {UpdatePillTextOptionsNoDirect
+   *   | UpdatePillTextOptionsDirectHTML
+   *   | UpdatePillTextOptionsDirectText
+   *   | (UpdatePillTextOptionsBase & {
+   *       label?: never;
+   *     })} UpdatePillTextOptions
+   */
+  /**
+   * @param {import("../types").Plugin} plugin @param {UpdatePillTextOptions}
+   *   options
+   */
   updatePillText(plugin, options) {
     const pill = this.findOrCreatePill(plugin);
 
