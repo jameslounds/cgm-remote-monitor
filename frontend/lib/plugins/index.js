@@ -7,6 +7,16 @@ var _get = require("lodash/get");
 var _isArray = require("lodash/isArray");
 var _map = require("lodash/map");
 
+/**
+ * @typedef {{
+ *   settings: ReturnType<import("../settings")>;
+ *   extendedSettings: ReturnType<import("../settings")>["extendedSettings"];
+ *   language: ReturnType<import("../language")>;
+ *   levels: import("../levels");
+ *   moment: import("moment");
+ * }} PluginCtx
+ */
+
 function init(ctx) {
   var allPlugins = [],
     enabledPlugins = [];
@@ -161,7 +171,7 @@ function init(ctx) {
           console.error(
             "Plugin error on setProperties(): ",
             plugin.name,
-            error,
+            error
           );
         }
       }
@@ -177,7 +187,7 @@ function init(ctx) {
           console.error(
             "Plugin error on checkNotifications(): ",
             plugin.name,
-            error,
+            error
           );
         }
       }
@@ -191,13 +201,13 @@ function init(ctx) {
           plugin.visualizeAlarm(
             sbx.withExtendedSettings(plugin),
             alarm,
-            alarmMessage,
+            alarmMessage
           );
         } catch (error) {
           console.error(
             "Plugin error on visualizeAlarm(): ",
             plugin.name,
-            error,
+            error
           );
         }
       }
@@ -213,7 +223,7 @@ function init(ctx) {
           console.error(
             "Plugin error on visualizeAlarm(): ",
             plugin.name,
-            error,
+            error
           );
         }
       }
@@ -241,7 +251,7 @@ function init(ctx) {
   };
 
   plugins.extendedClientSettings = function extendedClientSettings(
-    allExtendedSettings,
+    allExtendedSettings
   ) {
     var clientSettings = {};
     _each(clientDefaultPlugins, function eachClientPlugin(plugin) {

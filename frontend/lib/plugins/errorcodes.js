@@ -1,16 +1,23 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
+const times = require("../times");
 
-function init(ctx) {
-  var errorcodes = {
-    name: "errorcodes",
-    label: "Dexcom Error Codes",
-    pluginType: "notification",
-  };
+/** @typedef {import("../types").Plugin} Plugin */
+/** @implements {Plugin} */
+class ErrorCodes {
+  name = /** @type {import("../language").TranslationKey} */ ("errorcodes");
+  label = /** @type {import("../language").TranslationKey} */ (
+    "Dexcom Error Codes"
+  );
+  pluginType = "notification";
 
-  var code2Display = {
+  /** @param {import(".").PluginCtx} ctx */
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
+
+  /** @type {Partial<Record<number, string>>} @protected */
+  static code2Display = {
     1: "?SN", //SENSOR_NOT_ACTIVE
     2: "?MD", //MINIMAL_DEVIATION
     3: "?NA", //NO_ANTENNA
@@ -21,40 +28,40 @@ function init(ctx) {
     12: "?RF", //BAD_RF
   };
 
-  var code2PushoverSound = {
+  /** @type {Partial<Record<number, string>>} @protected */
+  static code2PushoverSound = {
     5: "intermission",
     9: "alien",
     10: "alien",
   };
 
-  function toDisplay(errorCode) {
-    return code2Display[errorCode] || errorCode + "??";
+  /** @param {number} errorCode */
+  toDisplay(errorCode) {
+    return ErrorCodes.code2Display[errorCode] || errorCode + "??";
   }
 
-  errorcodes.toDisplay = toDisplay;
+  /** @param {import("../sandbox").InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    const now = sbx.time;
+    const lastSGV = sbx.lastSGVEntry();
 
-  errorcodes.checkNotifications = function checkNotifications(sbx) {
-    var now = sbx.time;
-    var lastSGV = sbx.lastSGVEntry();
-
-    var code2Level = buildMappingFromSettings(sbx.extendedSettings);
+    const code2Level = this.buildMappingFromSettings(sbx.extendedSettings);
 
     if (
       lastSGV &&
       now - lastSGV.mills < times.mins(10).msecs &&
       lastSGV.mgdl < 39
     ) {
-      var errorDisplay = toDisplay(lastSGV.mgdl);
-      var pushoverSound = code2PushoverSound[lastSGV.mgdl] || null;
-      var notifyLevel = code2Level[lastSGV.mgdl];
+      const errorDisplay = this.toDisplay(lastSGV.mgdl);
+      const notifyLevel = code2Level[lastSGV.mgdl];
 
       if (notifyLevel !== undefined) {
         sbx.notifications.requestNotify({
           level: notifyLevel,
           title: "CGM Error Code",
           message: errorDisplay,
-          plugin: errorcodes,
-          pushoverSound: pushoverSound,
+          plugin: this,
+          pushoverSound: ErrorCodes.code2PushoverSound[lastSGV.mgdl],
           group: "CGM Error Code",
           debug: {
             lastSGV: lastSGV,
@@ -62,38 +69,39 @@ function init(ctx) {
         });
       }
     }
-  };
+  }
 
-  function buildMappingFromSettings(extendedSettings) {
-    var mapping = {};
+  /**
+   * Could be made `protected` and subclassed for tests
+   *
+   * @param {ReturnType<import("../settings")>["extendedSettings"]} extendedSettings
+   */
+  buildMappingFromSettings(extendedSettings) {
+    /** @type {Record<number, import("../types").Level>} */
+    const mapping = {};
 
+    /** @param {string | undefined} value @param {import("../types").Level} level */
     function addValuesToMapping(value, level) {
-      if (!value || !value.split) {
-        return [];
-      }
+      if (typeof value !== "string") return;
 
-      var rawValues = (value && value.split(" ")) || [];
-      _.each(rawValues, function (num) {
-        if (!isNaN(num)) {
-          mapping[Number(num)] = level;
-        }
-      });
+      value
+        .split(" ")
+        .forEach((num) => !isNaN(num) && (mapping[Number(num)] = level));
     }
 
     addValuesToMapping(
       extendedSettings.info || "1 2 3 4 5 6 7 8",
-      ctx.levels.INFO,
+      this.ctx.levels.INFO
     );
-    addValuesToMapping(extendedSettings.warn || false, ctx.levels.WARN);
-    addValuesToMapping(extendedSettings.urgent || "9 10", ctx.levels.URGENT);
+    addValuesToMapping(extendedSettings.warn || false, this.ctx.levels.WARN);
+    addValuesToMapping(
+      extendedSettings.urgent || "9 10",
+      this.ctx.levels.URGENT
+    );
 
     return mapping;
   }
-
-  //for tests
-  errorcodes.buildMappingFromSettings = buildMappingFromSettings;
-
-  return errorcodes;
 }
 
-module.exports = init;
+/** @param {import(".").PluginCtx} ctx */
+module.exports = (ctx) => new ErrorCodes(ctx);

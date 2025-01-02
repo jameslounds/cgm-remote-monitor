@@ -1,22 +1,21 @@
 import type { TranslationKey } from "./language";
+import { PluginCtx } from "./plugins";
 
 type NotifyBase = {
   level: Level;
-  title: TranslationKey;
-  message: TranslationKey;
+  title: string;
+  message: string;
   group: string;
-  lastRecorded: number;
-  timestamp: number;
-  count: number;
+  lastRecorded?: number;
+  timestamp?: number;
+  count?: number;
 
   persistent?: boolean;
 };
 export type Notify = NotifyBase & {
   clear?: boolean;
   eventName?: string;
-  plugin?: {
-    name: string;
-  };
+  plugin?: Plugin;
   debug?: any;
   isAnnouncement?: boolean;
 
@@ -51,9 +50,9 @@ export type Profile = {
 };
 
 interface Plugin {
-  name: TranslationKey;
+  name: string;
   pluginType: string;
-  label: TranslationKey;
+  label: string;
   pillFlip?: boolean;
   getClientPrefs?: () => PluginClientPrefs[];
 }
