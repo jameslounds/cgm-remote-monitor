@@ -222,6 +222,11 @@ class Language {
   get(lang) {
     return Language.languages.find((l) => l.code === lang);
   }
+
+  /** @param {string} key @returns {key is TranslationKey} */
+  isTranslationKey(key) {
+    return Object.prototype.hasOwnProperty.call(this.translations, key);
+  }
 }
 
 /** @param {import("fs")} [fs] */

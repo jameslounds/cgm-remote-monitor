@@ -8,8 +8,8 @@ const Settings = require("../settings");
 
 /**
  * @typedef ServerSettings
- * @prop {ReturnType<import("../settings")>} settings
- * @prop {ReturnType<import("../settings")>['extendedSettings']} extendedSettings
+ * @property {ReturnType<import("../settings")>} settings
+ * @property {ReturnType<import("../settings")>["extendedSettings"]} extendedSettings
  */
 class BrowserSettings {
   /**
@@ -127,7 +127,10 @@ class BrowserSettings {
     }
   }
 
-  /** @param {unknown} data @returns {data is null | Record<`render${"Over" | "Format" | "FormatSmall"}`, any>} */
+  /**
+   * @param {unknown} data @returns {data is null | Record<`render${"Over" |
+   *   "Format" | "FormatSmall"}`, any>}
+   */
   #isBolusSettings(data) {
     if (data === null) return true;
     if (typeof data !== "object") return false;
@@ -161,7 +164,9 @@ class BrowserSettings {
         $("<option></option>")
           .attr("value", optionValue)
           .text(
-            this.client.translate("%1 U and Over", { params: [optionValue.toString()] })
+            this.client.translate("%1 U and Over", {
+              params: [optionValue.toString()],
+            })
           )
       );
     });
@@ -288,7 +293,12 @@ class BrowserSettings {
     const showPluginsSettings = $("#show-plugins");
     let hasPluginsToShow = false;
 
-    /** @type {{plugin: import("../types").Plugin, prefs: import("../types").PluginClientPrefs[]}[]} */
+    /**
+     * @type {{
+     *   plugin: import("../types").Plugin;
+     *   prefs: import("../types").PluginClientPrefs[];
+     * }[]}
+     */
     const pluginPrefs = [];
 
     this.client.plugins.eachEnabledPlugin(
@@ -298,17 +308,24 @@ class BrowserSettings {
           //ignore these, they are always on for now
         } else {
           const id = "plugin-" + plugin.name;
+          const untranslatedLabel = plugin.label || plugin.name;
+          const label = this.client.language.isTranslationKey(untranslatedLabel)
+            ? translate(untranslatedLabel)
+            : untranslatedLabel;
+
           const dd = $(
             `<dd>
             <input type="checkbox" id="${id}" value="${plugin.name}" />
-            <label for="${id}">${translate(plugin.label || plugin.name)}</label>
+            <label for="${id}">${label}</label>
           </dd>`
           );
           showPluginsSettings.append(dd);
+
           dd.find("input").prop(
             "checked",
             this.settings.showPlugins.includes(plugin.name)
           );
+
           hasPluginsToShow = true;
         }
 
@@ -395,7 +412,7 @@ class BrowserSettings {
       }
 
       this.client.plugins.eachEnabledPlugin(
-        /** @param {import("../types").Plugin} plugin*/ (plugin) => {
+        /** @param {import("../types").Plugin} plugin */ (plugin) => {
           if (plugin.getClientPrefs) {
             const prefs = plugin.getClientPrefs();
 
