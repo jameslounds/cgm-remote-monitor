@@ -186,7 +186,18 @@ export type PluginEventType = {
   ) => void;
 };
 
-/** Removes methods from a class */
+type VirtAsstIntentHandlerFn = (
+  next: (title: string, message: string) => void,
+  slots: unknown,
+  sbx: ClientInitializedSandbox,
+) => void;
+type VirtAsstIntentHandler = {
+  intent: string;
+  metrics: string[];
+  intentHandler: VirtAsstIntentHandlerFn;
+};
+
+/** Removes methods from a class. */
 export type ClassAsObj<T> = {
   [K in keyof T as T[K] extends Function ? never : K]: T[K];
 };
