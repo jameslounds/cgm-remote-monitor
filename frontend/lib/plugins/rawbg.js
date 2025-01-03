@@ -74,7 +74,7 @@ class RawBg {
 
   /**
    * @param {import("../types").Sgv} sgv
-   * @param {import("../types").Cal} cal
+   * @param {import("../types").Cal | undefined} cal
    * @param {ReturnType<import("../sandbox")>} sbx
    */
   calc(sgv, cal, sbx) {
@@ -126,7 +126,7 @@ class RawBg {
   /**
    * @param {number} mgdl
    * @param {number} noise
-   * @param {import("../types").Cal} cal
+   * @param {import("../types").Cal | undefined} cal
    * @param {ReturnType<import("../sandbox")>} sbx
    */
   showRawBGs(mgdl, noise, cal, sbx) {
@@ -190,14 +190,14 @@ class RawBg {
     ],
   });
 
-  /** @protected @param {import("../types").Sgv} sgv @param {import("../types").Cal} cal */
+  /** @protected @param {import("../types").Sgv} sgv @param {import("../types").Cal | undefined} cal */
   cleanValues(sgv, cal) {
     return {
       unfiltered: parseInt(sgv.unfiltered) || 0,
       filtered: parseInt(sgv.filtered) || 0,
-      scale: parseFloat(cal.scale) || 0,
-      intercept: parseFloat(cal.intercept) || 0,
-      slope: parseFloat(cal.slope) || 0,
+      scale: parseFloat(cal?.scale) || 0,
+      intercept: parseFloat(cal?.intercept) || 0,
+      slope: parseFloat(cal?.slope) || 0,
     };
   }
 }

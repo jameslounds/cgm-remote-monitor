@@ -7,6 +7,8 @@ const times = require("./times");
  * @typedef {Sandbox & {
  *   notifications: ReturnType<ReturnType<import("./sandbox")>['safeNotifications']>;
  *   settings: ReturnType<import("./settings.js")>
+ *   translate: ReturnType<import("./language")>['translate']
+ *   levels: import("./levels")
  * }} InitializedSandbox
  */
 
@@ -157,7 +159,7 @@ class Sandbox {
    * @param {ReturnType<import("./data/ddata")>} data - svgs, treatments, profile, etc
    * @returns {ClientInitializedSandbox}
    */
-  clientInit(ctx, time, data=ddata()) {
+  clientInit(ctx, time, data = ddata()) {
     this.reset();
 
     this.runtimeEnvironment = "client";
@@ -219,7 +221,7 @@ class Sandbox {
   }
 
   /**
-   * @template {import("./types").Entry} T 
+   * @template {import("./types").Entry} T
    * @param {T[]} entries
    * @param {number} n
    */
@@ -341,7 +343,7 @@ class Sandbox {
     }
   }
 
-  /** @param {import("./types.js").Entry} [entry] */
+  /** @param {Pick<import("./types.js").Entry, "mgdl" | "mmol" | "scaled">} [entry] */
   scaleEntry(entry) {
     if (entry && entry.scaled === undefined) {
       if (this.settings.units === "mmol") {
