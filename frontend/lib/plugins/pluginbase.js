@@ -84,12 +84,12 @@ class PluginBase {
    */
   /**
    * @typedef {UpdatePillTextOptionsBase & {
-   *   labelClass: string;
-   *   valueClass: string;
+   *   labelClass?: string;
+   *   valueClass?: string;
    *   directHTML?: never;
    *   directText?: never;
-   *   label: string;
-   *   value: string;
+   *   label?: string;
+   *   value?: string;
    * }} UpdatePillTextOptionsNoDirect
    */
   /**
@@ -110,13 +110,10 @@ class PluginBase {
    * @typedef {UpdatePillTextOptionsNoDirect
    *   | UpdatePillTextOptionsDirectHTML
    *   | UpdatePillTextOptionsDirectText
-   *   | (UpdatePillTextOptionsBase & {
-   *       label?: never;
-   *     })} UpdatePillTextOptions
+   * } UpdatePillTextOptions
    */
   /**
-   * @param {import("../types").Plugin} plugin @param {UpdatePillTextOptions}
-   *   options
+   * @param {import("../types").Plugin} plugin @param {UpdatePillTextOptions} options
    */
   updatePillText(plugin, options) {
     const pill = this.findOrCreatePill(plugin);
@@ -129,12 +126,14 @@ class PluginBase {
 
     pill.addClass(options.pillClass);
 
-    if (options.directHTML) {
-      pill.html(options.label);
-    } else {
-      if (options.directText) {
+    switch (true) {
+      case options.directHTML:
+        pill.html(options.label);
+        break;
+      case options.directText:
         pill.text(options.label);
-      } else {
+        break;
+      default:
         pill
           .find("label")
           .attr("class", options.labelClass)
@@ -144,7 +143,6 @@ class PluginBase {
           .attr("class", options.valueClass)
           .toggle(options.value != null)
           .text(options.value?.toString());
-      }
     }
 
     if (options.info && options.info.length) {
