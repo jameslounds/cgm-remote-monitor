@@ -45,6 +45,11 @@ describe("careportal", async function () {
     client.init();
     sleep(50);
 
+    // because `client/index.js` gets cached, and the `module.exports` is an instance of a class,
+    // the `$` gets sorta closured, and becomes whatever it was when the module was first required for all subsequent test runs.
+    // By doing this, we tell just the careportal to use the "real" jQuery (which knows about the only `window` we haven't already `happyDOM.close`d)
+    client.careportal.$ = $;
+
     console.log("Careportal test client data update");
     client.dataUpdate(nowData, true);
     sleep(50);

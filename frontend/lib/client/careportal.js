@@ -331,6 +331,7 @@ class Careportal {
   }
 
   gatherData() {
+    const $ = this.$;
     const eventType = $("#eventType").val()?.toString() ?? "";
     const selectedReason = $("#reason").val();
 
@@ -429,12 +430,11 @@ class Careportal {
     if ($("#othertime").is(":checked")) {
       data.eventTime = this.mergeDateAndTime().toDate();
     }
-
-    data.created_at = data.eventTime
+    data.created_at = !isNaN(data.eventTime)
       ? data.eventTime.toISOString()
       : new Date().toISOString();
 
-    if (!this.inputMatrix[data.eventType].profile) {
+    if (!this.inputMatrix[data.eventType]?.profile) {
       delete data.profile;
     }
 
