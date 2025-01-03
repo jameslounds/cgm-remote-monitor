@@ -1,5 +1,7 @@
 "use strict";
 
+/** @typedef {ReturnType<Direction["info"]>} DirectionProperties */
+
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class Direction {

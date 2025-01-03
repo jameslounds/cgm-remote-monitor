@@ -1,5 +1,16 @@
 "use strict";
 
+/**
+ * @typedef {{
+ *       mgdl: number;
+ *       noiseLabel: string;
+ *       sgv: import("../types").Sgv;
+ *       cal: import("../types").Cal;
+ *       displayLine: string;
+ *     }
+ *   | Partial<Record<"mgdl" | "noiseLabel" | "sgv" | "cal" | "displayLine", never>>} RawBgProperties
+ */
+
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class RawBg {
@@ -62,7 +73,7 @@ class RawBg {
       this.showRawBGs(prop.sgv.mgdl, prop.sgv.noise, prop.cal, sbx)
         ? {
             hide: !prop || !prop.mgdl,
-            value: sbx.scaleMgdl(prop.mgdl),
+            value: sbx.scaleMgdl(prop.mgdl).toString(),
             label: prop.noiseLabel,
           }
         : {
@@ -163,7 +174,6 @@ class RawBg {
    * @protected
    */
   virtAsstRawBGHandler(next, _slots, sbx) {
-    /** @type {number} @see {@link RawBg#setProperties} */
     const rawBg = sbx.properties.rawbg?.mgdl;
     if (rawBg) {
       next(

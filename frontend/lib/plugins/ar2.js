@@ -289,11 +289,11 @@ class Ar2 {
   /** @protected @param {import("../sandbox").InitializedSandbox} sbx */
   initAR2(sbx) {
     return {
-      forecastTime: sbx.properties.bgnow.mills || sbx.time,
-      /** @type {{mills: number; mgdl: number; color: string}[]} */
+      forecastTime: sbx.properties.bgnow?.mills || sbx.time,
+      /** @type {{ mills: number; mgdl: number; color: string }[]} */
       points: [],
-      prev: Math.log(sbx.properties.delta.mean5MinsAgo / BG_REF),
-      curr: Math.log(sbx.properties.bgnow.mean / BG_REF),
+      prev: Math.log((sbx.properties.delta?.mean5MinsAgo ?? NaN) / BG_REF),
+      curr: Math.log((sbx.properties.bgnow?.mean ?? NaN) / BG_REF),
     };
   }
 

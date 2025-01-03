@@ -231,9 +231,7 @@ class BgNow {
   /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
   updateVisualisation(sbx) {
     const translate = this.translate;
-    /** @type {BGNowProperties} */
     const prop = sbx.properties.bgnow;
-    /** @type {DeltaProperties} */
     const delta = sbx.properties.delta;
 
     /** @type {Record<"label" | "value", string>[]} */
@@ -275,7 +273,7 @@ class BgNow {
      */
     const deviceInfos = {};
 
-    prop.sgvs?.forEach((entry) => {
+    prop?.sgvs?.forEach((entry) => {
       const device = this.utils.deviceName(entry.device);
       if (!device) return;
       deviceInfos[device] = {
@@ -333,7 +331,6 @@ class BgNow {
   }
   /** @protected @type {import("../types").VirtAsstIntentHandlerFn} */
   virtAsstDelta(next, _slots, sbx) {
-    /** @type {DeltaProperties} */
     const delta = sbx.properties.delta;
 
     next(

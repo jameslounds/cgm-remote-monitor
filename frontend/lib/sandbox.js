@@ -18,10 +18,21 @@ const times = require("./times");
  * }} ClientInitializedSandbox
  */
 
+/**
+ * @typedef {Record<string, any> & {
+ *   delta?: import("./plugins/bgnow").DeltaProperties;
+ *   bgnow?: import("./plugins/bgnow").BGNowProperties;
+ *   buckets?: import("./plugins/bgnow").BucketsProperties;
+ *   ar2?: import("./plugins/ar2").Ar2Properties;
+ *   direction?: import("./plugins/direction").DirectionProperties;
+ *   rawbg?: import("./plugins/rawbg").RawBgProperties;
+ * }} SandboxProperties
+ */
+
 class Sandbox {
   constructor() {
     this.time = Date.now();
-    /** @type {Record<string, any>} */
+    /** @type {SandboxProperties} */
     this.properties = {};
     /** @type {Record<string, any>} */
     this.extendedSettings = {};
