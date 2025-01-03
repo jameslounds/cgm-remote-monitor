@@ -449,9 +449,10 @@ class Careportal {
     if ($("#othertime").is(":checked")) {
       data.eventTime = this.mergeDateAndTime().toDate();
     }
-    data.created_at = !isNaN(data.eventTime)
-      ? data.eventTime.toISOString()
-      : new Date().toISOString();
+    data.created_at =
+      data.eventTime && !isNaN(data.eventTime.valueOf())
+        ? data.eventTime.toISOString()
+        : new Date().toISOString();
 
     if (!this.inputMatrix[data.eventType]?.profile) {
       delete data.profile;
@@ -490,10 +491,7 @@ class Careportal {
 
   /** @param {ReturnType<Careportal["gatherData"]>} data */
   validateData(data) {
-    console.log(
-      "Validating careportal entry: ",
-      data.eventType
-    );
+    console.log("Validating careportal entry: ", data.eventType);
 
     if (data.duration === 0 || data.eventType !== "Temporary Target")
       return { allOk: true, messages: [] };
