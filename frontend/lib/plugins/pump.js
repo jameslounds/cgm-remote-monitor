@@ -13,7 +13,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var pump = {
-    name: "pump",
+    name: /** @type {const} */ ("pump"),
     label: "Pump",
     pluginType: "pill-status",
   };

@@ -8,7 +8,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var cage = {
-    name: "cage",
+    name: /** @type {const} */ ("cage"),
     label: "Cannula Age",
     pluginType: "pill-minor",
   };

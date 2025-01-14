@@ -2,7 +2,7 @@
 
 function init() {
   var careportal = {
-    name: "careportal",
+    name: /** @type {const} */ ("careportal"),
     label: "Care Portal",
     pluginType: "drawer",
   };

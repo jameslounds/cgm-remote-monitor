@@ -57,13 +57,12 @@ class Sandbox {
    *
    * @param {{name: string}} plugin
    * @param {Record<string, any>} allExtendedSettings
-   * @param {this} sbx
-   * @returns
+   * @param {Sandbox} sbx
    */
   withExtendedSettings(plugin, allExtendedSettings, sbx) {
     try {
       const cloned = Object.assign(
-        Object.create(Object.getPrototypeOf(sbx)),
+        /** @type {Sandbox} */ (Object.create(Object.getPrototypeOf(sbx))),
         sbx
       );
 
@@ -73,6 +72,7 @@ class Sandbox {
       return cloned;
     } catch (err) {
       console.log(err);
+      throw err;
     }
   }
 

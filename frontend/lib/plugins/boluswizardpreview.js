@@ -8,7 +8,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var bwp = {
-    name: "bwp",
+    name: /** @type {const} */ ("bwp"),
     label: "Bolus Wizard Preview",
     pluginType: "pill-minor",
   };
@@ -19,7 +19,7 @@ function init(ctx) {
       errors.push("Missing need a treatment profile");
     } else if (profileFieldsMissing(sbx)) {
       errors.push(
-        "Missing sens, target_high, or target_low treatment profile fields",
+        "Missing sens, target_high, or target_low treatment profile fields"
       );
     }
 
@@ -139,7 +139,7 @@ function init(ctx) {
           sbx.time - treatment.mills < times.mins(60).msecs &&
           treatment.carbs > 0
         );
-      },
+      }
     );
 
     results.recentCarbs = recentCarbs;
@@ -173,10 +173,10 @@ function init(ctx) {
       var basal = sbx.data.profile.getBasal(sbx.time);
 
       var thirtyMinAdjustment = Math.round(
-        ((basal / 2 + results.bolusEstimate) / (basal / 2)) * 100,
+        ((basal / 2 + results.bolusEstimate) / (basal / 2)) * 100
       );
       var oneHourAdjustment = Math.round(
-        ((basal + results.bolusEstimate) / basal) * 100,
+        ((basal + results.bolusEstimate) / basal) * 100
       );
 
       results.tempBasalAdjustment = {
@@ -186,7 +186,7 @@ function init(ctx) {
     }
 
     results.bolusEstimateDisplay = sbx.roundInsulinForDisplayFormat(
-      results.bolusEstimate,
+      results.bolusEstimate
     );
     results.outcomeDisplay = sbx.roundBGToDisplayFormat(results.outcome);
     results.displayIOB = sbx.roundInsulinForDisplayFormat(results.iob);
@@ -283,7 +283,7 @@ function init(ctx) {
       if (prop.bolusEstimateDisplay < 0) {
         info.unshift({ label: "---------", value: "" });
         var carbEquivalent = Math.ceil(
-          Math.abs(sbx.data.profile.getCarbRatio() * prop.bolusEstimateDisplay),
+          Math.abs(sbx.data.profile.getCarbRatio() * prop.bolusEstimateDisplay)
         );
         info.unshift({
           label: translate("Carb Equivalent"),
@@ -318,7 +318,7 @@ function init(ctx) {
             label: "-" + translate("BWP"),
             value: translate(
               "Excess insulin equivalent %1U more than needed to reach low target, not accounting for carbs",
-              { params: [prop.bolusEstimateDisplay] },
+              { params: [prop.bolusEstimateDisplay] }
             ),
           });
         }
@@ -329,7 +329,7 @@ function init(ctx) {
               label: "-" + translate("BWP"),
               value: translate(
                 "Excess insulin equivalent %1U more than needed to reach low target, MAKE SURE IOB IS COVERED BY CARBS",
-                { params: [prop.bolusEstimateDisplay] },
+                { params: [prop.bolusEstimateDisplay] }
               ),
             });
           } else {
@@ -337,7 +337,7 @@ function init(ctx) {
               label: "-" + translate("BWP"),
               value: translate(
                 "%1U reduction needed in active insulin to reach low target, too much basal?",
-                { params: [prop.bolusEstimateDisplay] },
+                { params: [prop.bolusEstimateDisplay] }
               ),
             });
           }
@@ -356,12 +356,12 @@ function init(ctx) {
   function pushTempBasalAdjustments(prop, info, sbx) {
     if (prop && prop.tempBasalAdjustment) {
       var carbsOrBolusMessage = translate(
-        "basal adjustment out of range, give carbs?",
+        "basal adjustment out of range, give carbs?"
       );
       var sign = "";
       if (prop.tempBasalAdjustment.thirtymin > 100) {
         carbsOrBolusMessage = translate(
-          "basal adjustment out of range, give bolus?",
+          "basal adjustment out of range, give bolus?"
         );
         sign = "+";
       }

@@ -12,7 +12,7 @@ function init(ctx) {
   var translate = ctx.language.translate;
 
   var sensorState = {
-    name: "xdripjs",
+    name: /** @type {const} */ ("xdripjs"),
     label: "CGM Status",
     pluginType: "pill-status",
   };

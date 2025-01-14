@@ -5,7 +5,7 @@
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class Direction {
-  name = "direction";
+  name = /** @type {const} */ ("direction");
   label = "BG direction";
   pluginType = "bg-status";
 

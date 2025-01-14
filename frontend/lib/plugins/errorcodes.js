@@ -5,10 +5,8 @@ const times = require("../times");
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class ErrorCodes {
-  name = /** @type {import("../language").TranslationKey} */ ("errorcodes");
-  label = /** @type {import("../language").TranslationKey} */ (
-    "Dexcom Error Codes"
-  );
+  name = /** @type {const} */ ("errorcodes");
+  label = "Dexcom Error Codes";
   pluginType = "notification";
 
   /** @param {import(".").PluginCtx} ctx */

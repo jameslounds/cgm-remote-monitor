@@ -10,6 +10,8 @@ const shiroTrie = require("shiro-trie");
 
 const Storages = require("js-storage");
 
+// const io = require("socket.io-client");
+
 const language = require("../language")();
 const sandbox = require("../sandbox")();
 const units = require("../units")();
@@ -167,8 +169,6 @@ class Client {
     this.utils;
     /** @type {ReturnType<import("../plugins/rawbg")>} */
     this.rawbg;
-    /** @type {ReturnType<import("../plugins/bgnow")>} */
-    this.delta;
     /** @type {ReturnType<import("../plugins/timeago")>} */
     this.timeago;
     /** @type {ReturnType<import("../plugins/direction")>} */
@@ -212,6 +212,9 @@ class Client {
      */
     /** @type {ClientCtx} */
     this.ctx;
+
+    /** @type {ReturnType<import("../plugins")>} */
+    this.plugins;
   }
 
   headers() {
@@ -465,12 +468,10 @@ class Client {
       levels,
     });
 
-    this.rawbg = this.plugins("rawbg");
-    this.delta = this.plugins("delta");
-    /** @type {ReturnType<import("../plugins/timeago")>} */
-    this.timeago = this.plugins("timeago");
-    this.direction = this.plugins("direction");
-    this.errorcodes = this.plugins("errorcodes");
+    this.rawbg = this.plugins.byName("rawbg");
+    this.timeago = this.plugins.byName("timeago");
+    this.direction = this.plugins.byName("direction");
+    this.errorcodes = this.plugins.byName("errorcodes");
 
     const bus = require("../bus")(this.settings);
     this.ctx = {
@@ -482,8 +483,7 @@ class Client {
         this.minorPills,
         this.statusPills,
         this.bgStatus,
-        this.tooltip,
-        Storages.localStorage
+        this.tooltip
       ),
       moment,
       timezones,
@@ -697,7 +697,10 @@ class Client {
 
     $("#testAlarms").on("click", (event) => {
       // Speech synthesis also requires on iOS that user triggers a speech event for it to speak anything
-      if (this.plugins("speech").isEnabled) {
+
+      // @ts-expect-error isEnabled does not exist on Speech, this will always be false
+      // not sure why it's here
+      if (this.plugins.byName("speech").isEnabled) {
         const msg = new SpeechSynthesisUtterance("Ok ok.");
         msg.lang = "en-US";
         window.speechSynthesis.speak(msg);
@@ -1507,7 +1510,6 @@ class Client {
 
   /** @protected @param {boolean} [updateToNow] */
   refreshChart(updateToNow) {
-    console.log("here", !!this.chart);
     // TODO types
     if (!this.chart) return;
 

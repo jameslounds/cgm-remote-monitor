@@ -8,7 +8,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var bage = {
-    name: "bage",
+    name: /** @type {const} */ ("bage"),
     label: "Pump Battery Age",
     pluginType: "pill-minor",
   };

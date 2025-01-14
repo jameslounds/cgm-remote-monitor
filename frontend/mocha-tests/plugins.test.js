@@ -9,11 +9,11 @@ describe("Plugins", function () {
       language: require("../lib/language")(),
     }).registerClientDefaults();
 
-    plugins("bgnow").name.should.equal("bgnow");
-    plugins("rawbg").name.should.equal("rawbg");
+    plugins.byName("bgnow").name.should.equal("bgnow");
+    plugins.byName("rawbg").name.should.equal("rawbg");
 
     //server only plugin
-    should.not.exist(plugins("treatmentnotify"));
+    should.not.exist(plugins.byName("treatmentnotify"));
 
     done();
   });
@@ -24,11 +24,11 @@ describe("Plugins", function () {
       language: require("../lib/language")(),
     }).registerServerDefaults();
 
-    plugins("rawbg").name.should.equal("rawbg");
-    plugins("treatmentnotify").name.should.equal("treatmentnotify");
+    plugins.byName("rawbg").name.should.equal("rawbg");
+    plugins.byName("treatmentnotify").name.should.equal("treatmentnotify");
 
     //client only plugin
-    should.not.exist(plugins("cannulaage"));
+    should.not.exist(plugins.byName("cannulaage"));
 
     done();
   });

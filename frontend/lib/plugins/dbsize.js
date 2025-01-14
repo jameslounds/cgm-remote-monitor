@@ -6,7 +6,7 @@ function init(ctx) {
   var translate = ctx.language.translate;
 
   var dbsize = {
-    name: "dbsize",
+    name: /** @type {const} */ ("dbsize"),
     label: translate("Database Size"),
     pluginType: "pill-status",
     pillFlip: true,

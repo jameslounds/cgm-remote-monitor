@@ -2,7 +2,7 @@
 
 function init() {
   var bolus = {
-    name: "bolus",
+    name: /** @type {const} */ ("bolus"),
     label: "Bolus",
     pluginType: "fake",
   };

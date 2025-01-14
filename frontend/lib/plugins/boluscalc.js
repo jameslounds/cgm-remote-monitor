@@ -4,7 +4,7 @@
 
 function init() {
   var boluscalc = {
-    name: "boluscalc",
+    name: /** @type {const} */ ("boluscalc"),
     label: "Bolus Wizard",
     pluginType: "drawer",
   };

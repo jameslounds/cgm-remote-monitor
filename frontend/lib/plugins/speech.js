@@ -9,7 +9,7 @@ function init(ctx) {
   var speechLangCode = ctx.language.speechCode;
 
   var speech = {
-    name: "speech",
+    name: /** @type {const} */ ("speech"),
     label: "Speech",
     pluginType: "pill-status",
     pillFlip: true,

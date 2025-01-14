@@ -18,7 +18,7 @@ class PluginBase {
    * @param {JQuery<HTMLElement>} minorPills
    * @param {JQuery<HTMLElement>} statusPills
    * @param {JQuery<HTMLElement>} bgStatus
-   * @param {import("d3").Selection<HTMLElement, any, HTMLElement, any>} tooltip
+   * @param {import("d3").Selection<HTMLDivElement, any, HTMLElement, any>} tooltip
    */
   constructor(majorPills, minorPills, statusPills, bgStatus, tooltip) {
     this.majorPills = majorPills;

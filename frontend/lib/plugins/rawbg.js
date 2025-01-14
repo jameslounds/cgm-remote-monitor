@@ -14,7 +14,7 @@
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class RawBg {
-  name = "rawbg";
+  name = /** @type {const} */ ("rawbg");
   label = "Raw BG";
   pluginType = "bg-status";
   pillFlip = true;

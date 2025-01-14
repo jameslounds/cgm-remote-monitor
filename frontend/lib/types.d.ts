@@ -1,5 +1,6 @@
 import type { TranslationKey } from "./language";
 import { PluginCtx } from "./plugins";
+import { InitializedSandbox } from "./sandbox";
 
 type NotifyBase = {
   level: Level;
@@ -55,6 +56,15 @@ interface Plugin {
   label: string;
   pillFlip?: boolean;
   getClientPrefs?: () => PluginClientPrefs[];
+  setProperties?: (sbx: ClientInitializedSandbox) => void;
+  checkNotifications?: (sbx: InitializedSandbox) => void;
+  visualizeAlarm?: (
+    sbx: ClientInitializedSandbox,
+    alarm: import("./notifications").CAlarm,
+    alarmMessage: string
+  ) => void;
+  updateVisualisation?: (sbx: ClientInitializedSandbox) => void;
+  getEventTypes?: (sbx: InitializedSandbox) => PluginEventType[];
 }
 
 type PluginClientPrefs = {
@@ -110,11 +120,12 @@ type SGVDirection =
   | "DoubleDown"
   | "TripleDown"
   | "NOT COMPUTABLE"
-  | "RATE OUT OF RANGE";
+  | "RATE OUT OF RANGE"
+  | "CGM ERROR";
 
 export interface Sgv extends EntryBase, Record<string, any> {
   type: "sgv";
-  direction?: SGVDirection
+  direction?: SGVDirection;
 }
 export interface Mbg extends EntryBase, Record<string, any> {
   type: "mbg";
@@ -189,7 +200,7 @@ export type PluginEventType = {
 type VirtAsstIntentHandlerFn = (
   next: (title: string, message: string) => void,
   slots: unknown,
-  sbx: ClientInitializedSandbox,
+  sbx: ClientInitializedSandbox
 ) => void;
 type VirtAsstIntentHandler = {
   intent: string;
@@ -201,3 +212,21 @@ type VirtAsstIntentHandler = {
 export type ClassAsObj<T> = {
   [K in keyof T as T[K] extends Function ? never : K]: T[K];
 };
+
+type PluginNames<Plugins extends Plugin[]> = {
+  [K in keyof Plugins]: Plugins[K]["name"];
+}[keyof Plugins];
+
+export type FilterPluginsByName<
+  Plugins extends Plugin[],
+  T extends PluginNames<Plugins>,
+> = {
+  [K in keyof Plugins as Plugins[K] extends { name: T }
+    ? K
+    : never]: Plugins[K];
+};
+
+export type PluginByName<
+  Plugins extends Plugin[],
+  T extends PluginNames<Plugins>,
+> = FilterPluginsByName<Plugins, T>[keyof FilterPluginsByName<Plugins, T>];

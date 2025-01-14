@@ -15,7 +15,7 @@ const MANUAL_TREATMENTS = [
 
 function init(ctx) {
   const treatmentnotify = {
-    name: "treatmentnotify",
+    name: /** @type {const} */ ("treatmentnotify"),
     label: "Treatment Notifications",
     pluginType: "notification",
   };

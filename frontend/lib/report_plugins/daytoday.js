@@ -650,10 +650,10 @@ daytoday.report = function report_daytoday(
       " ";
     var timestart = new Date();
     var cobStatusAvailable = client
-      .plugins("cob")
+      .plugins.byName("cob")
       .isDeviceStatusAvailable(datastorage.devicestatus);
     var iobStatusAvailable = client
-      .plugins("iob")
+      .plugins.byName("iob")
       .isDeviceStatusAvailable(datastorage.devicestatus);
 
     console.log("Device COB status available: ", cobStatusAvailable);
@@ -662,7 +662,7 @@ daytoday.report = function report_daytoday(
     for (var dt = moment(from); dt < to; dt.add(5, "minutes")) {
       if (options.iob && !iobStatusAvailable) {
         var iob = client
-          .plugins("iob")
+          .plugins.byName("iob")
           .calcTotal(
             datastorage.treatments,
             datastorage.devicestatus,
@@ -700,7 +700,7 @@ daytoday.report = function report_daytoday(
       }
       if (options.cob && !cobStatusAvailable) {
         var cob = client
-          .plugins("cob")
+          .plugins.byName("cob")
           .cobTotal(
             datastorage.treatments,
             datastorage.devicestatus,
@@ -762,7 +762,7 @@ daytoday.report = function report_daytoday(
       var lastdate = 0;
       var previousdate = 0;
       var cobArray = client
-        .plugins("cob")
+        .plugins.byName("cob")
         .COBDeviceStatusesInTimeRange(
           datastorage.devicestatus,
           from.valueOf(),
@@ -816,7 +816,7 @@ daytoday.report = function report_daytoday(
       lastdate = 0;
       previousdate = 0;
       var iobArray = client
-        .plugins("iob")
+        .plugins.byName("iob")
         .IOBDeviceStatusesInTimeRange(
           datastorage.devicestatus,
           from.valueOf(),

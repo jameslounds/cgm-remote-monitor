@@ -20,7 +20,7 @@ const AR2_COLOR = "cyan";
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class Ar2 {
-  name = "ar2";
+  name = /** @type {const} */ ("ar2");
   label = "AR2";
   pluginType = "forecast";
 

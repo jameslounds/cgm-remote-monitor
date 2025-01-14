@@ -13,7 +13,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var loop = {
-    name: "loop",
+    name: /** @type {const} */ ("loop"),
     label: "Loop",
     pluginType: "pill-status",
   };
@@ -407,7 +407,7 @@ function init(ctx) {
               prop.lastEnacted.rate.toFixed(2) +
               "U/hour for " +
               prop.lastEnacted.duration +
-              "m",
+              "m"
           );
         }
         valueParts.push(valueString(", ", prop.lastEnacted.reason));
@@ -514,7 +514,7 @@ function init(ctx) {
         var startTime = moment(predicted.startDate);
         if (predicted.values) {
           points = points.concat(
-            _.map(predicted.values, toPoints(startTime, 0)),
+            _.map(predicted.values, toPoints(startTime, 0))
           );
         }
       }
@@ -602,7 +602,7 @@ function init(ctx) {
       if (endPrediction.valueOf() < sbx.time) {
         next(
           translate("virtAsstTitleLoopForecast"),
-          translate("virtAsstForecastUnavailable"),
+          translate("virtAsstForecastUnavailable")
         );
       } else {
         for (
@@ -632,7 +632,7 @@ function init(ctx) {
     } else {
       next(
         translate("virtAsstTitleLoopForecast"),
-        translate("virtAsstUnknown"),
+        translate("virtAsstUnknown")
       );
     }
   }

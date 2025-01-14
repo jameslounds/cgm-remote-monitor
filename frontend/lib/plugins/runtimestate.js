@@ -2,7 +2,7 @@
 /** server only ? */
 function init() {
   var runtime = {
-    name: "runtimestate",
+    name: /** @type {const} */ ("runtimestate"),
     label: "Runtime state",
     pluginType: "fake",
   };

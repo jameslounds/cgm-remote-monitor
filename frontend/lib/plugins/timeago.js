@@ -9,8 +9,8 @@ let lastRecoveryTimeFromSuspend = new Date("1900-01-01");
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class TimeAgo {
-  name = /** @type {import("../language").TranslationKey} */ ("timeago");
-  label = /** @type {import("../language").TranslationKey} */ ("Timeago");
+  name = /** @type {const} */ ("timeago");
+  label = "Timeago";
   pluginType = "pill-status";
   pillFlip = true;
 

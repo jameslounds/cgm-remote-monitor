@@ -9,7 +9,7 @@ function init(ctx) {
   var utils = require("../utils")(ctx);
 
   var iob = {
-    name: "iob",
+    name: /** @type {const} */ ("iob"),
     label: "Insulin-on-Board",
     pluginType: "pill-major",
   };

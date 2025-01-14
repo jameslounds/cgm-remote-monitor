@@ -9,7 +9,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var sage = {
-    name: "sage",
+    name: /** @type {const} */ ("sage"),
     label: "Sensor Age",
     pluginType: "pill-minor",
   };

@@ -6,7 +6,7 @@ var times = require("../times");
 
 function init(ctx) {
   var simplealarms = {
-    name: "simplealarms",
+    name: /** @type {const} */ ("simplealarms"),
     label: "Simple Alarms",
     pluginType: "notification",
   };

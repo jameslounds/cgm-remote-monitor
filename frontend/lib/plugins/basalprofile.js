@@ -9,7 +9,7 @@ function init(ctx) {
   var translate = ctx.language.translate;
 
   var basal = {
-    name: "basal",
+    name: /** @type {const} */ ("basal"),
     label: "Basal Profile",
     pluginType: "pill-minor",
   };

@@ -7,7 +7,7 @@ function init(ctx) {
   var translate = ctx.language.translate;
 
   var upbat = {
-    name: "upbat",
+    name: /** @type {const} */ ("upbat"),
     label: "Uploader Battery",
     pluginType: "pill-status",
     pillFlip: true,

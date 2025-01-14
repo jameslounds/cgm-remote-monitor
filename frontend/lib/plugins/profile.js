@@ -4,7 +4,7 @@
 
 function init() {
   var profile = {
-    name: "profile",
+    name: /** @type {const} */ ("profile"),
     label: "Profile",
     pluginType: "fake",
   };

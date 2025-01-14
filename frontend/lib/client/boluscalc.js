@@ -19,8 +19,8 @@ class BolusCalc {
     this.translate = this.client.translate;
     this.storage = Storages.localStorage;
 
-    this.iob = this.client.plugins("iob");
-    this.cob = this.client.plugins("cob");
+    this.iob = this.client.plugins.byName("iob");
+    this.cob = this.client.plugins.byName("cob");
 
     this.eventTime = this.$("#bc_eventTimeValue");
     this.eventDate = this.$("#bc_eventDateValue");

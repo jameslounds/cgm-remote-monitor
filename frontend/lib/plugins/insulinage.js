@@ -8,7 +8,7 @@ function init(ctx) {
   var levels = ctx.levels;
 
   var iage = {
-    name: "iage",
+    name: /** @type {const} */ ("iage"),
     label: "Insulin Age",
     pluginType: "pill-minor",
   };

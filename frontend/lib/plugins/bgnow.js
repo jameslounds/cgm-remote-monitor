@@ -31,7 +31,7 @@ const bucketFields = /** @type {const} */ (["index", "fromMills", "toMills"]);
 /** @typedef {import("../types").Plugin} Plugin */
 /** @implements {Plugin} */
 class BgNow {
-  name = "bgnow";
+  name = /** @type {const} */ ("bgnow");
   label = "BG Now";
   pluginType = "pill-primary";
 

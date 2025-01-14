@@ -9,7 +9,7 @@ function init(ctx) {
   var iob = require("./iob")(ctx);
 
   var cob = {
-    name: "cob",
+    name: /** @type {const} */ ("cob"),
     label: "Carbs-on-Board",
     pluginType: "pill-minor",
   };

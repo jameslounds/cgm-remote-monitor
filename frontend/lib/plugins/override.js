@@ -2,7 +2,7 @@
 
 function init() {
   var override = {
-    name: "override",
+    name: /** @type {const} */ ("override"),
     label: "Override",
     pluginType: "pill-status",
   };

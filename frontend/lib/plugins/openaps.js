@@ -10,7 +10,7 @@ function init(ctx) {
   var moment = ctx.moment;
   var utils = require("../utils")(ctx);
   var openaps = {
-    name: "openaps",
+    name: /** @type {const} */ ("openaps"),
     label: "OpenAPS",
     pluginType: "pill-status",
   };
