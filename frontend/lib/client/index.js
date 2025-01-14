@@ -1240,7 +1240,7 @@ class Client {
       });
 
       console.log("Asking plugins to visualize alarms");
-      this.plugins.visualizeAlarm(this.sbx, notify, this.alarmMessage);
+      this.plugins.visualizeAlarm(this.sbx, notify, this.alarmMessage ?? "");
     }
 
     this.container

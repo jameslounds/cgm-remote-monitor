@@ -208,7 +208,7 @@ class Plugins {
 
   /**
    * @param {ReturnType<import("../sandbox")>} sbx
-   * @param {import("../notifications").Alarm} alarm
+   * @param {import("../types").Notify} alarm
    * @param {string} alarmMessage
    */
   visualizeAlarm(sbx, alarm, alarmMessage) {
