@@ -1,6 +1,6 @@
 import type { TranslationKey } from "./language";
 import { PluginCtx } from "./plugins";
-import { InitializedSandbox } from "./sandbox";
+import { ClientInitializedSandbox, InitializedSandbox } from "./sandbox";
 
 type NotifyBase = {
   level: Level;
@@ -65,6 +65,11 @@ interface Plugin {
   ) => void;
   updateVisualisation?: (sbx: ClientInitializedSandbox) => void;
   getEventTypes?: (sbx: InitializedSandbox) => PluginEventType[];
+
+  virtAsst?: {
+    rollupHandlers?: VirtAsstRollupHandler[];
+    intentHandlers?: VirtAsstIntentHandler[];
+  };
 }
 
 type PluginClientPrefs = {
@@ -81,6 +86,8 @@ export type Treatment = {
   profile: string;
   profileJson?: string;
 
+  insulin?: number;
+
   relative?: number;
   absolute?: number;
   percent?: number;
@@ -89,13 +96,29 @@ export type Treatment = {
   cutting?: Treatment["profile"];
 };
 
+export type OpenApsIob = {
+  iob: number;
+  basaliob: number;
+  activity: unknown;
+  time?: number;
+  timestamp: number;
+};
+
+export type LoopIob = {
+  iob: number;
+  timestamp: number;
+};
+
+export type PumpIob = { iob?: number; bolusiob: number };
+
 export type DeviceStatus = {
   _id: string;
   mills: number;
   uploader: any;
-  pump: any;
-  openaps: any;
-  loop: any;
+  pump: { iob?: PumpIob };
+  openaps: { iob?: OpenApsIob | OpenApsIob[] };
+  loop: { iob?: LoopIob };
+  connect?: any;
   xdripjs: any;
   device: any;
 };
@@ -206,6 +229,17 @@ type VirtAsstIntentHandler = {
   intent: string;
   metrics: string[];
   intentHandler: VirtAsstIntentHandlerFn;
+};
+
+type VirtAsstRollupHandlerFn = (
+  slots: unknown,
+  sbx: ClientInitializedSandbox,
+  callback: (a: string | null, b: { results: string; priority: number }) => void
+) => void;
+type VirtAsstRollupHandler = {
+  rollupGroup: string;
+  rollupName: string;
+  rollupHandler: VirtAsstRollupHandlerFn;
 };
 
 /** Removes methods from a class. */

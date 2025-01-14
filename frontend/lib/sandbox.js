@@ -26,6 +26,7 @@ const times = require("./times");
  *   ar2?: import("./plugins/ar2").Ar2Properties;
  *   direction?: import("./plugins/direction").DirectionProperties;
  *   rawbg?: import("./plugins/rawbg").RawBgProperties;
+ *   iob?: import("./plugins/iob").IobProperties;
  * }} SandboxProperties
  */
 

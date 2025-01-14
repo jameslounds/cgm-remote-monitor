@@ -116,7 +116,7 @@ class ProfileFunctions {
   /**
    * @param {number | undefined} time
    * @param {keyof Omit<Profile, "store">} valueType
-   * @param {string} spec_profile
+   * @param {string} [spec_profile]
    */
   getValueByTime(time, valueType, spec_profile) {
     if (!time) time = Date.now();
@@ -192,7 +192,7 @@ class ProfileFunctions {
   /**
    *
    * @param {number | undefined | null} time
-   * @param {string} spec_profile
+   * @param {string} [spec_profile]
    * @returns {Omit<Profile, "store">}
    */
   getCurrentProfile(time, spec_profile) {
@@ -215,14 +215,14 @@ class ProfileFunctions {
     return currProfile;
   }
 
-  /** @param {string} spec_profile */
+  /** @param {string} [spec_profile] */
   getUnits(spec_profile) {
     var pu = this.getCurrentProfile(null, spec_profile)["units"] + " ";
     if (pu.toLowerCase().includes("mmol")) return "mmol";
     return "mg/dl";
   }
 
-  /** @param {string} spec_profile */
+  /** @param {string} [spec_profile] */
   getTimezone(spec_profile) {
     const rVal = this.getCurrentProfile(null, spec_profile)["timezone"];
     // Work around Loop uploading non-ISO compliant time zone string
@@ -239,7 +239,7 @@ class ProfileFunctions {
   #makeValueTypeGetter(valueType) {
     /**
      * @param {string | number} time
-     * @param {string} spec_profile
+     * @param {string} [spec_profile]
      * @returns {Profile[T]}
      */
     return (time, spec_profile) => {
@@ -421,7 +421,7 @@ class ProfileFunctions {
   /**
    *
    * @param {number} time
-   * @param {string} spec_profile
+   * @param {string} [spec_profile]
    * @returns {(
    *  Record<"basal" | "combobolusbasal" | "tempbasal" | "totalbasal", number>
    * & Record<"treatment" | "combobolustreatment", import("./types").Treatment | undefined>)}

@@ -190,7 +190,7 @@ class RawBg {
     }
   }
 
-  virtAsst = /** @type {const} */ ({
+  virtAsst = {
     intentHandlers: [
       {
         intent: "MetricNow",
@@ -198,7 +198,7 @@ class RawBg {
         intentHandler: this.virtAsstRawBGHandler.bind(this),
       },
     ],
-  });
+  };
 
   /** @protected @param {import("../types").Sgv} sgv @param {import("../types").Cal | undefined} cal */
   cleanValues(sgv, cal) {
