@@ -174,10 +174,8 @@ class Notifications {
   }
 
   /**
-   * @param {(
-   *   | Omit<import("./types").Notify, "group">
-   *   | import("./types").Notify
-   * ) & { plugin: NonNullable<import("./types").Notify["plugin"]> }} notify
+   * @param {Omit<import("./types").Notify, "group">
+   *   | import("./types").Notify} notify
    */
   requestNotify(notify) {
     if (
@@ -195,8 +193,7 @@ class Notifications {
       return;
     }
 
-    notify.group ??= "default";
-    this.requests.notifies.push(notify);
+    this.requests.notifies.push({ group: "default", ...notify });
   }
 
   /** @param {import("./types").Snooze} snooze */
