@@ -496,7 +496,7 @@ class BolusCalc {
             this.client.sbx.data.treatments,
             this.client.sbx.data.devicestatus,
             this.client.sbx.data.profile,
-            eventTime,
+            eventTime.valueOf(),
             profile
           ).iob,
           0.01
