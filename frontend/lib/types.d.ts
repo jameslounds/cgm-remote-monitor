@@ -87,6 +87,7 @@ export type Treatment = {
   profileJson?: string;
 
   insulin?: number;
+  carbs?: number;
 
   relative?: number;
   absolute?: number;
@@ -99,7 +100,7 @@ export type Treatment = {
 export type OpenApsIob = {
   iob: number;
   basaliob: number;
-  activity: unknown;
+  activity: number;
   time?: number;
   timestamp: number;
 };
@@ -108,6 +109,10 @@ export type LoopIob = {
   iob: number;
   timestamp: number;
 };
+export type LoopCob = {
+  cob: number;
+  timestamp: number;
+}
 
 export type PumpIob = { iob?: number; bolusiob: number };
 
@@ -116,8 +121,12 @@ export type DeviceStatus = {
   mills: number;
   uploader: any;
   pump: { iob?: PumpIob };
-  openaps: { iob?: OpenApsIob | OpenApsIob[] };
-  loop: { iob?: LoopIob };
+  openaps: {
+    iob?: OpenApsIob | OpenApsIob[];
+    suggested?: { timestamp: number; COB: number };
+    enacted?: { timestamp: number; COB: number };
+  };
+  loop: { iob?: LoopIob; cob?: LoopCob };
   connect?: any;
   xdripjs: any;
   device: any;

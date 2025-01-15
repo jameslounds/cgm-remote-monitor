@@ -27,6 +27,7 @@ const times = require("./times");
  *   direction?: import("./plugins/direction").DirectionProperties;
  *   rawbg?: import("./plugins/rawbg").RawBgProperties;
  *   iob?: import("./plugins/iob").IobProperties;
+ *   cob?: import("./plugins/cob.js").CobProperties;
  * }} SandboxProperties
  */
 

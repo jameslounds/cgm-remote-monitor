@@ -238,7 +238,7 @@ class ProfileFunctions {
   /** @template {keyof Omit<Profile, "store">} T @param {T} valueType */
   #makeValueTypeGetter(valueType) {
     /**
-     * @param {string | number} time
+     * @param {string | number | Date | undefined} time
      * @param {string} [spec_profile]
      * @returns {Profile[T]}
      */
