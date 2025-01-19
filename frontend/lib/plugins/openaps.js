@@ -487,7 +487,7 @@ function init(ctx) {
     function addSuggestion() {
       if (prop.lastSuggested) {
         var bg = prop.lastSuggested.bg;
-        var units = sbx.data.profile.getUnits();
+        var units = sbx.settings.units;
 
         if (units === "mmol") {
           bg = Math.round((bg / consts.MMOL_TO_MGDL) * 10) / 10;
@@ -602,9 +602,15 @@ function init(ctx) {
     if ("enacted" === prop.status.code) {
       var canceled =
         prop.lastEnacted.rate === 0 && prop.lastEnacted.duration === 0;
+      var bg = prop.lastEnacted.bg;
+      var units = sbx.settings.units;
+
+      if (units === 'mmol') {
+        bg = Math.round(bg / consts.MMOL_TO_MGDL * 10) / 10;
+      }
 
       var valueParts = [
-        valueString("BG: ", prop.lastEnacted.bg),
+        valueString("BG: ", bg),
         ", <b>Temp Basal" + (canceled ? " Canceled" : " Started") + "</b>",
         canceled
           ? ""
