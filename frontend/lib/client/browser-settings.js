@@ -136,7 +136,7 @@ class BrowserSettings {
     if (typeof data !== "object") return false;
 
     if (!("renderOver" in data)) return false;
-    if (!("renderFormet" in data)) return false;
+    if (!("renderFormat" in data)) return false;
     if (!("renderFormatSmall" in data)) return false;
 
     return true;
