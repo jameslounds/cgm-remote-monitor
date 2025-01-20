@@ -1,43 +1,53 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
-var consts = require("../constants");
+const isEqual = require("lodash/isEqual");
+const times = require("../times");
+const consts = require("../constants");
 
-var DEFAULT_FOCUS = times.hours(3).msecs,
-  WIDTH_SMALL_DOTS = 420,
-  WIDTH_BIG_DOTS = 800,
-  TOOLTIP_WIDTH = 150; //min-width + padding
+const DEFAULT_FOCUS = times.hours(3).msecs;
+const WIDTH_SMALL_DOTS = 420;
+const WIDTH_BIG_DOTS = 800;
+const TOOLTIP_WIDTH = 150; //min-width + padding
 const zeroDate = new Date(0);
 
-function init(client, d3) {
-  var renderer = {};
+/**
+ * @typedef {{ treatments: number; scale: number; showLabels: boolean }
+ *   | { showLabels: false }} DrawTreatmentOpts
+ */
 
-  var utils = client.utils;
-  var translate = client.translate;
+class Renderer {
+  /**
+   * @param {import(".")} client
+   * @param {import("d3")} d3
+   */
+  constructor(client, d3) {
+    this.client = client;
+    this.d3 = d3;
 
-  function getOrAddDate(entry) {
+    this.utils = client.utils;
+    this.translate = client.translate;
+  }
+
+  /** @protected @param {{date?: Date; mills: number}} entry */
+  getOrAddDate(entry) {
     if (entry.date) return entry.date;
     entry.date = new Date(entry.mills);
     return entry.date;
   }
 
-  //chart isn't created till the client gets data, so can grab the var at init
-  function chart() {
-    return client.chart;
-  }
-
-  function focusRangeAdjustment() {
-    return client.focusRangeMS === DEFAULT_FOCUS
+  /** @protected */
+  focusRangeAdjustment() {
+    return this.client.focusRangeMS === DEFAULT_FOCUS
       ? 1
-      : 1 + (client.focusRangeMS - DEFAULT_FOCUS) / DEFAULT_FOCUS / 8;
+      : 1 + (this.client.focusRangeMS - DEFAULT_FOCUS) / DEFAULT_FOCUS / 8;
   }
 
-  var dotRadius = function (type) {
-    var radius =
-      chart().prevChartWidth > WIDTH_BIG_DOTS
+  /** @protected @param {import("../types").Entry["type"]} type */
+  dotRadius(type) {
+    let radius =
+      (this.client.chart?.prevChartWidth ?? NaN) > WIDTH_BIG_DOTS
         ? 4
-        : chart().prevChartWidth < WIDTH_SMALL_DOTS
+        : (this.client.chart?.prevChartWidth ?? NaN) < WIDTH_SMALL_DOTS
           ? 2
           : 3;
     if (type === "mbg") {
@@ -48,396 +58,491 @@ function init(client, d3) {
       radius = Math.min(2, radius - 1);
     }
 
-    return radius / focusRangeAdjustment();
-  };
+    return radius / this.focusRangeAdjustment();
+  }
 
-  function tooltipLeft(event) {
-    var windowWidth = $(client.tooltip.node()).parent().parent().width();
-    var left =
+  /** @param {JQuery.MouseOverEvent} event */
+  tooltipLeft(event) {
+    const tooltipNode = this.client.tooltip.node();
+    if (!tooltipNode) return NaN + "px";
+
+    const windowWidth = $(tooltipNode).parent().parent().width() ?? NaN;
+    const left =
       event.pageX + TOOLTIP_WIDTH < windowWidth
         ? event.pageX
         : windowWidth - TOOLTIP_WIDTH - 10;
     return left + "px";
   }
 
-  function hideTooltip() {
-    client.tooltip.style("opacity", 0);
+  hideTooltip() {
+    this.client.tooltip.style("opacity", 0);
   }
 
-  // get the desired opacity for context chart based on the brush extent
-  renderer.highlightBrushPoints = function highlightBrushPoints(
-    data,
-    from,
-    to,
-  ) {
-    if (client.latestSGV && data.mills >= from && data.mills <= to) {
-      return chart().futureOpacity(data.mills - client.latestSGV.mills);
+  /**
+   * Get the desired opacity for context chart based on the brush extent
+   *
+   * @param {{ mills: number }} data
+   * @param {number} from
+   * @param {number} to
+   */
+  highlightBrushPoints(data, from, to) {
+    if (
+      this.client.chart &&
+      this.client.latestSGV &&
+      data.mills >= from &&
+      data.mills <= to
+    ) {
+      return this.client.chart.futureOpacity(
+        data.mills - this.client.latestSGV.mills
+      );
     } else {
       return 0.5;
     }
-  };
+  }
 
-  renderer.bubbleScale = function bubbleScale() {
-    // a higher bubbleScale will produce smaller bubbles (it's not a radius like focusDotRadius)
+  /**
+   * A higher bubbleScale will produce smaller bubbles (it's not a radius like
+   * focusDotRadius)
+   */
+  bubbleScale() {
+    const prevChartWidth = this.client.chart?.prevChartWidth ?? NaN;
     return (
-      (chart().prevChartWidth < WIDTH_SMALL_DOTS
+      (prevChartWidth < WIDTH_SMALL_DOTS
         ? 4
-        : chart().prevChartWidth < WIDTH_BIG_DOTS
+        : prevChartWidth < WIDTH_BIG_DOTS
           ? 3
-          : 2) * focusRangeAdjustment()
+          : 2) * this.focusRangeAdjustment()
     );
-  };
+  }
 
-  renderer.addFocusCircles = function addFocusCircles() {
-    function updateFocusCircles(sel) {
-      var badData = [];
-      sel
-        .attr("cx", function (d) {
-          if (!d) {
-            console.error("Bad data", d);
-            return chart().xScale(zeroDate);
-          } else if (!d.mills) {
-            console.error("Bad data, no mills", d);
-            return chart().xScale(zeroDate);
-          } else {
-            return chart().xScale(getOrAddDate(d));
-          }
-        })
-        .attr("cy", function (d) {
-          var scaled = client.sbx.scaleEntry(d);
-          if (isNaN(scaled)) {
-            badData.push(d);
-            return chart().yScale(utils.scaleMgdl(450));
-          } else {
-            return chart().yScale(scaled);
-          }
-        })
-        .attr("opacity", function (d) {
-          if (d.noFade) {
-            return null;
-          } else {
-            return !client.latestSGV
-              ? 1
-              : chart().futureOpacity(d.mills - client.latestSGV.mills);
-          }
-        })
-        .attr("r", function (d) {
-          return dotRadius(d.type);
-        });
+  /** @protected @param {import("d3").Selection<any, import("../types").Entry, SVGGElement, any>} sel */
+  updateFocusCircles(sel) {
+    if (!this.client.chart) return sel;
+    const chart = this.client.chart;
 
-      if (badData.length > 0) {
-        console.warn("Bad Data: isNaN(sgv)", badData);
-      }
-
-      return sel;
-    }
-
-    function prepareFocusCircles(sel) {
-      updateFocusCircles(sel)
-        .attr("fill", function (d) {
-          return d.type === "forecast" ? "none" : d.color;
-        })
-        .attr("stroke-width", function (d) {
-          return d.type === "mbg" ? 2 : d.type === "forecast" ? 2 : 0;
-        })
-        .attr("stroke", function (d) {
-          return d.type === "mbg" ? "white" : d.color;
-        });
-
-      return sel;
-    }
-
-    function focusCircleTooltip(event, d) {
-      if (d.type !== "sgv" && d.type !== "mbg" && d.type !== "forecast") {
-        return;
-      }
-
-      function getRawbgInfo() {
-        var info = {};
-        var sbx = client.sbx.withExtendedSettings(client.rawbg);
-        if (d.type === "sgv") {
-          info.noise = client.rawbg.noiseCodeToDisplay(d.mgdl, d.noise);
-          if (client.rawbg.showRawBGs(d.mgdl, d.noise, client.ddata.cal, sbx)) {
-            info.value = utils.scaleMgdl(
-              client.rawbg.calc(d, client.ddata.cal, sbx),
-            );
-          }
+    /** @type {import("../types").Entry[]} */
+    const badData = [];
+    sel
+      .attr("cx", (d) => {
+        if (!d) {
+          console.error("Bad data", d);
+          return chart.xScale(zeroDate);
+        } else if (!d.mills) {
+          console.error("Bad data, no mills", d);
+          return chart.xScale(zeroDate);
+        } else {
+          return chart.xScale(this.getOrAddDate(d));
         }
-        return info;
-      }
+      })
+      .attr("cy", (d) => {
+        const scaled = this.client.sbx.scaleEntry(d);
+        if (isNaN(scaled)) {
+          badData.push(d);
+          return chart.yScale(this.utils.scaleMgdl(450));
+        } else {
+          return chart.yScale(scaled);
+        }
+      })
+      .attr("opacity", (d) => {
+        if ("noFade" in d && d.noFade) {
+          return null;
+        } else {
+          return !this.client.latestSGV
+            ? 1
+            : chart.futureOpacity(d.mills - this.client.latestSGV.mills);
+        }
+      })
+      .attr("r", (d) => this.dotRadius(d.type));
 
-      var rawbgInfo = getRawbgInfo();
-
-      client.tooltip.style("opacity", 0.9);
-      client.tooltip
-        .html(
-          "<strong>" +
-            translate("BG") +
-            ":</strong> " +
-            client.sbx.scaleEntry(d) +
-            (d.type === "mbg"
-              ? "<br/><strong>" + translate("Device") + ": </strong>" + d.device
-              : "") +
-            (d.type === "forecast" && d.forecastType
-              ? "<br/><strong>" +
-                translate("Forecast Type") +
-                ": </strong>" +
-                d.forecastType
-              : "") +
-            (rawbgInfo.value
-              ? "<br/><strong>" +
-                translate("Raw BG") +
-                ":</strong> " +
-                rawbgInfo.value
-              : "") +
-            (rawbgInfo.noise
-              ? "<br/><strong>" +
-                translate("Noise") +
-                ":</strong> " +
-                rawbgInfo.noise
-              : "") +
-            "<br/><strong>" +
-            translate("Time") +
-            ":</strong> " +
-            client.formatTime(getOrAddDate(d)),
-        )
-        .style("left", tooltipLeft(event))
-        .style("top", event.pageY + 15 + "px");
+    if (badData.length > 0) {
+      console.warn("Bad Data: isNaN(sgv)", badData);
     }
+
+    return sel;
+  }
+
+  /**
+   * @param {import("d3").Selection<
+   *   any,
+   *   import("../types").Entry,
+   *   SVGGElement,
+   *   any
+   * >} sel
+   * @protected
+   */
+  prepareFocusCircles(sel) {
+    this.updateFocusCircles(sel)
+      .attr("fill", (d) => (d.type === "forecast" ? "none" : d.color))
+      .attr("stroke-width", (d) =>
+        d.type === "mbg" ? 2 : d.type === "forecast" ? 2 : 0
+      )
+      .attr("stroke", (d) => (d.type === "mbg" ? "white" : d.color));
+
+    return sel;
+  }
+
+  /** @protected @param {import("../types").Entry} d */
+  getRawbgInfo(d) {
+    /** @type {{ noise?: string; value?: number }} */
+    const info = {};
+    // @ts-expect-error no idea if or how this works
+    const sbx = this.client.sbx.withExtendedSettings(this.client.rawbg);
+
+    if (d.type === "sgv") {
+      info.noise = this.client.rawbg.noiseCodeToDisplay(d.mgdl, d.noise);
+      if (
+        this.client.rawbg.showRawBGs(
+          d.mgdl,
+          d.noise,
+          this.client.ddata.cal,
+          sbx
+        )
+      ) {
+        info.value = this.utils.scaleMgdl(
+          this.client.rawbg.calc(d, this.client.ddata.cal, sbx)
+        );
+      }
+    }
+    return info;
+  }
+
+  /**
+   * @param {JQuery.MouseOverEvent} event
+   * @param {import("../types").Entry} d
+   * @protected
+   */
+  focusCircleTooltip(event, d) {
+    if (d.type !== "sgv" && d.type !== "mbg" && d.type !== "forecast") {
+      return;
+    }
+
+    const rawbgInfo = this.getRawbgInfo(d);
+
+    this.client.tooltip.style("opacity", 0.9);
+    this.client.tooltip
+      .html(
+        "<strong>" +
+          this.translate("BG") +
+          ":</strong> " +
+          this.client.sbx.scaleEntry(d) +
+          (d.type === "mbg"
+            ? "<br/><strong>" +
+              this.translate("Device") +
+              ": </strong>" +
+              d.device
+            : "") +
+          (d.type === "forecast" && d.forecastType
+            ? "<br/><strong>" +
+              this.translate("Forecast Type") +
+              ": </strong>" +
+              d.forecastType
+            : "") +
+          (rawbgInfo.value
+            ? "<br/><strong>" +
+              this.translate("Raw BG") +
+              ":</strong> " +
+              rawbgInfo.value
+            : "") +
+          (rawbgInfo.noise
+            ? "<br/><strong>" +
+              this.translate("Noise") +
+              ":</strong> " +
+              rawbgInfo.noise
+            : "") +
+          "<br/><strong>" +
+          this.translate("Time") +
+          ":</strong> " +
+          this.client.formatTime(this.getOrAddDate(d))
+      )
+      .style("left", this.tooltipLeft(event))
+      .style("top", event.pageY + 15 + "px");
+  }
+
+  addFocusCircles() {
+    if (!this.client.chart) return;
 
     // CGM data
 
-    var focusData = client.entries;
+    const focusData = this.client.entries;
 
     // bind up the focus chart data to an array of circles
     // selects all our data into data and uses date function to get current max date
-    var focusCircles = chart()
-      .focus.selectAll("circle.entry-dot")
-      .data(focusData, function genKey(d) {
-        return "cgmreading." + d.mills;
-      });
+    const focusCircles = this.client.chart.focus
+      .selectAll("circle.entry-dot")
+      .data(focusData, (d) => "cgmreading." + d.mills);
 
     // if already existing then transition each circle to its new position
-    updateFocusCircles(focusCircles);
+    this.updateFocusCircles(focusCircles);
 
     // if new circle then just display
-    prepareFocusCircles(focusCircles.enter().append("circle"))
+    this.prepareFocusCircles(focusCircles.enter().append("circle"))
       .attr("class", "entry-dot")
-      .on("mouseover", focusCircleTooltip)
-      .on("mouseout", hideTooltip);
+      .on("mouseover", this.focusCircleTooltip.bind(this))
+      .on("mouseout", this.hideTooltip.bind(this));
 
     focusCircles.exit().remove();
 
     // Forecasts
 
-    var shownForecastPoints = client.chart.getForecastData();
+    const shownForecastPoints = this.client.chart.getForecastData();
 
     // bind up the focus chart data to an array of circles
     // selects all our data into data and uses date function to get current max date
 
-    var forecastCircles = chart()
-      .focus.selectAll("circle.forecast-dot")
-      .data(shownForecastPoints, function genKey(d) {
-        return d.forecastType + d.mills;
-      });
+    const forecastCircles = this.client.chart.focus
+      .selectAll("circle.forecast-dot")
+      .data(
+        /** @type {import("../types").Entry[]} */ (shownForecastPoints),
+        (d) => d.forecastType + d.mills
+      );
 
     forecastCircles.exit().remove();
 
-    prepareFocusCircles(forecastCircles.enter().append("circle"))
+    this.prepareFocusCircles(forecastCircles.enter().append("circle"))
       .attr("class", "forecast-dot")
-      .on("mouseover", focusCircleTooltip)
-      .on("mouseout", hideTooltip);
+      .on("mouseover", this.focusCircleTooltip.bind(this))
+      .on("mouseout", this.hideTooltip.bind(this));
 
-    updateFocusCircles(forecastCircles);
-  };
+    this.updateFocusCircles(forecastCircles);
+  }
 
-  renderer.addTreatmentCircles = function addTreatmentCircles(nowDate) {
-    function treatmentTooltip(d) {
-      var targetBottom = d.targetBottom;
-      var targetTop = d.targetTop;
+  /** @param {import("../types").Treatment} d */
+  treatmentCirclesTooltip(d) {
+    const translate = this.translate;
 
-      if (client.settings.units === "mmol") {
-        targetBottom =
-          Math.round((targetBottom / consts.MMOL_TO_MGDL) * 10) / 10;
-        targetTop = Math.round((targetTop / consts.MMOL_TO_MGDL) * 10) / 10;
-      }
+    let targetBottom = d.targetBottom;
+    let targetTop = d.targetTop;
 
-      var correctionRangeText;
-      if (d.correctionRange) {
-        var min = d.correctionRange[0];
-        var max = d.correctionRange[1];
-
-        if (client.settings.units === "mmol") {
-          max = client.sbx.roundBGToDisplayFormat(client.sbx.scaleMgdl(max));
-          min = client.sbx.roundBGToDisplayFormat(client.sbx.scaleMgdl(min));
-        }
-
-        if (d.correctionRange[0] === d.correctionRange[1]) {
-          correctionRangeText = "" + min;
-        } else {
-          correctionRangeText = "" + min + " - " + max;
-        }
-      }
-
-      var durationText;
-      if (d.durationType === "indefinite") {
-        durationText = translate("Indefinite");
-      } else if (d.duration) {
-        var durationMinutes = Math.round(d.duration);
-        if (durationMinutes > 0 && durationMinutes % 60 == 0) {
-          var durationHours = durationMinutes / 60;
-          if (durationHours > 1) {
-            durationText = durationHours + " hours";
-          } else {
-            durationText = durationHours + " hour";
-          }
-        } else {
-          durationText = durationMinutes + " min";
-        }
-      }
-
-      return (
-        "<strong>" +
-        translate("Time") +
-        ":</strong> " +
-        client.formatTime(getOrAddDate(d)) +
-        "<br/>" +
-        (d.eventType
-          ? "<strong>" +
-            translate("Treatment type") +
-            ":</strong> " +
-            translate(client.careportal.resolveEventName(d.eventType)) +
-            "<br/>"
-          : "") +
-        (d.reason
-          ? "<strong>" +
-            translate("Reason") +
-            ":</strong> " +
-            translate(d.reason) +
-            "<br/>"
-          : "") +
-        (d.glucose
-          ? "<strong>" +
-            translate("BG") +
-            ":</strong> " +
-            d.glucose +
-            (d.glucoseType ? " (" + translate(d.glucoseType) + ")" : "") +
-            "<br/>"
-          : "") +
-        (d.enteredBy
-          ? "<strong>" +
-            translate("Entered By") +
-            ":</strong> " +
-            d.enteredBy +
-            "<br/>"
-          : "") +
-        (d.targetTop
-          ? "<strong>" +
-            translate("Target Top") +
-            ":</strong> " +
-            targetTop +
-            "<br/>"
-          : "") +
-        (d.targetBottom
-          ? "<strong>" +
-            translate("Target Bottom") +
-            ":</strong> " +
-            targetBottom +
-            "<br/>"
-          : "") +
-        (durationText
-          ? "<strong>" +
-            translate("Duration") +
-            ":</strong> " +
-            durationText +
-            "<br/>"
-          : "") +
-        (d.insulinNeedsScaleFactor
-          ? "<strong>" +
-            translate("Insulin Scale Factor") +
-            ":</strong> " +
-            d.insulinNeedsScaleFactor * 100 +
-            "%<br/>"
-          : "") +
-        (correctionRangeText
-          ? "<strong>" +
-            translate("Correction Range") +
-            ":</strong> " +
-            correctionRangeText +
-            "<br/>"
-          : "") +
-        (d.transmitterId
-          ? "<strong>" +
-            translate("Transmitter ID") +
-            ":</strong> " +
-            d.transmitterId +
-            "<br/>"
-          : "") +
-        (d.sensorCode
-          ? "<strong>" +
-            translate("Sensor Code") +
-            ":</strong> " +
-            d.sensorCode +
-            "<br/>"
-          : "") +
-        (d.notes
-          ? "<strong>" + translate("Notes") + ":</strong> " + d.notes
-          : "")
-      );
+    if (this.client.settings.units === "mmol") {
+      targetBottom = Math.round((targetBottom / consts.MMOL_TO_MGDL) * 10) / 10;
+      targetTop = Math.round((targetTop / consts.MMOL_TO_MGDL) * 10) / 10;
     }
 
-    function announcementTooltip(d) {
-      return (
-        "<strong>" +
-        translate("Time") +
-        ":</strong> " +
-        client.formatTime(getOrAddDate(d)) +
-        "<br/>" +
-        (d.eventType
-          ? "<strong>" + translate("Announcement") + "</strong><br/>"
-          : "") +
-        (d.notes && d.notes.length > 1
-          ? "<strong>" +
-            translate("Message") +
-            ":</strong> " +
-            d.notes +
-            "<br/>"
-          : "") +
-        (d.enteredBy
-          ? "<strong>" +
-            translate("Entered By") +
-            ":</strong> " +
-            d.enteredBy +
-            "<br/>"
-          : "")
-      );
+    let correctionRangeText = "";
+    if (d.correctionRange) {
+      let min = d.correctionRange[0];
+      let max = d.correctionRange[1];
+
+      if (this.client.settings.units === "mmol") {
+        max = this.client.sbx.roundBGToDisplayFormat(
+          this.client.sbx.scaleMgdl(max)
+        );
+        min = this.client.sbx.roundBGToDisplayFormat(
+          this.client.sbx.scaleMgdl(min)
+        );
+      }
+
+      if (d.correctionRange[0] === d.correctionRange[1]) {
+        correctionRangeText = "" + min;
+      } else {
+        correctionRangeText = "" + min + " - " + max;
+      }
     }
+
+    let durationText = "";
+    if (d.durationType === "indefinite") {
+      durationText = translate("Indefinite");
+    } else if (d.duration) {
+      const durationMinutes = Math.round(d.duration);
+      if (durationMinutes > 0 && durationMinutes % 60 == 0) {
+        const durationHours = durationMinutes / 60;
+        if (durationHours > 1) {
+          durationText = durationHours + " hours";
+        } else {
+          durationText = durationHours + " hour";
+        }
+      } else {
+        durationText = durationMinutes + " min";
+      }
+    }
+
+    return (
+      "<strong>" +
+      translate("Time") +
+      ":</strong> " +
+      this.client.formatTime(this.getOrAddDate(d)) +
+      "<br/>" +
+      (d.eventType
+        ? "<strong>" +
+          translate("Treatment type") +
+          ":</strong> " +
+          translate(
+            this.client.careportal.resolveEventName(d.eventType) ?? "(none)"
+          ) +
+          "<br/>"
+        : "") +
+      (d.reason
+        ? "<strong>" +
+          translate("Reason") +
+          ":</strong> " +
+          translate(d.reason) +
+          "<br/>"
+        : "") +
+      (d.glucose
+        ? "<strong>" +
+          translate("BG") +
+          ":</strong> " +
+          d.glucose +
+          (d.glucoseType ? " (" + translate(d.glucoseType) + ")" : "") +
+          "<br/>"
+        : "") +
+      (d.enteredBy
+        ? "<strong>" +
+          translate("Entered By") +
+          ":</strong> " +
+          d.enteredBy +
+          "<br/>"
+        : "") +
+      (d.targetTop
+        ? "<strong>" +
+          translate("Target Top") +
+          ":</strong> " +
+          targetTop +
+          "<br/>"
+        : "") +
+      (d.targetBottom
+        ? "<strong>" +
+          translate("Target Bottom") +
+          ":</strong> " +
+          targetBottom +
+          "<br/>"
+        : "") +
+      (durationText
+        ? "<strong>" +
+          translate("Duration") +
+          ":</strong> " +
+          durationText +
+          "<br/>"
+        : "") +
+      (d.insulinNeedsScaleFactor
+        ? "<strong>" +
+          translate("Insulin Scale Factor") +
+          ":</strong> " +
+          d.insulinNeedsScaleFactor * 100 +
+          "%<br/>"
+        : "") +
+      (correctionRangeText
+        ? "<strong>" +
+          translate("Correction Range") +
+          ":</strong> " +
+          correctionRangeText +
+          "<br/>"
+        : "") +
+      (d.transmitterId
+        ? "<strong>" +
+          translate("Transmitter ID") +
+          ":</strong> " +
+          d.transmitterId +
+          "<br/>"
+        : "") +
+      (d.sensorCode
+        ? "<strong>" +
+          translate("Sensor Code") +
+          ":</strong> " +
+          d.sensorCode +
+          "<br/>"
+        : "") +
+      (d.notes ? "<strong>" + translate("Notes") + ":</strong> " + d.notes : "")
+    );
+  }
+
+  /** @protected @param {import("../types").Treatment} d */
+  announcementTooltip(d) {
+    return (
+      "<strong>" +
+      this.translate("Time") +
+      ":</strong> " +
+      this.client.formatTime(this.getOrAddDate(d)) +
+      "<br/>" +
+      (d.eventType
+        ? "<strong>" + this.translate("Announcement") + "</strong><br/>"
+        : "") +
+      (d.notes && d.notes.length > 1
+        ? "<strong>" +
+          this.translate("Message") +
+          ":</strong> " +
+          d.notes +
+          "<br/>"
+        : "") +
+      (d.enteredBy
+        ? "<strong>" +
+          this.translate("Entered By") +
+          ":</strong> " +
+          d.enteredBy +
+          "<br/>"
+        : "")
+    );
+  }
+
+  /**
+   * @param {import("d3").Selection<
+   *   import("d3").BaseType,
+   *   import("../types").Treatment,
+   *   SVGGElement,
+   *   any
+   * >} sel
+   */
+  updateTreatCircles(sel) {
+    if (!this.client.chart) return sel;
+    const chart = this.client.chart;
+
+    sel
+      .attr("cx", (d) => chart.xScale(this.getOrAddDate(d)))
+      .attr("cy", (d) => chart.yScale(this.client.sbx.scaleEntry(d)))
+      .attr("r", () => this.dotRadius("mbg"));
+
+    return sel;
+  }
+
+  /**
+   * @param {import("d3").Selection<
+   *   any,
+   *   import("../types").Treatment,
+   *   SVGGElement,
+   *   any
+   * >} sel
+   */
+  prepareTreatCircles(sel) {
+    return this.updateTreatCircles(sel)
+      .attr("stroke-width", 2)
+      .attr(
+        "stroke",
+        (d) =>
+          (d.isAnnouncement && "orange") || (d.glucose && "grey") || "white"
+      )
+      .attr(
+        "fill",
+        (d) => (d.isAnnouncement && "orange") || (d.glucose && "red") || "grey"
+      );
+  }
+
+  /** @param {number | import("moment").Moment | Date} nowDate */
+  addTreatmentCircles(nowDate) {
+    if (!this.client.chart) return;
 
     //TODO: filter in oref0 instead of here and after most people upgrade take this out
-    var openAPSSpam = ["BasalProfileStart", "ResultDailyTotal", "BGReceived"];
+    const openAPSSpam = ["BasalProfileStart", "ResultDailyTotal", "BGReceived"];
 
     //NOTE: treatments with insulin or carbs are drawn by drawTreatment()
     // bind up the focus chart data to an array of circles
-    var treatCircles = chart()
-      .focus.selectAll(".treatment-dot")
+    const treatCircles = this.client.chart.focus
+      .selectAll(".treatment-dot")
       .data(
-        client.ddata.treatments.filter(function (treatment) {
-          var notCarbsOrInsulin = !treatment.carbs && !treatment.insulin;
-          var notTempOrProfile = !_.includes(
-            ["Temp Basal", "Profile Switch", "Combo Bolus", "Temporary Target"],
-            treatment.eventType,
-          );
+        this.client.ddata.treatments.filter((treatment) => {
+          const notCarbsOrInsulin = !treatment.carbs && !treatment.insulin;
+          const notTempOrProfile = ![
+            "Temp Basal",
+            "Profile Switch",
+            "Combo Bolus",
+            "Temporary Target",
+          ].includes(treatment.eventType);
 
-          var notes = treatment.notes || "";
-          var enteredBy = treatment.enteredBy || "";
+          const notes = treatment.notes || "";
+          const enteredBy = treatment.enteredBy || "";
 
-          var notOpenAPSSpam =
-            enteredBy.indexOf("openaps://") === -1 ||
-            _.isUndefined(
-              _.find(openAPSSpam, function startsWith(spam) {
-                return notes.indexOf(spam) === 0;
-              }),
-            );
+          const notOpenAPSSpam =
+            !enteredBy.includes("openaps://") ||
+            openAPSSpam.some((spam) => notes.startsWith(spam));
 
           return (
             notCarbsOrInsulin &&
@@ -447,168 +552,130 @@ function init(client, d3) {
             notOpenAPSSpam
           );
         }),
-        function (d) {
+        function key(d) {
           return d._id;
-        },
+        }
       );
 
-    function updateTreatCircles(sel) {
-      sel
-        .attr("cx", function (d) {
-          return chart().xScale(getOrAddDate(d));
-        })
-        .attr("cy", function (d) {
-          return chart().yScale(client.sbx.scaleEntry(d));
-        })
-        .attr("r", function () {
-          return dotRadius("mbg");
-        });
-
-      return sel;
-    }
-
-    function prepareTreatCircles(sel) {
-      function strokeColor(d) {
-        var color = "white";
-        if (d.isAnnouncement) {
-          color = "orange";
-        } else if (d.glucose) {
-          color = "grey";
-        }
-        return color;
-      }
-
-      function fillColor(d) {
-        var color = "grey";
-        if (d.isAnnouncement) {
-          color = "orange";
-        } else if (d.glucose) {
-          color = "red";
-        }
-        return color;
-      }
-
-      updateTreatCircles(sel)
-        .attr("stroke-width", 2)
-        .attr("stroke", strokeColor)
-        .attr("fill", fillColor);
-
-      return sel;
-    }
-
     // if already existing then transition each circle to its new position
-    updateTreatCircles(treatCircles);
+    this.updateTreatCircles(treatCircles);
 
     // if new circle then just display
-    prepareTreatCircles(treatCircles.enter().append("circle"))
+    this.prepareTreatCircles(treatCircles.enter().append("circle"))
       .attr("class", "treatment-dot")
-      .on("mouseover", function (d) {
-        client.tooltip.style("opacity", 0.9);
-        client.tooltip
-          .html(d.isAnnouncement ? announcementTooltip(d) : treatmentTooltip(d))
-          .style("left", tooltipLeft())
-          .style("top", d3.event.pageY + 15 + "px");
+      .on("mouseover", (e, d) => {
+        this.client.tooltip.style("opacity", 0.9);
+        this.client.tooltip
+          .html(
+            d.isAnnouncement
+              ? this.announcementTooltip(d)
+              : this.treatmentCirclesTooltip(d)
+          )
+          .style("left", this.tooltipLeft(e))
+          .style("top", e.pageY + 15 + "px");
       })
-      .on("mouseout", hideTooltip);
+      .on("mouseout", this.hideTooltip.bind(this));
 
     treatCircles.exit().remove();
 
-    var durationTreatments = client.ddata.treatments.filter(
-      function (treatment) {
-        return (
+    const durationTreatments = this.client.ddata.treatments
+      .filter(
+        (treatment) =>
           !treatment.carbs &&
           !treatment.insulin &&
-          (treatment.duration || treatment.durationType !== undefined) &&
-          !_.includes(
-            ["Temp Basal", "Profile Switch", "Combo Bolus", "Temporary Target"],
-            treatment.eventType,
-          )
-        );
-      },
-    );
-
-    //use the processed temp target so there are no overlaps
-    durationTreatments = durationTreatments.concat(
-      client.ddata.tempTargetTreatments,
-    );
+          treatment.durationType !== undefined &&
+          ![
+            "Temp Basal",
+            "Profile Switch",
+            "Combo Bolus",
+            "Temporary Target",
+          ].includes(treatment.eventType)
+      )
+      .concat(this.client.ddata.tempTargetTreatments ?? []);
 
     // treatments with duration
-    var treatRects = chart()
-      .focus.selectAll(".g-duration")
+    const treatRects = this.client.chart.focus
+      .selectAll(".g-duration")
       .data(durationTreatments);
 
+    const that = this;
+    const chart = this.client.chart;
+
+    /** @param {import("../types").Treatment} d */
     function fillColor(d) {
-      // this is going to be updated by Event Type
-      var color = "grey";
-      if (d.eventType === "Exercise") {
-        color = "Violet";
-      } else if (d.eventType === "Note") {
-        color = "Salmon";
-      } else if (d.eventType === "Temporary Target") {
-        color = "lightgray";
-      }
-      return color;
+      if (d.eventType === "Exercise") return "Violet";
+      if (d.eventType === "Note") return "Salmon";
+      if (d.eventType === "Temporary Target") return "lightgray";
+      return "grey";
     }
 
+    /** @param {import("../types").Treatment} d */
     function rectHeight(d) {
-      var height = 20;
       if (
-        d.targetTop &&
-        d.targetTop > 0 &&
-        d.targetBottom &&
-        d.targetBottom > 0
+        !d.targetTop ||
+        d.targetTop <= 0 ||
+        !d.targetBottom ||
+        d.targetBottom <= 0
       ) {
-        height = Math.max(5, d.targetTop - d.targetBottom);
+        return 20;
       }
-      return height;
+
+      return Math.max(5, d.targetTop - d.targetBottom);
     }
 
+    /** @param {import("../types").Treatment} d */
     function rectTranslate(d) {
-      var top = 50;
-      if (d.eventType === "Temporary Target") {
-        top =
-          d.targetTop === d.targetBottom
+      const top =
+        d.eventType === "Temporary Target"
+          ? d.targetTop && d.targetTop === d.targetBottom
             ? d.targetTop + rectHeight(d)
-            : d.targetTop;
-      }
+            : (d.targetTop ?? NaN)
+          : 50;
+
       return (
         "translate(" +
-        chart().xScale(getOrAddDate(d)) +
+        chart.xScale(that.getOrAddDate(d)) +
         "," +
-        chart().yScale(utils.scaleMgdl(top)) +
+        chart.yScale(that.utils.scaleMgdl(top)) +
         ")"
       );
     }
 
+    /** @param {import("../types").Treatment} d */
     function treatmentRectWidth(d) {
       if (d.durationType === "indefinite") {
         return (
-          chart().xScale(chart().xScale.domain()[1].getTime()) -
-          chart().xScale(getOrAddDate(d))
+          chart.xScale(chart.xScale.domain()[1].getTime()) -
+          chart.xScale(that.getOrAddDate(d))
         );
       } else {
         return (
-          chart().xScale(new Date(d.mills + times.mins(d.duration).msecs)) -
-          chart().xScale(getOrAddDate(d))
+          // TODO types
+          chart.xScale(
+            new Date(d.mills + times.mins(d.duration ?? NaN).msecs)
+          ) - chart.xScale(that.getOrAddDate(d))
         );
       }
     }
 
+    /** @param {import("../types").Treatment} d */
     function treatmentTextTransform(d) {
       if (d.durationType === "indefinite") {
-        var offset = 0;
+        let offset = 0;
         if (
-          chart().xScale(getOrAddDate(d)) <
-          chart().xScale(chart().xScale.domain()[0].getTime())
+          chart.xScale(that.getOrAddDate(d)) <
+          chart.xScale(chart.xScale.domain()[0].getTime())
         ) {
-          offset = chart().xScale(nowDate) - chart().xScale(getOrAddDate(d));
+          offset = chart.xScale(nowDate) - chart.xScale(that.getOrAddDate(d));
         }
         return "translate(" + offset + "," + 10 + ")";
       } else {
         return (
           "translate(" +
-          (chart().xScale(new Date(d.mills + times.mins(d.duration).msecs)) -
-            chart().xScale(getOrAddDate(d))) /
+          (chart.xScale(
+            new Date(d.mills + times.mins(d.duration ?? NaN).msecs)
+          ) -
+            chart.xScale(that.getOrAddDate(d))) /
             2 +
           "," +
           10 +
@@ -617,6 +684,7 @@ function init(client, d3) {
       }
     }
 
+    /** @param {import("../types").Treatment} d */
     function treatmentText(d) {
       if (d.eventType === "Temporary Target") {
         return "";
@@ -624,12 +692,13 @@ function init(client, d3) {
       return d.notes || d.reason || d.eventType;
     }
 
+    /** @param {import("../types").Treatment} d */
     function treatmentTextAnchor(d) {
       return d.durationType === "indefinite" ? "left" : "middle";
     }
 
     // if transitioning, update rect text, position, and width
-    var rectUpdates = treatRects;
+    const rectUpdates = treatRects;
     rectUpdates.attr("transform", rectTranslate);
 
     rectUpdates
@@ -641,19 +710,23 @@ function init(client, d3) {
     rectUpdates.select("rect").attr("width", treatmentRectWidth);
 
     // if new rect then create new elements
-    var newRects = treatRects
+    const newRects = treatRects
       .enter()
       .append("g")
       .attr("class", "g-duration")
       .attr("transform", rectTranslate)
-      .on("mouseover", function (d) {
-        client.tooltip.style("opacity", 0.9);
-        client.tooltip
-          .html(d.isAnnouncement ? announcementTooltip(d) : treatmentTooltip(d))
-          .style("left", tooltipLeft())
-          .style("top", d3.event.pageY + 15 + "px");
+      .on("mouseover", (e, t) => {
+        this.client.tooltip.style("opacity", 0.9);
+        this.client.tooltip
+          .html(
+            e.isAnnouncement
+              ? this.announcementTooltip(t)
+              : this.treatmentCirclesTooltip(t)
+          )
+          .style("left", this.tooltipLeft(e))
+          .style("top", e.pageY + 15 + "px");
       })
-      .on("mouseout", hideTooltip);
+      .on("mouseout", this.hideTooltip.bind(this));
 
     newRects
       .append("rect")
@@ -677,74 +750,72 @@ function init(client, d3) {
 
     // Remove any rects no longer needed
     treatRects.exit().remove();
-  };
+  }
 
-  renderer.addContextCircles = function addContextCircles() {
-    // bind up the context chart data to an array of circles
-    var contextCircles = chart()
-      .context.selectAll("circle")
-      .data(client.entries);
+  /** @protected @param {import("d3").Selection<any, import("../types").Entry, any, any>} sel */
+  prepareContextCircles(sel) {
+    if (!this.client.chart) return sel;
+    const chart = this.client.chart;
 
-    function prepareContextCircles(sel) {
-      var badData = [];
-      sel
-        .attr("cx", function (d) {
-          return chart().xScale2(getOrAddDate(d));
-        })
-        .attr("cy", function (d) {
-          var scaled = client.sbx.scaleEntry(d);
-          if (isNaN(scaled)) {
-            badData.push(d);
-            return chart().yScale2(utils.scaleMgdl(450));
-          } else {
-            return chart().yScale2(scaled);
-          }
-        })
-        .attr("fill", function (d) {
-          return d.color;
-        })
-        //.style('opacity', function(d) { return renderer.highlightBrushPoints(d) })
-        .attr("stroke-width", function (d) {
-          return d.type === "mbg" ? 2 : 0;
-        })
-        .attr("stroke", function () {
-          return "white";
-        })
-        .attr("r", function (d) {
-          return d.type === "mbg" ? 4 : 2;
-        });
+    /** @type {import("../types").Entry[]} */
+    const badData = [];
+    sel
+      .attr("cx", (d) => chart.xScale2(this.getOrAddDate(d)))
+      .attr("cy", (d) => {
+        const scaled = this.client.sbx.scaleEntry(d);
+        if (isNaN(scaled)) {
+          badData.push(d);
+          return chart.yScale2(this.utils.scaleMgdl(450));
+        } else {
+          return chart.yScale2(scaled);
+        }
+      })
+      .attr("fill", (d) => d.color)
+      //.style('opacity', function(d) { return renderer.highlightBrushPoints(d) })
+      .attr("stroke-width", (d) => (d.type === "mbg" ? 2 : 0))
+      .attr("stroke", () => "white")
+      .attr("r", (d) => (d.type === "mbg" ? 4 : 2));
 
-      if (badData.length > 0) {
-        console.warn("Bad Data: isNaN(sgv)", badData);
-      }
-
-      return sel;
+    if (badData.length > 0) {
+      console.warn("Bad Data: isNaN(sgv)", badData);
     }
+
+    return sel;
+  }
+
+  addContextCircles() {
+    if (!this.client.chart) return;
+    // bind up the context chart data to an array of circles
+    const contextCircles = this.client.chart.context
+      .selectAll("circle")
+      .data(this.client.entries);
 
     // if already existing then transition each circle to its new position
-    prepareContextCircles(contextCircles);
+    this.prepareContextCircles(contextCircles);
 
     // if new circle then just display
-    prepareContextCircles(contextCircles.enter().append("circle"));
+    this.prepareContextCircles(contextCircles.enter().append("circle"));
 
     contextCircles.exit().remove();
-  };
+  }
 
-  function calcTreatmentRadius(treatment, opts, carbratio) {
-    var CR = treatment.CR || carbratio || 20;
-    var carbsOrInsulin = CR;
-    if (treatment.carbs) {
-      carbsOrInsulin = treatment.carbs;
-    } else if (treatment.insulin) {
-      carbsOrInsulin = treatment.insulin * CR;
-    }
+  /**
+   * @param {import("../types").Treatment} treatment
+   * @param {{ scale: number }} opts
+   * @param {number} carbratio
+   * @protected
+   */
+  calcTreatmentRadius(treatment, opts, carbratio) {
+    const CR = treatment.CR || carbratio || 20;
+    const carbsOrInsulin =
+      treatment.carbs || (treatment.insulin ?? NaN) * CR || CR;
 
     // R1 determines the size of the treatment dot
-    var R1 = Math.sqrt(carbsOrInsulin) / opts.scale,
-      R2 = R1,
-      // R3/R4 determine how far from the treatment dot the labels are placed
-      R3 = R1 + 8 / opts.scale,
-      R4 = R1 + 25 / opts.scale;
+    const R1 = Math.sqrt(carbsOrInsulin) / opts.scale;
+    const R2 = R1;
+    // R3/R4 determine how far from the treatment dot the labels are placed
+    const R3 = R1 + 8 / opts.scale;
+    const R4 = R1 + 25 / opts.scale;
 
     return {
       R1: R1,
@@ -755,8 +826,18 @@ function init(client, d3) {
     };
   }
 
-  function prepareArc(treatment, radius, bolusSettings) {
-    var arc_data = [
+  /**
+   * @param {import("../types").Treatment} treatment
+   * @param {ReturnType<Renderer["calcTreatmentRadius"]>} radius
+   * @param {{
+   *   renderOver: number;
+   *   renderFormat: string;
+   *   renderFormatSmall: string;
+   * }} bolusSettings
+   * @returns
+   */
+  prepareArc(treatment, radius, bolusSettings) {
+    const arc_data = [
         // white carb half-circle on top
         {
           element: "",
@@ -765,6 +846,7 @@ function init(client, d3) {
           end: 1.5708,
           inner: 0,
           outer: radius.R1,
+          outlineOnly: !treatment.carbs,
         },
         {
           element: "",
@@ -792,6 +874,7 @@ function init(client, d3) {
           end: 3.1432,
           inner: radius.R2,
           outer: radius.R3,
+          outlineOnly: !treatment.insulin,
         },
         {
           element: "",
@@ -804,18 +887,15 @@ function init(client, d3) {
       ],
       arc_data_1_elements = [];
 
-    arc_data[0].outlineOnly = !treatment.carbs;
-    arc_data[2].outlineOnly = !treatment.insulin;
-
-    if (treatment.carbs > 0) {
+    if (treatment.carbs && treatment.carbs > 0) {
       arc_data_1_elements.push(Math.round(treatment.carbs) + " g");
     }
 
-    if (treatment.protein > 0) {
+    if (treatment.protein && treatment.protein > 0) {
       arc_data_1_elements.push(Math.round(treatment.protein) + " g");
     }
 
-    if (treatment.fat > 0) {
+    if (treatment.fat && treatment.fat > 0) {
       arc_data_1_elements.push(Math.round(treatment.fat) + " g");
     }
 
@@ -825,41 +905,33 @@ function init(client, d3) {
       arc_data[1].element = arc_data[1].element + " " + treatment.foodType;
     }
 
-    if (treatment.insulin > 0) {
-      var dosage_units = "" + Math.round(treatment.insulin * 100) / 100;
+    if (treatment.insulin && treatment.insulin > 0) {
+      let dosage_units = "" + Math.round(treatment.insulin * 100) / 100;
 
-      var format =
+      const format =
         treatment.insulin < bolusSettings.renderOver
           ? bolusSettings.renderFormatSmall
           : bolusSettings.renderFormat;
 
-      if (_.includes(["concise", "minimal"], format)) {
+      if (["concise", "minimal"].includes(format)) {
         dosage_units = (dosage_units + "").replace(/^0/, "");
       }
 
-      var unit_of_measurement = format === "minimal" ? "" : " U"; // One international unit of insulin (1 IU) is shown as '1 U'
+      const unit_of_measurement = format === "minimal" ? "" : " U"; // One international unit of insulin (1 IU) is shown as '1 U'
 
       arc_data[3].element = dosage_units + unit_of_measurement;
     }
 
     if (treatment.status) {
-      arc_data[4].element = translate(treatment.status);
+      arc_data[4].element = this.translate(treatment.status);
     }
 
-    var arc = d3
+    const arc = this.d3
       .arc()
-      .innerRadius(function (d) {
-        return 5 * d.inner;
-      })
-      .outerRadius(function (d) {
-        return 5 * d.outer;
-      })
-      .endAngle(function (d) {
-        return d.start;
-      })
-      .startAngle(function (d) {
-        return d.end;
-      });
+      .innerRadius((d) => 5 * d.innerRadius)
+      .outerRadius((d) => 5 * d.outerRadius)
+      .endAngle((d) => d.startAngle)
+      .startAngle((d) => d.endAngle);
 
     return {
       data: arc_data,
@@ -867,7 +939,8 @@ function init(client, d3) {
     };
   }
 
-  function isInRect(x, y, rect) {
+  /** @protected @param {number} x @param {number} y @param {Record<"x" | "y"| "width" | "height", number>} rect */
+  isInRect(x, y, rect) {
     return !(
       x < rect.x ||
       x > rect.x + rect.width ||
@@ -876,72 +949,88 @@ function init(client, d3) {
     );
   }
 
-  function appendTreatments(treatment, arc) {
-    function boluscalcTooltip(treatment) {
-      if (!treatment.boluscalc) {
-        return "";
-      }
-      var html = "<hr>";
-      html += treatment.boluscalc.othercorrection
-        ? "<strong>" +
-          translate("Other correction") +
-          ":</strong> " +
-          parseFloat(treatment.boluscalc.othercorrection).toFixed(2) +
-          "U<br/>"
-        : "";
-      html += treatment.boluscalc.profile
-        ? "<strong>" +
-          translate("Profile used") +
-          ":</strong> " +
-          treatment.boluscalc.profile +
-          "<br/>"
-        : "";
-      if (treatment.boluscalc.foods && treatment.boluscalc.foods.length) {
-        html +=
-          "<table><tr><td><strong>" + translate("Food") + "</strong></td></tr>";
-        for (var fi = 0; fi < treatment.boluscalc.foods.length; fi++) {
-          /* eslint-disable-next-line security/detect-object-injection */ // verified false positive
-          var f = treatment.boluscalc.foods[fi];
-          html += "<tr>";
-          html += "<td>" + f.name + "</td>";
-          html +=
-            "<td>" +
-            (f.portion * f.portions).toFixed(1) +
-            " " +
-            f.unit +
-            "</td>";
-          html += "<td>(" + (f.carbs * f.portions).toFixed(1) + " g)</td>";
-          html += "</tr>";
-        }
-        html += "</table>";
-      }
-      return html;
+  /**
+   * @param {import("../types").Treatment} treatment
+   * @protected
+   */
+  boluscalcTooltip(treatment) {
+    if (!treatment.boluscalc) {
+      return "";
     }
 
-    function treatmentTooltip() {
-      var glucose = treatment.glucose;
-      if (client.settings.units != client.ddata.profile.getUnits()) {
-        glucose *=
-          client.settings.units === "mmol"
-            ? 1 / consts.MMOL_TO_MGDL
-            : consts.MMOL_TO_MGDL;
-        const decimals = client.settings.units === "mmol" ? 10 : 1;
-
-        glucose = Math.round(glucose * decimals) / decimals;
+    return `
+      <br>
+      ${
+        treatment.boluscalc.othercorrection
+          ? `
+            <strong>${this.translate("Other correction")}</strong>
+            ${parseFloat(treatment.boluscalc.othercorrection.toString()).toFixed(2)}U
+            <br />`
+          : ""
       }
+      ${
+        treatment.boluscalc.profile
+          ? `
+            <strong>${this.translate("Profile used")}</strong>
+            ${treatment.boluscalc.profile}
+            <br />`
+          : ""
+      }
+      ${
+        treatment.boluscalc.foods.length
+          ? `<table>
+              <tr>
+                <td>
+                  <strong>${this.translate("Food")}</strong>
+                </td>
+              </tr>`
+          : ""
+      }
+      ${treatment.boluscalc.foods.map(
+        (f) => `
+              <tr>
+                <td>${f.name}</td>
+                <td>${(f.portion * f.portions).toFixed(1)} ${f.unit}</td>
+                <td>${(f.carbs * f.portions).toFixed(1)} g</td>
+              </tr>
+        `
+      )}
+      ${treatment.boluscalc.foods.length ? `</table>` : ""}
 
-      client.tooltip.style("opacity", 0.9);
-      client.tooltip
+    `;
+  }
+
+  /** @param {import("../types").Treatment} treatment */
+  treatmentTooltip(treatment) {
+    const translate = this.translate;
+
+    let glucose = treatment.glucose ?? NaN;
+    if (this.client.settings.units !== this.client.ddata.profile?.getUnits()) {
+      glucose *=
+        this.client.settings.units === "mmol"
+          ? 1 / consts.MMOL_TO_MGDL
+          : consts.MMOL_TO_MGDL;
+      const decimals = this.client.settings.units === "mmol" ? 10 : 1;
+
+      glucose = Math.round(glucose * decimals) / decimals;
+    }
+
+    /** @param {JQuery.MouseOverEvent} event */
+    return (event) => {
+      this.client.tooltip.style("opacity", 0.9);
+      this.client.tooltip
         .html(
           "<strong>" +
             translate("Time") +
             ":</strong> " +
-            client.formatTime(getOrAddDate(treatment)) +
+            this.client.formatTime(this.getOrAddDate(treatment)) +
             "<br/>" +
             "<strong>" +
             translate("Treatment type") +
             ":</strong> " +
-            translate(client.careportal.resolveEventName(treatment.eventType)) +
+            translate(
+              this.client.careportal.resolveEventName(treatment.eventType)
+            ) +
             "<br/>" +
             (treatment.carbs
               ? "<strong>" +
@@ -964,7 +1053,8 @@ function init(client, d3) {
                 treatment.fat +
                 "<br/>"
               : "") +
-            (treatment.absorptionTime > 0
+            (treatment.absorptionTime !== undefined &&
+            treatment.absorptionTime > 0
               ? "<strong>" +
                 translate("Absorption Time") +
                 ":</strong> " +
@@ -976,7 +1066,7 @@ function init(client, d3) {
               ? "<strong>" +
                 translate("Insulin") +
                 ":</strong> " +
-                utils.toRoundedStr(treatment.insulin, 2) +
+                this.utils.toRoundedStr(treatment.insulin, 2) +
                 "<br/>"
               : "") +
             (treatment.enteredinsulin
@@ -1017,39 +1107,53 @@ function init(client, d3) {
                 ":</strong> " +
                 treatment.notes
               : "") +
-            boluscalcTooltip(treatment),
+            this.boluscalcTooltip(treatment)
         )
-        .style("left", tooltipLeft())
-        .style("top", d3.event.pageY + 15 + "px");
-    }
+        .style("left", this.tooltipLeft.bind(this))
+        .style("top", `${event.pageY + 15}px`);
+    };
+  }
 
-    var newTime;
-    var deleteRect = { x: 0, y: 0, width: 0, height: 0 };
-    var insulinRect = { x: 0, y: 0, width: 0, height: 0 };
-    var carbsRect = { x: 0, y: 0, width: 0, height: 0 };
-    var operation;
-    renderer.drag = d3
+  /**
+   * @param {import("../types").Treatment} treatment
+   * @param {Record<"svg" | "data", any>} arc
+   */
+  appendTreatments(treatment, arc) {
+    /** @type {Date} */
+    let newTime;
+    let deleteRect = { x: 0, y: 0, width: 0, height: 0 };
+    let insulinRect = { x: 0, y: 0, width: 0, height: 0 };
+    let carbsRect = { x: 0, y: 0, width: 0, height: 0 };
+    /** @type {`${"Move" | "Remove"}${"" | " insulin" | " carbs"}`} */
+    let operation;
+
+    const chart = this.client.chart;
+    if (!chart) return;
+
+    this.drag = this.d3
       .drag()
-      .on("start", function () {
+      .on("start", (event) => {
+        const tooltipNode = this.client.tooltip.node();
+        if (!tooltipNode) return;
         //console.log(treatment);
-        var windowWidth = $(client.tooltip.node()).parent().parent().width();
-        var left =
-          d3.event.x + TOOLTIP_WIDTH < windowWidth
-            ? d3.event.x
+        const windowWidth = $(tooltipNode).parent().parent().width() ?? NaN;
+        const left =
+          event.x + TOOLTIP_WIDTH < windowWidth
+            ? event.x
             : windowWidth - TOOLTIP_WIDTH - 10;
-        client.tooltip
+        this.client.tooltip
           .style("opacity", 0.9)
           .style("left", left + "px")
-          .style("top", (d3.event.pageY ? d3.event.pageY + 15 : 40) + "px");
+          .style("top", (event.pageY ? event.pageY + 15 : 40) + "px");
 
         deleteRect = {
           x: 0,
           y: 0,
           width: 50,
-          height: chart().yScale(chart().yScale.domain()[0]),
+          height: chart.yScale(chart.yScale.domain()[0]),
         };
-        chart()
-          .drag.append("rect")
+        chart.drag
+          .append("rect")
           .attr("class", "drag-droparea")
           .attr("x", deleteRect.x)
           .attr("y", deleteRect.y)
@@ -1059,8 +1163,8 @@ function init(client, d3) {
           .attr("opacity", 0.4)
           .attr("rx", 10)
           .attr("ry", 10);
-        chart()
-          .drag.append("text")
+        chart.drag
+          .append("text")
           .attr("class", "drag-droparea")
           .attr("x", deleteRect.x + deleteRect.width / 2)
           .attr("y", deleteRect.y + deleteRect.height / 2)
@@ -1075,25 +1179,25 @@ function init(client, d3) {
               (deleteRect.x + deleteRect.width / 2) +
               "," +
               (deleteRect.y + deleteRect.height / 2) +
-              ")",
+              ")"
           )
-          .text(translate("Remove"));
+          .text(this.translate("Remove"));
 
         if (treatment.insulin && treatment.carbs) {
           carbsRect = {
             x: 0,
             y: 0,
-            width: chart().charts.attr("width"),
+            width: Number(chart.charts.attr("width")),
             height: 50,
           };
           insulinRect = {
             x: 0,
-            y: chart().yScale(chart().yScale.domain()[0]) - 50,
-            width: chart().charts.attr("width"),
+            y: chart.yScale(chart.yScale.domain()[0]) - 50,
+            width: Number(chart.charts.attr("width")),
             height: 50,
           };
-          chart()
-            .drag.append("rect")
+          chart.drag
+            .append("rect")
             .attr("class", "drag-droparea")
             .attr("x", carbsRect.x)
             .attr("y", carbsRect.y)
@@ -1103,8 +1207,8 @@ function init(client, d3) {
             .attr("opacitys", 0.4)
             .attr("rx", 10)
             .attr("ry", 10);
-          chart()
-            .drag.append("text")
+          chart.drag
+            .append("text")
             .attr("class", "drag-droparea")
             .attr("x", carbsRect.x + carbsRect.width / 2)
             .attr("y", carbsRect.y + carbsRect.height / 2)
@@ -1113,9 +1217,9 @@ function init(client, d3) {
             .attr("fill", "white")
             .attr("text-anchor", "middle")
             .attr("dy", ".35em")
-            .text(translate("Move carbs"));
-          chart()
-            .drag.append("rect")
+            .text(this.translate("Move carbs"));
+          chart.drag
+            .append("rect")
             .attr("class", "drag-droparea")
             .attr("x", insulinRect.x)
             .attr("y", insulinRect.y)
@@ -1125,8 +1229,8 @@ function init(client, d3) {
             .attr("opacity", 0.4)
             .attr("rx", 10)
             .attr("ry", 10);
-          chart()
-            .drag.append("text")
+          chart.drag
+            .append("text")
             .attr("class", "drag-droparea")
             .attr("x", insulinRect.x + insulinRect.width / 2)
             .attr("y", insulinRect.y + insulinRect.height / 2)
@@ -1135,222 +1239,238 @@ function init(client, d3) {
             .attr("fill", "#0099ff")
             .attr("text-anchor", "middle")
             .attr("dy", ".35em")
-            .text(translate("Move insulin"));
+            .text(this.translate("Move insulin"));
         }
 
-        chart().basals.attr("display", "none");
+        chart.basals.attr("display", "none");
 
         operation = "Move";
       })
-      .on("drag", function () {
+      .on("drag", (event) => {
         //console.log(d3.event);
-        client.tooltip.style("opacity", 0.9);
-        var x = Math.min(Math.max(0, d3.event.x), chart().charts.attr("width"));
-        var y = Math.min(Math.max(0, d3.event.y), chart().focusHeight);
+        this.client.tooltip.style("opacity", 0.9);
+        const x = Math.min(
+          Math.max(0, event.x),
+          Number(chart.charts.attr("width"))
+        );
+        const y = Math.min(Math.max(0, event.y), chart.focusHeight ?? NaN);
 
         operation = "Move";
-        if (isInRect(x, y, deleteRect) && isInRect(x, y, insulinRect)) {
+        /** @param {Parameters<Renderer["isInRect"]>[2]} rect */
+        const inRect = (rect) => this.isInRect(x, y, rect);
+        if (inRect(deleteRect) && inRect(insulinRect)) {
           operation = "Remove insulin";
-        } else if (isInRect(x, y, deleteRect) && isInRect(x, y, carbsRect)) {
+        } else if (inRect(deleteRect) && inRect(carbsRect)) {
           operation = "Remove carbs";
-        } else if (isInRect(x, y, deleteRect)) {
+        } else if (inRect(deleteRect)) {
           operation = "Remove";
-        } else if (isInRect(x, y, insulinRect)) {
+        } else if (inRect(insulinRect)) {
           operation = "Move insulin";
-        } else if (isInRect(x, y, carbsRect)) {
+        } else if (inRect(carbsRect)) {
           operation = "Move carbs";
         }
 
-        newTime = new Date(chart().xScale.invert(x));
-        var minDiff = times
-          .msecs(newTime.getTime() - treatment.mills)
-          .mins.toFixed(0);
-        client.tooltip.html(
+        newTime = new Date(chart.xScale.invert(x));
+        const minDiff = times.msecs(newTime.getTime() - treatment.mills).mins;
+        this.client.tooltip.html(
           "<b>" +
-            translate("Operation") +
+            this.translate("Operation") +
             ":</b> " +
-            translate(operation) +
+            this.translate(operation) +
             "<br>" +
             "<b>" +
-            translate("New time") +
+            this.translate("New time") +
             ":</b> " +
             newTime.toLocaleTimeString() +
             "<br>" +
             "<b>" +
-            translate("Difference") +
+            this.translate("Difference") +
             ":</b> " +
             (minDiff > 0 ? "+" : "") +
-            minDiff +
+            minDiff.toFixed(0) +
             " " +
-            translate("mins"),
+            this.translate("mins")
         );
 
-        chart().drag.selectAll(".arrow").remove();
-        chart()
-          .drag.append("line")
+        chart.drag.selectAll(".arrow").remove();
+        chart.drag
+          .append("line")
           .attr("class", "arrow")
           .attr("marker-end", "url(#arrow)")
-          .attr("x1", chart().xScale(getOrAddDate(treatment)))
-          .attr("y1", chart().yScale(client.sbx.scaleEntry(treatment)))
+          .attr("x1", chart.xScale(this.getOrAddDate(treatment)))
+          .attr("y1", chart.yScale(this.client.sbx.scaleEntry(treatment)))
           .attr("x2", x)
           .attr("y2", y)
           .attr("stroke-width", 2)
           .attr("stroke", "white");
       })
-      .on("end", function () {
-        var newTreatment;
-        chart().drag.selectAll(".drag-droparea").remove();
-        hideTooltip();
+      .on("end", () => {
+        /** @type {import("../types").Treatment} */
+        let newTreatment;
+        chart.drag.selectAll(".drag-droparea").remove();
+        this.hideTooltip();
         switch (operation) {
           case "Move":
             if (
               window.confirm(
-                translate("Change treatment time to %1 ?", {
+                this.translate("Change treatment time to %1 ?", {
                   params: [newTime.toLocaleTimeString()],
-                }),
+                })
               )
             ) {
-              client.socket.emit(
+              this.client.socket.emit(
                 "dbUpdate",
                 {
                   collection: "treatments",
                   _id: treatment._id,
                   data: { created_at: newTime.toISOString() },
                 },
-                function callback(result) {
+                /** @param {unknown} result */
+                (result) => {
                   console.log(result);
-                  chart().drag.selectAll(".arrow").style("opacity", 0).remove();
-                },
+                  chart.drag.selectAll(".arrow").style("opacity", 0).remove();
+                }
               );
             } else {
-              chart().drag.selectAll(".arrow").remove();
+              chart.drag.selectAll(".arrow").remove();
             }
             break;
           case "Remove insulin":
-            if (window.confirm(translate("Remove insulin from treatment ?"))) {
-              client.socket.emit(
+            if (
+              window.confirm(this.translate("Remove insulin from treatment ?"))
+            ) {
+              this.client.socket.emit(
                 "dbUpdateUnset",
                 {
                   collection: "treatments",
                   _id: treatment._id,
                   data: { insulin: 1 },
                 },
-                function callback(result) {
+                /** @param {unknown} result */
+                (result) => {
                   console.log(result);
-                  chart().drag.selectAll(".arrow").style("opacity", 0).remove();
-                },
+                  chart.drag.selectAll(".arrow").style("opacity", 0).remove();
+                }
               );
             } else {
-              chart().drag.selectAll(".arrow").remove();
+              chart.drag.selectAll(".arrow").remove();
             }
             break;
           case "Remove carbs":
-            if (window.confirm(translate("Remove carbs from treatment ?"))) {
-              client.socket.emit(
+            if (
+              window.confirm(this.translate("Remove carbs from treatment ?"))
+            ) {
+              this.client.socket.emit(
                 "dbUpdateUnset",
                 {
                   collection: "treatments",
                   _id: treatment._id,
                   data: { carbs: 1 },
                 },
-                function callback(result) {
+                /** @param {unknown} result */
+                (result) => {
                   console.log(result);
-                  chart().drag.selectAll(".arrow").style("opacity", 0).remove();
-                },
+                  chart.drag.selectAll(".arrow").style("opacity", 0).remove();
+                }
               );
             } else {
-              chart().drag.selectAll(".arrow").remove();
+              chart.drag.selectAll(".arrow").remove();
             }
             break;
           case "Remove":
-            if (window.confirm(translate("Remove treatment ?"))) {
-              client.socket.emit(
+            if (window.confirm(this.translate("Remove treatment ?"))) {
+              this.client.socket.emit(
                 "dbRemove",
                 {
                   collection: "treatments",
                   _id: treatment._id,
                 },
-                function callback(result) {
+                /** @param {unknown} result */
+                (result) => {
                   console.log(result);
-                  chart().drag.selectAll(".arrow").style("opacity", 0).remove();
-                },
+                  chart.drag.selectAll(".arrow").style("opacity", 0).remove();
+                }
               );
             } else {
-              chart().drag.selectAll(".arrow").remove();
+              chart.drag.selectAll(".arrow").remove();
             }
             break;
           case "Move insulin":
             if (
               window.confirm(
-                translate("Change insulin time to %1 ?", {
+                this.translate("Change insulin time to %1 ?", {
                   params: [newTime.toLocaleTimeString()],
-                }),
+                })
               )
             ) {
-              client.socket.emit("dbUpdateUnset", {
+              this.client.socket.emit("dbUpdateUnset", {
                 collection: "treatments",
                 _id: treatment._id,
                 data: { insulin: 1 },
               });
-              newTreatment = _.cloneDeep(treatment);
+              newTreatment = structuredClone(treatment);
+              // @ts-expect-error removing arequired property _id
               delete newTreatment._id;
               delete newTreatment.NSCLIENT_ID;
               delete newTreatment.carbs;
               newTreatment.created_at = newTime.toISOString();
-              client.socket.emit(
+              this.client.socket.emit(
                 "dbAdd",
                 {
                   collection: "treatments",
                   data: newTreatment,
                 },
-                function callback(result) {
+                /** @param {unknown} result */
+                (result) => {
                   console.log(result);
-                  chart().drag.selectAll(".arrow").style("opacity", 0).remove();
-                },
+                  chart.drag.selectAll(".arrow").style("opacity", 0).remove();
+                }
               );
             } else {
-              chart().drag.selectAll(".arrow").remove();
+              chart.drag.selectAll(".arrow").remove();
             }
             break;
           case "Move carbs":
             if (
               window.confirm(
-                translate("Change carbs time to %1 ?", {
+                this.translate("Change carbs time to %1 ?", {
                   params: [newTime.toLocaleTimeString()],
-                }),
+                })
               )
             ) {
-              client.socket.emit("dbUpdateUnset", {
+              this.client.socket.emit("dbUpdateUnset", {
                 collection: "treatments",
                 _id: treatment._id,
                 data: { carbs: 1 },
               });
-              newTreatment = _.cloneDeep(treatment);
+              newTreatment = structuredClone(treatment);
+              // @ts-expect-error removing required property _id
               delete newTreatment._id;
               delete newTreatment.NSCLIENT_ID;
               delete newTreatment.insulin;
               newTreatment.created_at = newTime.toISOString();
-              client.socket.emit(
+              this.client.socket.emit(
                 "dbAdd",
                 {
                   collection: "treatments",
                   data: newTreatment,
                 },
-                function callback(result) {
+                /** @param {unknown} result */
+                (result) => {
                   console.log(result);
-                  chart().drag.selectAll(".arrow").style("opacity", 0).remove();
-                },
+                  chart.drag.selectAll(".arrow").style("opacity", 0).remove();
+                }
               );
             } else {
-              chart().drag.selectAll(".arrow").remove();
+              chart.drag.selectAll(".arrow").remove();
             }
             break;
         }
-        chart().basals.attr("display", "");
+        chart.basals.attr("display", "");
       });
 
-    var treatmentDots = chart()
-      .focus.selectAll("treatment-insulincarbs")
+    const treatmentDots = chart.focus
+      .selectAll("treatment-insulincarbs")
       .data(arc.data)
       .enter()
       .append("g")
@@ -1358,115 +1478,112 @@ function init(client, d3) {
       .attr(
         "transform",
         "translate(" +
-          chart().xScale(getOrAddDate(treatment)) +
+          chart.xScale(this.getOrAddDate(treatment)) +
           ", " +
-          chart().yScale(client.sbx.scaleEntry(treatment)) +
-          ")",
+          chart.yScale(this.client.sbx.scaleEntry(treatment)) +
+          ")"
       )
-      .on("mouseover", treatmentTooltip)
-      .on("mouseout", hideTooltip);
-    if (client.editMode) {
-      treatmentDots.style("cursor", "move").call(renderer.drag);
+      .on("mouseover", this.treatmentTooltip(treatment))
+      .on("mouseout", this.hideTooltip.bind(this));
+    if (this.client.editMode) {
+      treatmentDots.style("cursor", "move").call(this.drag.bind(this));
     }
 
     treatmentDots
       .append("path")
       .attr("class", "path")
-      .attr("fill", function (d) {
-        return d.outlineOnly ? "transparent" : d.color;
-      })
-      .attr("stroke-width", function (d) {
-        return d.outlineOnly ? 1 : 0;
-      })
-      .attr("stroke", function (d) {
-        return d.color;
-      })
-      .attr("id", function (d, i) {
-        return "s" + i;
-      })
+      .attr("fill", (d) => (d.outlineOnly ? "transparent" : d.color))
+      .attr("stroke-width", (d) => (d.outlineOnly ? 1 : 0))
+      .attr("stroke", (d) => d.color)
+      .attr("id", (_, i) => "s" + i)
       .attr("d", arc.svg);
 
     return treatmentDots;
   }
 
-  function appendLabels(treatmentDots, arc, opts) {
+  /**
+   * @param {ReturnType<Renderer["appendTreatments"]>} treatmentDots
+   * @param {ReturnType<Renderer["prepareArc"]>} arc
+   * @param {DrawTreatmentOpts} opts
+   * @protected
+   */
+  appendLabels(treatmentDots, arc, opts) {
     // labels for carbs and insulin
-    if (opts.showLabels) {
-      var label = treatmentDots
-        .append("g")
-        .attr("class", "path")
-        .attr("id", "label")
-        .style("fill", "white");
+    if (!opts.showLabels || !treatmentDots) return;
 
-      label
-        .append("text")
-        .style("font-size", function (d) {
-          var fontSize =
-            (opts.treatments >= 30
-              ? 40
-              : 50 - Math.floor(((25 - opts.treatments) / 30) * 10)) /
-            opts.scale;
-          var elementValue = parseFloat(d.element);
-          if (!isNaN(elementValue) && elementValue < 1) {
-            fontSize = (25 + Math.floor(elementValue * 10)) / opts.scale;
-          }
+    const label = treatmentDots
+      .append("g")
+      .attr("class", "path")
+      .attr("id", "label")
+      .style("fill", "white");
+
+    label
+      .append("text")
+      .style("font-size", (d) => {
+        const fontSize =
+          (opts.treatments >= 30
+            ? 40
+            : 50 - Math.floor(((25 - opts.treatments) / 30) * 10)) / opts.scale;
+        const elementValue = parseFloat(d.element);
+        if (isNaN(elementValue) || elementValue >= 1) {
           return fontSize;
-        })
-        .style("text-shadow", "0px 0px 10px rgba(0, 0, 0, 1)")
-        .attr("text-anchor", "middle")
-        .attr("dy", ".35em")
-        .attr("transform", function (d) {
-          d.outerRadius = d.outerRadius * 2.1;
-          d.innerRadius = d.outerRadius * 2.1;
-          return "translate(" + arc.svg.centroid(d) + ")";
-        })
-        .text(function (d) {
-          return d.element;
-        });
-    }
+        }
+        return (25 + Math.floor(elementValue * 10)) / opts.scale;
+      })
+      .style("text-shadow", "0px 0px 10px rgba(0, 0, 0, 1)")
+      .attr("text-anchor", "middle")
+      .attr("dy", ".35em")
+      .attr("transform", (d) => {
+        d.outerRadius *= 2.1;
+        d.innerRadius *= 2.1;
+        return "translate(" + arc.svg.centroid(d) + ")";
+      })
+      .text((d) => d.element);
   }
 
-  renderer.drawTreatments = function drawTreatments(client) {
-    var treatmentCount = 0;
-    var bolusSettings = client.settings.extendedSettings.bolus || {};
+  /**
+   * Please _don't_ call this with the client specified, the client is already
+   * stored as a class member
+   */
+  drawTreatments(client = this.client) {
+    const bolusSettings = client.settings.extendedSettings.bolus || {};
 
-    chart().focus.selectAll(".draggable-treatment").remove();
+    this.client.chart?.focus.selectAll(".draggable-treatment").remove();
 
-    _.forEach(client.ddata.treatments, function eachTreatment(d) {
-      if (Number(d.insulin) > 0 || Number(d.carbs) > 0) {
-        treatmentCount += 1;
-      }
-    });
+    const treatmentCount = client.ddata.treatments.filter(
+      (d) => Number(d.insulin) > 0 || Number(d.carbs) > 0
+    ).length;
 
     // add treatment bubbles
-    _.forEach(client.ddata.treatments, function eachTreatment(d) {
-      var showLabels = d.carbs || d.insulin;
-      if (
+    client.ddata.treatments.forEach((d) => {
+      const showLabels = !!(
+        (d.carbs || d.insulin) &&
         d.insulin &&
         d.insulin < bolusSettings.renderOver &&
-        bolusSettings.renderFormatSmall == "hidden"
-      ) {
-        showLabels = false;
-      }
-      renderer.drawTreatment(
+        bolusSettings.renderFormatSmall === "hidden"
+      );
+
+      this.drawTreatment(
         d,
         {
-          scale: renderer.bubbleScale(),
-          showLabels: showLabels,
+          scale: this.bubbleScale(),
+          showLabels,
           treatments: treatmentCount,
         },
-        client.sbx.data.profile.getCarbRatio(new Date()),
-        bolusSettings,
+        client.sbx.data.profile?.getCarbRatio(new Date()) ?? NaN,
+        bolusSettings
       );
     });
-  };
+  }
 
-  renderer.drawTreatment = function drawTreatment(
-    treatment,
-    opts,
-    carbratio,
-    bolusSettings,
-  ) {
+  /**
+   * @param {import("../types").Treatment} treatment
+   * @param {DrawTreatmentOpts & {scale: number}} opts
+   * @param {number} carbratio
+   * @param {any} bolusSettings
+   * @returns
+   */
+  drawTreatment(treatment, opts, carbratio, bolusSettings) {
     if (
       !treatment.carbs &&
       !treatment.protein &&
@@ -1475,60 +1592,82 @@ function init(client, d3) {
     ) {
       return;
     }
+    if (!this.client.chart) return;
 
     //when the tests are run window isn't available
-    var innerWidth = (window && window.innerWidth) || -1;
+    const innerWidth = window.innerWidth ?? -1;
     // don't render the treatment if it's not visible
-    if (Math.abs(chart().xScale(getOrAddDate(treatment))) > innerWidth) {
+    if (
+      Math.abs(this.client.chart.xScale(this.getOrAddDate(treatment))) >
+      innerWidth
+    ) {
       return;
     }
 
-    var radius = calcTreatmentRadius(treatment, opts, carbratio);
+    const radius = this.calcTreatmentRadius(treatment, opts, carbratio);
     if (radius.isNaN) {
       console.warn("Bad Data: Found isNaN value in treatment", treatment);
       return;
     }
 
-    var arc = prepareArc(treatment, radius, bolusSettings);
-    var treatmentDots = appendTreatments(treatment, arc);
-    appendLabels(treatmentDots, arc, opts);
-  };
+    const arc = this.prepareArc(treatment, radius, bolusSettings);
+    const treatmentDots = this.appendTreatments(treatment, arc);
+    this.appendLabels(treatmentDots, arc, opts);
+  }
 
-  renderer.addBasals = function addBasals(client) {
-    if (!client.settings.isEnabled("basal")) {
+  /**
+   * Please _don't_ call this with the client specified, the client is already
+   * stored as a class member
+   */
+  addBasals(client = this.client) {
+    if (!client.settings.isEnabled("basal") || !client.chart) {
       return;
     }
-    var mode = client.settings.extendedSettings.basal.render;
-    var profile = client.sbx.data.profile;
-    var linedata = [];
-    var notemplinedata = [];
-    var basalareadata = [];
-    var tempbasalareadata = [];
-    var comboareadata = [];
-    var selectedRange = chart().createAdjustedRange();
-    var from = selectedRange[0].getTime();
-    var to = selectedRange[1].getTime();
 
-    var date = from;
-    var lastbasal = 0;
+    const chart = client.chart;
 
-    if (!profile.activeProfileToTime(from)) {
+    const mode = client.settings.extendedSettings.basal.render;
+    const profile = client.sbx.data.profile;
+
+    /** @type {Record<"b" | "d", number>[]} */
+    const linedata = [];
+    /** @type {Record<"b" | "d", number>[]} */
+    const notemplinedata = [];
+    /** @type {Record<"b" | "d", number>[]} */
+    const basalareadata = [];
+    /** @type {Record<"b" | "d", number>[]} */
+    const tempbasalareadata = [];
+    /** @type {Record<"b" | "d", number>[]} */
+    const comboareadata = [];
+    const selectedRange = chart.createAdjustedRange();
+    const from = selectedRange[0].getTime();
+    const to = selectedRange[1].getTime();
+
+    let date = from;
+    /**
+     * @type {ReturnType<
+     *   ReturnType<import("../profilefunctions")>["getTempBasal"]
+     * > | null}
+     */
+    let lastbasal = null;
+
+    if (!profile?.activeProfileToTime(from)) {
       window.alert(
-        translate(
-          "Redirecting you to the Profile Editor to create a new profile.",
-        ),
+        this.translate(
+          "Redirecting you to the Profile Editor to create a new profile."
+        )
       );
       try {
         window.location.href = "/profile";
-      } catch (err) {
+      } catch {
         //doesn't work when running tests, so catch and ignore
       }
       return;
     }
 
     while (date <= to) {
-      var basalvalue = profile.getTempBasal(date);
-      if (!_.isEqual(lastbasal, basalvalue)) {
+      const basalvalue = profile.getTempBasal(date);
+      if (!isEqual(lastbasal, basalvalue)) {
         linedata.push({ d: date, b: basalvalue.totalbasal });
         notemplinedata.push({ d: date, b: basalvalue.basal });
         if (
@@ -1552,7 +1691,7 @@ function init(client, d3) {
       date += times.mins(1).msecs;
     }
 
-    var toTempBasal = profile.getTempBasal(to);
+    const toTempBasal = profile.getTempBasal(to);
 
     linedata.push({ d: to, b: toTempBasal.totalbasal });
     notemplinedata.push({ d: to, b: toTempBasal.basal });
@@ -1560,47 +1699,37 @@ function init(client, d3) {
     tempbasalareadata.push({ d: to, b: toTempBasal.totalbasal });
     comboareadata.push({ d: to, b: toTempBasal.totalbasal });
 
-    var max_linedata = d3.max(linedata, function (d) {
-      return d.b;
-    });
-    var max_notemplinedata = d3.max(notemplinedata, function (d) {
-      return d.b;
-    });
-    var max =
+    const max_linedata = this.d3.max(linedata, (d) => d.b) ?? NaN;
+    const max_notemplinedata = this.d3.max(notemplinedata, (d) => d.b) ?? NaN;
+    const max =
       Math.max(max_linedata, max_notemplinedata) *
       ("icicle" === mode ? 1 : 1.1);
-    chart().maxBasalValue = max;
-    chart().yScaleBasals.domain("icicle" === mode ? [0, max] : [max, 0]);
+    chart.maxBasalValue = max;
+    chart.yScaleBasals.domain("icicle" === mode ? [0, max] : [max, 0]);
 
-    chart().basals.selectAll("g").remove();
-    chart().basals.selectAll(".basalline").remove().data(linedata);
-    chart().basals.selectAll(".notempline").remove().data(notemplinedata);
-    chart().basals.selectAll(".basalarea").remove().data(basalareadata);
-    chart().basals.selectAll(".tempbasalarea").remove().data(tempbasalareadata);
-    chart().basals.selectAll(".comboarea").remove().data(comboareadata);
+    chart.basals.selectAll("g").remove();
+    chart.basals.selectAll(".basalline").remove().data(linedata);
+    chart.basals.selectAll(".notempline").remove().data(notemplinedata);
+    chart.basals.selectAll(".basalarea").remove().data(basalareadata);
+    chart.basals.selectAll(".tempbasalarea").remove().data(tempbasalareadata);
+    chart.basals.selectAll(".comboarea").remove().data(comboareadata);
 
-    var valueline = d3
-      .line()
-      .x(function (d) {
-        return chart().xScaleBasals(d.d);
-      })
-      .y(function (d) {
-        return chart().yScaleBasals(d.b);
-      })
-      .curve(d3.curveStepAfter);
+    /** @type {import("d3").Line<Record<"b" | "d", number>>} */
+    const valueline = this.d3.line();
+    valueline
+      .x((d) => chart.xScaleBasals(d.d))
+      .y((d) => chart.yScaleBasals(d.b))
+      .curve(this.d3.curveStepAfter);
 
-    var area = d3
-      .area()
-      .x(function (d) {
-        return chart().xScaleBasals(d.d);
-      })
-      .y0(chart().yScaleBasals(0))
-      .y1(function (d) {
-        return chart().yScaleBasals(d.b);
-      })
-      .curve(d3.curveStepAfter);
+    /** @type {import("d3").Area<Record<"b" | "d", number>>} */
+    const area = this.d3.area();
+    area
+      .x((d) => chart.xScaleBasals(d.d))
+      .y0(chart.yScaleBasals(0))
+      .y1((d) => chart.yScaleBasals(d.b))
+      .curve(this.d3.curveStepAfter);
 
-    var g = chart().basals.append("g");
+    const g = chart.basals.append("g");
 
     g.append("path")
       .attr("class", "line basalline")
@@ -1641,14 +1770,14 @@ function init(client, d3) {
       .attr("stroke-width", 1)
       .attr("d", area);
 
-    _.forEach(client.ddata.tempbasalTreatments, function eachTemp(t) {
+    client.ddata.tempbasalTreatments?.forEach((t) => {
       // only if basal and focus interval overlap and there is a chance to fit
       if (
         t.duration &&
         t.mills < to &&
         t.mills + times.mins(t.duration).msecs > from
       ) {
-        var text = g
+        const text = g
           .append("text")
           .attr("class", "tempbasaltext")
           .style("font-size", 15)
@@ -1657,23 +1786,25 @@ function init(client, d3) {
           .attr("dy", ".35em")
           .attr(
             "x",
-            chart().xScaleBasals(
+            chart.xScaleBasals(
               (Math.max(t.mills, from) +
                 Math.min(t.mills + times.mins(t.duration).msecs, to)) /
-                2,
-            ),
+                2
+            )
           )
           .attr("y", 10)
           .text(
             (t.percent ? (t.percent > 0 ? "+" : "") + t.percent + "%" : "") +
               (isNaN(t.absolute) ? "" : Number(t.absolute).toFixed(2) + "U") +
-              (t.relative ? "C: +" + t.relative + "U" : ""),
+              (t.relative ? "C: +" + t.relative + "U" : "")
           );
         // better hide if not fit
+        const textNode = text.node();
         if (
-          text.node().getBBox().width >
-          chart().xScaleBasals(t.mills + times.mins(t.duration).msecs) -
-            chart().xScaleBasals(t.mills)
+          textNode &&
+          textNode.getBBox().width >
+            chart.xScaleBasals(t.mills + times.mins(t.duration).msecs) -
+              chart.xScaleBasals(t.mills)
         ) {
           text.attr("display", "none");
         }
@@ -1681,131 +1812,137 @@ function init(client, d3) {
     });
 
     client.chart.basals.attr("display", !mode || "none" === mode ? "none" : "");
-  };
+  }
 
-  renderer.addTreatmentProfiles = function addTreatmentProfiles(client) {
-    if (client.profilefunctions.listBasalProfiles().length < 2) {
+  /** @protected @param {import("../types").Treatment} d */
+  profileTooltip(d) {
+    return (
+      "<strong>" +
+      this.translate("Time") +
+      ":</strong> " +
+      this.client.formatTime(this.getOrAddDate(d)) +
+      "<br/>" +
+      (d.eventType
+        ? "<strong>" +
+          this.translate("Treatment type") +
+          ":</strong> " +
+          this.translate(this.client.careportal.resolveEventName(d.eventType)) +
+          "<br/>"
+        : "") +
+      (d.endprofile
+        ? "<strong>" +
+          this.translate("End of profile") +
+          ":</strong> " +
+          d.endprofile +
+          "<br/>"
+        : "") +
+      (d.profile
+        ? "<strong>" +
+          this.translate("Profile") +
+          ":</strong> " +
+          d.profile +
+          "<br/>"
+        : "") +
+      (d.duration
+        ? "<strong>" +
+          this.translate("Duration") +
+          ":</strong> " +
+          d.duration +
+          this.translate("mins") +
+          "<br/>"
+        : "") +
+      (d.enteredBy
+        ? "<strong>" +
+          this.translate("Entered By") +
+          ":</strong> " +
+          d.enteredBy +
+          "<br/>"
+        : "") +
+      (d.notes
+        ? "<strong>" + this.translate("Notes") + ":</strong> " + d.notes
+        : "")
+    );
+  }
+
+  /**
+   * Please _don't_ call this with the client specified, the client is already
+   * stored as a class member
+   */
+  addTreatmentProfiles(client = this.client) {
+    if ((client.profilefunctions.listBasalProfiles()?.length ?? NaN) < 2) {
       return; // do not visualize profiles if there is only one
     }
 
-    function profileTooltip(d) {
-      return (
-        "<strong>" +
-        translate("Time") +
-        ":</strong> " +
-        client.formatTime(getOrAddDate(d)) +
-        "<br/>" +
-        (d.eventType
-          ? "<strong>" +
-            translate("Treatment type") +
-            ":</strong> " +
-            translate(client.careportal.resolveEventName(d.eventType)) +
-            "<br/>"
-          : "") +
-        (d.endprofile
-          ? "<strong>" +
-            translate("End of profile") +
-            ":</strong> " +
-            d.endprofile +
-            "<br/>"
-          : "") +
-        (d.profile
-          ? "<strong>" +
-            translate("Profile") +
-            ":</strong> " +
-            d.profile +
-            "<br/>"
-          : "") +
-        (d.duration
-          ? "<strong>" +
-            translate("Duration") +
-            ":</strong> " +
-            d.duration +
-            translate("mins") +
-            "<br/>"
-          : "") +
-        (d.enteredBy
-          ? "<strong>" +
-            translate("Entered By") +
-            ":</strong> " +
-            d.enteredBy +
-            "<br/>"
-          : "") +
-        (d.notes
-          ? "<strong>" + translate("Notes") + ":</strong> " + d.notes
-          : "")
-      );
-    }
+    if (!client.chart) return;
+    const chart = client.chart;
 
     // calculate position of profile on left side
-    var selectedRange = chart().createAdjustedRange();
-    var from = selectedRange[0].getTime();
-    var to = selectedRange[1].getTime();
-    var mult = (to - from) / times.hours(24).msecs;
+    const selectedRange = chart.createAdjustedRange();
+    let from = selectedRange[0].getTime();
+    const to = selectedRange[1].getTime();
+    const mult = (to - from) / times.hours(24).msecs;
     from += times.mins(20 * mult).msecs;
 
-    var mode = client.settings.extendedSettings.basal.render;
-    var data = client.ddata.profileTreatments.slice();
-    data.push({
-      //eventType: 'Profile Switch'
-      profile: client.profilefunctions.activeProfileToTime(from),
-      mills: from,
-      first: true,
-    });
+    const mode = client.settings.extendedSettings.basal.render;
+    const data = client.ddata.profileTreatments?.slice();
+    data?.push(
+      /** @type {import("../types").Treatment} */
+      ({
+        //eventType: 'Profile Switch'
+        profile: client.profilefunctions.activeProfileToTime(from),
+        mills: from,
+        first: true,
+      })
+    );
 
-    _.forEach(client.ddata.profileTreatments, function eachTreatment(d) {
+    client.ddata.profileTreatments?.forEach((d) => {
       if (d.duration && !d.cuttedby) {
-        data.push({
-          cutting: d.profile,
-          profile: client.profilefunctions.activeProfileToTime(
-            times.mins(d.duration).msecs + d.mills + 1,
-          ),
-          mills: times.mins(d.duration).msecs + d.mills,
-          end: true,
-        });
+        data?.push(
+          /** @type {import("../types").Treatment} */
+          ({
+            cutting: d.profile,
+            profile: client.profilefunctions.activeProfileToTime(
+              times.mins(d.duration).msecs + d.mills + 1
+            ),
+            mills: times.mins(d.duration).msecs + d.mills,
+            end: true,
+          })
+        );
       }
     });
 
-    var treatProfiles = chart().basals.selectAll(".g-profile").data(data);
+    /**
+     * @type {import("d3").Selection<
+     *   import("d3").BaseType,
+     *   import("../types").Treatment,
+     *   SVGGElement,
+     *   any
+     * >}
+     */
+    const treatProfiles = chart.basals.selectAll(".g-profile");
+    if (data) treatProfiles.data(data);
 
-    var topOfText = "icicle" === mode ? chart().maxBasalValue + 0.05 : -0.05;
+    const topOfText = "icicle" === mode ? chart.maxBasalValue + 0.05 : -0.05;
 
-    var generateText = function (t) {
-      var sign = t.first ? "▲▲▲" : "▬▬▬";
-      var ret;
+    /** @param {import("../types").Treatment} t */
+    const generateText = (t) => {
+      const sign = t.first ? "▲▲▲" : "▬▬▬";
+
       if (t.cutting) {
-        ret =
-          sign +
-          "    " +
-          t.cutting +
-          "    " +
-          "►►►" +
-          "    " +
-          t.profile +
-          "    " +
-          sign;
+        return `${sign}    ${t.cutting}    ►►►    ${t.profile}    ${sign}`;
       } else {
-        ret = sign + "    " + t.profile + "    " + sign;
+        return `${sign}    ${t.profile}    ${sign}`;
       }
-      return ret;
     };
 
     treatProfiles
-      .attr("transform", function (t) {
-        // change text of record on left side
-        return (
-          "rotate(-90," +
-          chart().xScale(t.mills) +
-          "," +
-          chart().yScaleBasals(topOfText) +
-          ") " +
-          "translate(" +
-          chart().xScale(t.mills) +
-          "," +
-          chart().yScaleBasals(topOfText) +
-          ")"
-        );
-      })
+      .attr(
+        "transform",
+        (t) =>
+          // Change text of record on left side
+          `rotate(-90, ${chart.xScale(t.mills)},${chart.yScaleBasals(topOfText)}) ` +
+          `translate(${chart.xScale(t.mills)}, ${chart.yScaleBasals(topOfText)})`
+      )
       .text(generateText);
 
     treatProfiles
@@ -1817,34 +1954,25 @@ function init(client, d3) {
       .attr("fill", "#0099ff")
       .attr("text-anchor", "end")
       .attr("dy", ".35em")
-      .attr("transform", function (t) {
-        return (
-          "rotate(-90 " +
-          chart().xScale(t.mills) +
-          "," +
-          chart().yScaleBasals(topOfText) +
-          ") " +
-          "translate(" +
-          chart().xScale(t.mills) +
-          "," +
-          chart().yScaleBasals(topOfText) +
-          ")"
-        );
-      })
+      .attr(
+        "transform",
+        (t) =>
+          `rotate(-90, ${chart.xScale(t.mills)},${chart.yScaleBasals(topOfText)}) ` +
+          `translate(${chart.xScale(t.mills)}, ${chart.yScaleBasals(topOfText)})`
+      )
       .text(generateText)
-      .on("mouseover", function (d) {
+      .on("mouseover", (event, d) => {
         client.tooltip.style("opacity", 0.9);
         client.tooltip
-          .html(profileTooltip(d))
-          .style("left", d3.event.pageX + "px")
-          .style("top", d3.event.pageY + 15 + "px");
+          .html(this.profileTooltip(d))
+          .style("left", event.pageX + "px")
+          .style("top", event.pageY + 15 + "px");
       })
-      .on("mouseout", hideTooltip);
+      .on("mouseout", this.hideTooltip.bind(this));
 
     treatProfiles.exit().remove();
-  };
-
-  return renderer;
+  }
 }
 
-module.exports = init;
+/** @param {ConstructorParameters<typeof Renderer>} args */
+module.exports = (...args) => new Renderer(...args);

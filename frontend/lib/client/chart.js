@@ -15,12 +15,14 @@ const loadTime = Date.now();
 class Chart {
   #scrolling = false;
   #scrollNow = 0;
-  /** @type {null | ReturnType<Chart['createBrushedRange']>} */
+  /** @type {null | ReturnType<Chart["createBrushedRange"]>} */
   #scrollBrushExtent = null;
-  /** @type {null | ReturnType<Chart['createAdjustedRange']>} */
+  /** @type {null | ReturnType<Chart["createAdjustedRange"]>} */
   #scrollRange = null;
+
+  maxBasalValue = NaN;
+
   /**
-   *
    * @param {import("./index")} client
    * @param {import("d3")} d3
    * @param {JQueryStatic} $
@@ -670,7 +672,9 @@ class Chart {
   }
 
   /**
-   * for non-initial updates, use a transition to animate the axes to the new position
+   * For non-initial updates, use a transition to animate the axes to the new
+   * position
+   *
    * @param {object} opts
    * @param {number} opts.chartWidth
    * @param {number} opts.focusHeight
@@ -843,7 +847,7 @@ class Chart {
       );
   }
 
-  /** @param {ReturnType<import("./index")['dataExtent']>} dataRange */
+  /** @param {ReturnType<import("./index")["dataExtent"]>} dataRange */
   updateContext(dataRange = this.client.dataExtent()) {
     if (this.client.documentHidden) {
       console.info("Document Hidden, not updating - " + new Date());
@@ -954,17 +958,12 @@ class Chart {
     /** @type {string[]} */
     const pointTypes = this.client.settings.showForecast?.split(" ") ?? [];
 
-    /** @type {import("../plugins/pluginbase").ForecastPoint[]}*/
-    const points = pointTypes.reduce(
-      /** @param {import("../plugins/pluginbase").ForecastPoint[]} points @param {string} type */
-      (points, type) => {
-        return [
-          ...points,
-          ...(this.client.sbx.pluginBase.forecastPoints[type] ?? []),
-        ];
-      },
-      []
-    );
+    const points = pointTypes.reduce((points, type) => {
+      return [
+        ...points,
+        ...(this.client.sbx.pluginBase.forecastPoints[type] ?? []),
+      ];
+    }, /** @type {import("../types").ForecastPoint[]} */ ([]));
 
     return points.filter((point) => point.mills < maxForecastAge);
   }

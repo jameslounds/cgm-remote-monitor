@@ -1,6 +1,7 @@
 import type { TranslationKey } from "./language";
 import { PluginCtx } from "./plugins";
 import { ClientInitializedSandbox, InitializedSandbox } from "./sandbox";
+import newBolusCalc from "./client/boluscalc";
 
 type NotifyBase = {
   level: Level;
@@ -60,7 +61,7 @@ interface Plugin {
   checkNotifications?: (sbx: InitializedSandbox) => void;
   visualizeAlarm?: (
     sbx: ClientInitializedSandbox,
-    alarm: import("./notifications").CAlarm,
+    alarm: Notify,
     alarmMessage: string
   ) => void;
   updateVisualisation?: (sbx: ClientInitializedSandbox) => void;
@@ -80,14 +81,43 @@ type PluginClientPrefs = {
 
 export type Treatment = {
   mills: number;
+  _id: string;
+  created_at: string;
+
+  // are these real?
+  mgdl: number;
+  mmol?: number;
+
   endmills: number;
   eventType: string;
+
   duration?: number;
+  durationType?: string;
+
+  glucose?: number;
+  glucoseType?: TranslationKey;
+
+  isAnnouncement?: boolean;
+
   profile: string;
   profileJson?: string;
+  endprofile?: string;
 
   insulin?: number;
+  insulinNeedsScaleFactor?: number;
+  absorptionTime?: number;
+  enteredinsulin?: number;
+  splitNow?: number;
+  splitExt?: number;
+
   carbs?: number;
+  protein?: number;
+  fat?: number;
+  foodType?: string;
+
+  status?: TranslationKey;
+
+  boluscalc?: ReturnType<typeof newBolusCalc>["record"];
 
   relative?: number;
   absolute?: number;
@@ -95,6 +125,25 @@ export type Treatment = {
 
   cuttedby?: Treatment["profile"];
   cutting?: Treatment["profile"];
+
+  notes?: string;
+  reason?: TranslationKey;
+  enteredBy?: string;
+
+  targetTop: number;
+  targetBottom: number;
+
+  correctionRange?: [min: number, max: number];
+
+  transmitterId?: unknown;
+  sensorCode?: unknown;
+
+  CR?: number;
+
+  NSCLIENT_ID?: unknown;
+
+  first?: boolean;
+  end?: boolean;
 };
 
 export type OpenApsIob = {
@@ -112,7 +161,7 @@ export type LoopIob = {
 export type LoopCob = {
   cob: number;
   timestamp: number;
-}
+};
 
 export type PumpIob = { iob?: number; bolusiob: number };
 
@@ -173,6 +222,10 @@ export interface Food extends EntryBase, Record<string, any> {
   type: "food";
   category?: string;
   subcategory?: string;
+  portion: number;
+  portions: number;
+  /** Unit of portion */
+  unit: string;
 }
 export interface QuickPick extends EntryBase, Record<string, any> {
   type: "quickpick";
@@ -186,7 +239,25 @@ export interface DBStats extends Record<string, any> {
   dataSize?: number;
 }
 
-export type Entry = Sgv | Mbg | Rawbg | Cal | Food | QuickPick | Activity;
+export interface ForecastPoint extends EntryBase {
+  type: "forecast";
+  info: { type: string; label: string; value?: string };
+  mgdl: number;
+  color: string;
+  mills: number;
+
+  forecastType?: unknown; // definitely stringifiable
+}
+
+export type Entry =
+  | Sgv
+  | Mbg
+  | Rawbg
+  | Cal
+  | Food
+  | QuickPick
+  | Activity
+  | ForecastPoint;
 
 export type RemoveKeys<T, K extends string> = {
   [P in keyof T as P extends K ? never : P]: T[P] extends object

@@ -2,16 +2,6 @@
 
 const TOOLTIP_WIDTH = 275; //min-width + padding
 
-/**
- * @typedef ForecastPoint
- * @property {string} type
- * @property {ForecastInfo} info
- * @property {number} mgdl
- * @property {string} color
- * @property {number} mills
- */
-/** @typedef {{ label: string; value?: string; type: string }} ForecastInfo */
-
 class PluginBase {
   /**
    * @param {JQuery<HTMLElement>} majorPills
@@ -27,9 +17,9 @@ class PluginBase {
     this.bgStatus = bgStatus;
     this.tooltip = tooltip;
 
-    /** @type {ForecastInfo[]} */
+    /** @type {import("../types").ForecastPoint["info"][]} */
     this.forecastInfos = [];
-    /** @type {Record<string, ForecastPoint[]>} */
+    /** @type {Record<string, import("../types").ForecastPoint[]>} */
     this.forecastPoints = {};
   }
   /** @param {import("../types").Plugin} plugin */
@@ -109,11 +99,11 @@ class PluginBase {
   /**
    * @typedef {UpdatePillTextOptionsNoDirect
    *   | UpdatePillTextOptionsDirectHTML
-   *   | UpdatePillTextOptionsDirectText
-   * } UpdatePillTextOptions
+   *   | UpdatePillTextOptionsDirectText} UpdatePillTextOptions
    */
   /**
-   * @param {import("../types").Plugin} plugin @param {UpdatePillTextOptions} options
+   * @param {import("../types").Plugin} plugin @param {UpdatePillTextOptions}
+   *   options
    */
   updatePillText(plugin, options) {
     const pill = this.findOrCreatePill(plugin);
@@ -174,8 +164,9 @@ class PluginBase {
   }
 
   /**
-   * @param {(Omit<ForecastPoint, 'type' | 'info'> & Partial<ForecastPoint>)[]} points
-   * @param {ForecastInfo} info
+   * @param {(Omit<import("../types").ForecastPoint, "type" | "info"> &
+   *   Partial<import("../types").ForecastPoint>)[]} points
+   * @param {import("../types").ForecastPoint["info"]} info
    */
   addForecastPoints(points, info) {
     this.forecastInfos.push(info);

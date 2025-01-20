@@ -770,7 +770,7 @@ class Client {
 
   /**
    * @param {Date} time
-   * @param {boolean} compact
+   * @param {boolean} [compact]
    */
   formatTime(time, compact) {
     const timeFormat = this.getTimeFormat(false, compact);
@@ -782,7 +782,7 @@ class Client {
 
   /**
    * @param {boolean} isForScale
-   * @param {boolean} compact
+   * @param {boolean} [compact]
    * @protected
    */
   getTimeFormat(isForScale, compact) {
