@@ -22,6 +22,8 @@ declare global {
     startsWith<T extends string>(prefix: T): this is `${T}${string}`;
   }
 
+  function parseInt(string: number, radix?: number): number
+
   const io: typeof import("socket.io-client");
   const $: JQueryStatic
 }

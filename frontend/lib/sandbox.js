@@ -28,6 +28,7 @@ const times = require("./times");
  *   rawbg?: import("./plugins/rawbg").RawBgProperties;
  *   iob?: import("./plugins/iob").IobProperties;
  *   cob?: import("./plugins/cob.js").CobProperties;
+ *   basal?: import("./plugins/basalprofile.js").BasalProperties;
  * }} SandboxProperties
  */
 

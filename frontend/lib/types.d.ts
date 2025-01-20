@@ -302,7 +302,7 @@ export type PluginEventType = {
 
 type VirtAsstIntentHandlerFn = (
   next: (title: string, message: string) => void,
-  slots: unknown,
+  slots: { pwd?: { value?: { toString: () => string } } },
   sbx: ClientInitializedSandbox
 ) => void;
 type VirtAsstIntentHandler = {
@@ -312,9 +312,12 @@ type VirtAsstIntentHandler = {
 };
 
 type VirtAsstRollupHandlerFn = (
-  slots: unknown,
+  slots: { pwd?: { value?: { toString: () => string } } },
   sbx: ClientInitializedSandbox,
-  callback: (a: string | null, b: { results: string; priority: number }) => void
+  callback: (
+    a: string | null,
+    b: { results?: string; priority: number }
+  ) => void
 ) => void;
 type VirtAsstRollupHandler = {
   rollupGroup: string;
