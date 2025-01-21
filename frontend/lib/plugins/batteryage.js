@@ -2,72 +2,93 @@
 
 var _ = require("lodash");
 
-function init(ctx) {
-  var moment = ctx.moment;
-  var translate = ctx.language.translate;
-  var levels = ctx.levels;
+/** @typedef {ReturnType<BatteryAgePlugin["findLatestTimeChange"]>} BageProperties */
 
-  var bage = {
-    name: /** @type {const} */ ("bage"),
-    label: "Pump Battery Age",
-    pluginType: "pill-minor",
-  };
+/** @typedef {import("../types").Plugin} Plugin */
+/** @implements {Plugin} */
+class BatteryAgePlugin {
+  name = /** @type {const} */ ("bage");
+  label = "Pump Battery Age";
+  pluginType = "pill-minor";
 
-  bage.getPrefs = function getPrefs(sbx) {
+  /** @param {import(".").PluginCtx} ctx */
+  constructor(ctx) {
+    this.moment = ctx.moment;
+    this.translate = ctx.language.translate;
+    this.levels = ctx.levels;
+  }
+
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  getPrefs(sbx) {
     return {
       info: sbx.extendedSettings.info || 312,
       warn: sbx.extendedSettings.warn || 336,
       urgent: sbx.extendedSettings.urgent || 360,
-      display: sbx.extendedSettings.display
-        ? sbx.extendedSettings.display
-        : "days",
+      display: sbx.extendedSettings.display || "days",
       enableAlerts: sbx.extendedSettings.enableAlerts || false,
     };
-  };
+  }
 
-  bage.setProperties = function setProperties(sbx) {
-    sbx.offerProperty("bage", function setProp() {
-      return bage.findLatestTimeChange(sbx);
-    });
-  };
+  /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  setProperties(sbx) {
+    sbx.offerProperty("bage", () => this.findLatestTimeChange(sbx));
+  }
 
-  bage.checkNotifications = function checkNotifications(sbx) {
-    var batteryInfo = sbx.properties.bage;
+  /** @param {import("../sandbox").InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    const batteryInfo = sbx.properties.bage;
 
-    if (batteryInfo.notification) {
-      var notification = _.extend({}, batteryInfo.notification, {
-        plugin: bage,
+    if (batteryInfo?.notification) {
+      const notification = {
+        ...batteryInfo.notification,
+        plugin: this,
         debug: {
           age: batteryInfo.age,
         },
-      });
+      };
       sbx.notifications.requestNotify(notification);
     }
-  };
+  }
 
-  bage.findLatestTimeChange = function findLatestTimeChange(sbx) {
-    var prefs = bage.getPrefs(sbx);
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  findLatestTimeChange(sbx) {
+    const prefs = this.getPrefs(sbx);
 
-    var batteryInfo = {
+    const batteryInfo = {
       found: false,
       age: 0,
+      /** @type {number | null} */
       treatmentDate: null,
       checkForAlert: false,
+      /** @type {number | undefined} */
+      days: undefined,
+      /** @type {number | undefined} */
+      hours: undefined,
+      /** @type {string | undefined} */
+      notes: undefined,
+      /** @type {number | undefined} */
+      minFractions: undefined,
+      /** @type {import("../types").Level} */
+      level: this.levels.NONE,
+      /** @type {import("../types").Notify | undefined} */
+      notification: undefined,
+      /** @type {string | undefined} */
+      display: undefined,
     };
 
-    var prevDate = 0;
+    let prevDate = 0;
 
-    _.each(sbx.data.batteryTreatments, function eachTreatment(treatment) {
-      var treatmentDate = treatment.mills;
-      if (treatmentDate > prevDate && treatmentDate <= sbx.time) {
+    sbx.data.batteryTreatments?.forEach((treatment) => {
+      const treatmentDate = treatment.mills;
+      if (prevDate < treatmentDate && treatmentDate <= sbx.time) {
         prevDate = treatmentDate;
         batteryInfo.treatmentDate = treatmentDate;
 
-        var a = moment(sbx.time);
-        var b = moment(batteryInfo.treatmentDate);
-        var days = a.diff(b, "days");
-        var hours = a.diff(b, "hours") - days * 24;
-        var age = a.diff(b, "hours");
+        const a = this.moment(sbx.time);
+        const b = this.moment(batteryInfo.treatmentDate);
+        const days = a.diff(b, "days");
+        const hours = a.diff(b, "hours") - days * 24;
+        const age = a.diff(b, "hours");
 
         if (!batteryInfo.found || (age >= 0 && age < batteryInfo.age)) {
           batteryInfo.found = true;
@@ -80,25 +101,23 @@ function init(ctx) {
       }
     });
 
-    batteryInfo.level = levels.NONE;
-
-    var sound = "incoming";
-    var message;
-    var sendNotification = false;
+    let sound = "incoming";
+    let message = "";
+    let sendNotification = false;
 
     if (batteryInfo.age >= prefs.urgent) {
       sendNotification = batteryInfo.age === prefs.urgent;
-      message = translate("Pump Battery change overdue!");
+      message = this.translate("Pump Battery change overdue!");
       sound = "persistent";
-      batteryInfo.level = levels.URGENT;
+      batteryInfo.level = this.levels.URGENT;
     } else if (batteryInfo.age >= prefs.warn) {
       sendNotification = batteryInfo.age === prefs.warn;
-      message = translate("Time to change pump battery");
-      batteryInfo.level = levels.WARN;
+      message = this.translate("Time to change pump battery");
+      batteryInfo.level = this.levels.WARN;
     } else if (batteryInfo.age >= prefs.info) {
       sendNotification = batteryInfo.age === prefs.info;
       message = "Change pump battery soon";
-      batteryInfo.level = levels.INFO;
+      batteryInfo.level = this.levels.INFO;
     }
 
     if (prefs.display === "days" && batteryInfo.found) {
@@ -115,10 +134,10 @@ function init(ctx) {
     if (
       prefs.enableAlerts &&
       sendNotification &&
-      batteryInfo.minFractions <= 20
+      (batteryInfo.minFractions ?? 0) <= 20
     ) {
       batteryInfo.notification = {
-        title: translate("Pump battery age %1 hours", {
+        title: this.translate("Pump battery age %1 hours", {
           params: [batteryInfo.age],
         }),
         message: message,
@@ -129,37 +148,40 @@ function init(ctx) {
     }
 
     return batteryInfo;
-  };
+  }
 
-  bage.updateVisualisation = function updateVisualisation(sbx) {
-    var batteryInfo = sbx.properties.bage;
+  /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  updateVisualisation(sbx) {
+    const batteryInfo = sbx.properties.bage;
+    if (!batteryInfo) return;
 
-    var info = [
+    const info = [
       {
-        label: translate("Inserted"),
-        value: new Date(batteryInfo.treatmentDate).toLocaleString(),
+        label: this.translate("Inserted"),
+        value: new Date(batteryInfo.treatmentDate ?? NaN).toLocaleString(),
       },
     ];
 
     if (!_.isEmpty(batteryInfo.notes)) {
-      info.push({ label: translate("Notes") + ":", value: batteryInfo.notes });
+      info.push({
+        label: this.translate("Notes") + ":",
+        value: batteryInfo.notes ?? "",
+      });
     }
 
-    var statusClass = null;
-    if (batteryInfo.level === levels.URGENT) {
-      statusClass = "urgent";
-    } else if (batteryInfo.level === levels.WARN) {
-      statusClass = "warn";
-    }
+    const statusClass =
+      (batteryInfo.level === this.levels.URGENT && "urgent") ||
+      (batteryInfo.level === this.levels.WARN && "warn") ||
+      undefined;
 
-    sbx.pluginBase.updatePillText(bage, {
+    sbx.pluginBase.updatePillText(this, {
       value: batteryInfo.display,
-      label: translate("BAGE"),
+      label: this.translate("BAGE"),
       info: info,
       pillClass: statusClass,
     });
-  };
-  return bage;
+  }
 }
 
-module.exports = init;
+/** @param {import(".").PluginCtx} ctx */
+module.exports = (ctx) => new BatteryAgePlugin(ctx);

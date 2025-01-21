@@ -29,6 +29,7 @@ const times = require("./times");
  *   iob?: import("./plugins/iob").IobProperties;
  *   cob?: import("./plugins/cob.js").CobProperties;
  *   basal?: import("./plugins/basalprofile.js").BasalProperties;
+ *   bage?: import("./plugins/batteryage.js").BageProperties
  * }} SandboxProperties
  */
 
