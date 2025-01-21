@@ -1,13 +1,14 @@
 "use strict";
 
-function init() {
-  var bolus = {
-    name: /** @type {const} */ ("bolus"),
-    label: "Bolus",
-    pluginType: "fake",
-  };
+/** @typedef {import("../types").Plugin} Plugin */
+/** @implements {Plugin} */
+class BolusPlugin {
+  name= /** @type {const} */ ("bolus")
+  label= "Bolus"
+  pluginType= "fake"
 
-  bolus.getPrefs = function getPrefs(sbx) {
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  getPrefs(sbx) {
     return {
       renderFormat: sbx.extendedSettings.renderFormat
         ? sbx.extendedSettings.renderFormat
@@ -19,9 +20,7 @@ function init() {
         ? sbx.extendedSettings.notifyOver
         : 0,
     };
-  };
-
-  return bolus;
+  }
 }
 
-module.exports = init;
+module.exports = () => new BolusPlugin();
