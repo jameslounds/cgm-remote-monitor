@@ -199,7 +199,13 @@ class Notifications {
     this.requests.notifies.push(notify);
   }
 
-  /** @param {import("./types").Snooze} snooze */
+  /**
+   * @param {(
+   *   | import("./types").Snooze
+   *   | (Omit<import("./types").Snooze, "group"> &
+   *       Partial<Pick<import("./types").Snooze, "group">>)
+   * ) & { lengthMills: number }} snooze
+   */
   requestSnooze(snooze) {
     if (
       !snooze.level ||
@@ -216,8 +222,7 @@ class Notifications {
       return;
     }
 
-    snooze.group = snooze.group || "default";
-
+    snooze.group ??= "default";
     this.requests.snoozes.push(snooze);
   }
 

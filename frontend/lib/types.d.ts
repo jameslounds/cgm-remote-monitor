@@ -13,12 +13,12 @@ type NotifyBase = {
   count?: number;
 
   persistent?: boolean;
+  debug?: any;
 };
 export type Notify = NotifyBase & {
   clear?: boolean;
   eventName?: string;
   plugin?: Plugin;
-  debug?: any;
   isAnnouncement?: boolean;
 
   pushoverSound?: string;

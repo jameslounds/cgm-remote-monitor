@@ -30,6 +30,7 @@ const times = require("./times");
  *   cob?: import("./plugins/cob.js").CobProperties;
  *   basal?: import("./plugins/basalprofile.js").BasalProperties;
  *   bage?: import("./plugins/batteryage.js").BageProperties
+ *   bwp?: import("./plugins/boluswizardpreview.js").BWPProperties
  * }} SandboxProperties
  */
 
