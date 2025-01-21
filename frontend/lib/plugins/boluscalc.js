@@ -1,15 +1,14 @@
 "use strict";
 
-// this is just a fake plugin to enable hiding from settings drawer
-
-function init() {
-  var boluscalc = {
-    name: /** @type {const} */ ("boluscalc"),
-    label: "Bolus Wizard",
-    pluginType: "drawer",
-  };
-
-  return boluscalc;
+/** @typedef {import("../types").Plugin} Plugin */
+/**
+ * @implements {Plugin}
+ * this is just a fake plugin to enable hiding from settings drawer
+ */
+class BolusCalcPlugin {
+  name = /** @type {const} */ ("boluscalc");
+  label = "Bolus Wizard";
+  pluginType = "drawer";
 }
 
-module.exports = init;
+module.exports = () => new BolusCalcPlugin();
