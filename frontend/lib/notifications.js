@@ -174,8 +174,23 @@ class Notifications {
   }
 
   /**
+   * A more idiomatic way of doing this would be to use `{group:
+   * default,...obj}`, but that would create a new object, which causes bugs. By
+   * claiming this `asserts` that `obj` is the correct type, we tell typescript
+   * that after this function, `obj` will have the `group` property.
+   *
+   * @template {{ group?: string }} T
+   * @param {T} obj
+   * @returns {asserts obj is T & { group: string }}
+   */
+  #addGroupIfNotPresent(obj) {
+    obj.group ??= "default";
+  }
+
+  /**
    * @param {(
-   *   | Omit<import("./types").Notify, "group">
+   *   | (Omit<import("./types").Notify, "group"> &
+   *       Partial<Pick<import("./types").Notify, "group">>)
    *   | import("./types").Notify
    * ) & { plugin: NonNullable<import("./types").Notify["plugin"]> }} notify
    */
@@ -195,7 +210,7 @@ class Notifications {
       return;
     }
 
-    notify.group ??= "default";
+    this.#addGroupIfNotPresent(notify);
     this.requests.notifies.push(notify);
   }
 
@@ -222,7 +237,7 @@ class Notifications {
       return;
     }
 
-    snooze.group ??= "default";
+    this.#addGroupIfNotPresent(snooze);
     this.requests.snoozes.push(snooze);
   }
 
