@@ -106,7 +106,7 @@ class Language {
 
   /**
    * Case sensitive
-   * @param {keyof import("../translations/en/en.json")} text
+   * @param {TranslationKey} text
    */
   translateCS(text) {
     if (this.translations[text]) {
@@ -117,7 +117,7 @@ class Language {
 
   /**
    * Case insensitive
-   * @param {keyof import("../translations/en/en.json")} text
+   * @param {TranslationKey} text
    */
   translateCI(text) {
     const utext = text.toUpperCase();
@@ -132,7 +132,7 @@ class Language {
 
   /**
    *
-   * @param {keyof import('../translations/en/en.json')} text
+   * @param {TranslationKey} text
    * @param {{ci?: boolean, params?: string[]}} [options]
    * @returns {string}
    */
