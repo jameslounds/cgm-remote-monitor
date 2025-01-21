@@ -31,6 +31,7 @@ const times = require("./times");
  *   basal?: import("./plugins/basalprofile.js").BasalProperties;
  *   bage?: import("./plugins/batteryage.js").BageProperties
  *   bwp?: import("./plugins/boluswizardpreview.js").BWPProperties
+ *   cage?: import("./plugins/cannulaage.js").CAgeProperties
  * }} SandboxProperties
  */
 
