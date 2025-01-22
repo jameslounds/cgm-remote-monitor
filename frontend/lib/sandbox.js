@@ -33,6 +33,7 @@ const times = require("./times");
  *   bwp?: import("./plugins/boluswizardpreview.js").BWPProperties
  *   cage?: import("./plugins/cannulaage.js").CAgeProperties
  *   dbsize?: import("./plugins/dbsize.js").DbSizeProperties
+ *   iage?: import("./plugins/insulinage.js").IAgeProperties
  * }} SandboxProperties
  */
 
