@@ -32,6 +32,7 @@ const times = require("./times");
  *   bage?: import("./plugins/batteryage.js").BageProperties
  *   bwp?: import("./plugins/boluswizardpreview.js").BWPProperties
  *   cage?: import("./plugins/cannulaage.js").CAgeProperties
+ *   dbsize?: import("./plugins/dbsize.js").DbSizeProperties
  * }} SandboxProperties
  */
 
