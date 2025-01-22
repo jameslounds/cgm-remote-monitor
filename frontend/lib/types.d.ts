@@ -2,6 +2,9 @@ import type { TranslationKey } from "./language";
 import { PluginCtx } from "./plugins";
 import { ClientInitializedSandbox, InitializedSandbox } from "./sandbox";
 import newBolusCalc from "./client/boluscalc";
+import newCareportal from "./client/careportal";
+import Client from "./client"
+import { Moment, MomentInput } from "moment";
 
 type NotifyBase = {
   level: Level;
@@ -48,6 +51,13 @@ export type Profile = {
   carbs_hr?: number;
   store?: {
     [K in string]: Omit<Profile, "store">;
+  };
+  loopSettings?: {
+    overridePresets?: {
+      name: TranslationKey;
+      symbol: string;
+      duration: number;
+    }[];
   };
 };
 
@@ -157,6 +167,7 @@ export type OpenApsIob = {
 export type LoopIob = {
   iob: number;
   timestamp: number;
+  basaliob?: number;
 };
 export type LoopCob = {
   cob: number;
@@ -168,6 +179,7 @@ export type PumpIob = { iob?: number; bolusiob: number };
 export type DeviceStatus = {
   _id: string;
   mills: number;
+  created_at: MomentInput;
   uploader: any;
   pump: { iob?: PumpIob };
   openaps: {
@@ -175,10 +187,41 @@ export type DeviceStatus = {
     suggested?: { timestamp: number; COB: number };
     enacted?: { timestamp: number; COB: number };
   };
-  loop: { iob?: LoopIob; cob?: LoopCob };
+  loop: {
+    name?: string;
+    iob?: LoopIob;
+    cob?: LoopCob;
+    failureReason?: string;
+    enacted?: {
+      received?: unknown;
+      timestamp: number;
+      rate?: number;
+      duration?: number;
+      bolusVolume?: number;
+      reason?: string;
+    };
+    timestamp: number;
+    moment?: Moment;
+    recommendedBolus?: number;
+    recommendedTempBasal?: {
+      timestamp: number;
+      rate: number;
+      duration: number;
+    };
+    predicted?: {
+      startDate?: number; // | Date ?
+      values: number[];
+    };
+  };
+  radioAdapter?: {
+    pumpRSSI?: number;
+    RSSI?: number;
+  };
   connect?: any;
   xdripjs: any;
   device: any;
+  moment: Moment;
+  override?: { timestamp?: number };
 };
 
 export interface EntryBase {
@@ -294,8 +337,8 @@ export type PluginEventType = {
   }[];
 
   submitHook?: (
-    client: import("./client"),
-    data: ReturnType<ReturnType<import("./client/careportal")>["gatherData"]>,
+    client: Client,
+    data: ReturnType<ReturnType<typeof newCareportal>["gatherData"]>,
     callback: (error?: boolean) => void
   ) => void;
 };
@@ -307,7 +350,7 @@ type VirtAsstIntentHandlerFn = (
 ) => void;
 type VirtAsstIntentHandler = {
   intent: string;
-  metrics: string[];
+  metrics?: string[];
   intentHandler: VirtAsstIntentHandlerFn;
 };
 

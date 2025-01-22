@@ -34,6 +34,7 @@ const times = require("./times");
  *   cage?: import("./plugins/cannulaage.js").CAgeProperties
  *   dbsize?: import("./plugins/dbsize.js").DbSizeProperties
  *   iage?: import("./plugins/insulinage.js").IAgeProperties
+ *   loop?: import("./plugins/loop.js").LoopProperties
  * }} SandboxProperties
  */
 

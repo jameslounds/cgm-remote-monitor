@@ -66,20 +66,17 @@ class Utils {
   }
 
   /**
-   * @param {import("moment-timezone").Moment} m
+   * @param {import("moment-timezone").Moment | undefined} m
    * @param {ReturnType<import("./sandbox")>} sbx
-   * */
+   */
   timeFormat(m, sbx) {
-    var when;
-    if (m && sbx.data.inRetroMode) {
-      when = m.format("LT");
-    } else if (m) {
-      when = this.formatAgo(m, sbx.time);
-    } else {
-      when = "unknown";
-    }
+    if (!m) return "unknown";
 
-    return when;
+    if (sbx.data.inRetroMode) {
+      return m.format("LT");
+    } else {
+      return this.formatAgo(m, sbx.time);
+    }
   }
 
   /**
@@ -121,7 +118,7 @@ class Utils {
   }
 
   /**
-   * @param {string | undefined} prefix
+   * @param {string | undefined | null} prefix
    * @param {ReturnType<import("./sandbox")>} sbx
    */
   timeAt(prefix, sbx) {

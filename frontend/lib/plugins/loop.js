@@ -1,250 +1,248 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
+const times = require("../times");
+
+/** @typedef {ReturnType<LoopPlugin["analyzeData"]>} LoopProperties */
+
+/** @typedef {import("../types").DeviceStatus["loop"]} LoopStatus */
 
 // var ALL_STATUS_FIELDS = ['status-symbol', 'status-label', 'iob', 'freq', 'rssi']; Unused variable
+/** @typedef {import("../types").Plugin} Plugin */
+/** @implements {Plugin} */
+class LoopPlugin {
+  name = /** @type {const} */ ("loop");
+  label = "Loop";
+  pluginType = "pill-status";
 
-function init(ctx) {
-  var moment = ctx.moment;
+  /** @param {import(".").PluginCtx} ctx */
+  constructor(ctx) {
+    this.moment = ctx.moment;
+    this.utils = require("../utils")(ctx);
+    this.translate = ctx.language.translate;
+    this.levels = ctx.levels;
+  }
 
-  var utils = require("../utils")(ctx);
-  var translate = ctx.language.translate;
-  var levels = ctx.levels;
-
-  var loop = {
-    name: /** @type {const} */ ("loop"),
-    label: "Loop",
-    pluginType: "pill-status",
-  };
-
-  var firstPrefs = true;
-
-  loop.getPrefs = function getPrefs(sbx) {
-    var prefs = {
+  firstPrefs = true;
+  /** @param {ReturnType<import("../sandbox")>} sbx */
+  getPrefs(sbx) {
+    const prefs = {
       warn: sbx.extendedSettings.warn ? sbx.extendedSettings.warn : 30,
       urgent: sbx.extendedSettings.urgent ? sbx.extendedSettings.urgent : 60,
       enableAlerts: sbx.extendedSettings.enableAlerts,
     };
 
-    if (firstPrefs) {
-      firstPrefs = false;
+    if (this.firstPrefs) {
+      this.firstPrefs = false;
       console.info(" Prefs:", prefs);
     }
 
     return prefs;
-  };
+  }
 
-  loop.setProperties = function setProperties(sbx) {
-    sbx.offerProperty("loop", function setLoop() {
-      return loop.analyzeData(sbx);
-    });
-  };
+  /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  setProperties(sbx) {
+    sbx.offerProperty("loop", () => this.analyzeData(sbx));
+  }
 
-  loop.analyzeData = function analyzeData(sbx) {
-    var recentHours = 6;
-    var recentMills = sbx.time - times.hours(recentHours).msecs;
-
-    var recentData = _.chain(sbx.data.devicestatus)
-      .filter(function (status) {
-        return (
-          "loop" in status &&
-          sbx.entryMills(status) <= sbx.time &&
-          sbx.entryMills(status) >= recentMills
-        );
-      })
-      .value();
-
-    var prefs = loop.getPrefs(sbx);
-    var recent = moment(sbx.time).subtract(prefs.warn / 2, "minutes");
-
-    function getDisplayForStatus(status) {
-      var desc = {
-        symbol: "⚠",
-        code: "warning",
-        label: "Warning",
-      };
-
-      if (!status) {
-        return desc;
-      }
-
-      if (
-        status.failureReason ||
-        (status.enacted && !status.enacted.received)
-      ) {
-        desc.symbol = "x";
-        desc.code = "error";
-        desc.label = "Error";
-      } else if (status.enacted && moment(status.timestamp).isAfter(recent)) {
-        desc.symbol = "⌁";
-        desc.code = "enacted";
-        desc.label = "Enacted";
-      } else if (
-        status.recommendedTempBasal &&
-        moment(status.recommendedTempBasal.timestamp).isAfter(recent)
-      ) {
-        desc.symbol = "⏀";
-        desc.code = "recommendation";
-        desc.label = "Recomendation";
-      } else if (status.moment && status.moment.isAfter(recent)) {
-        desc.symbol = "↻";
-        desc.code = "looping";
-        desc.label = "Looping";
-      }
-      return desc;
+  /**
+   * @param {import("../types").DeviceStatus["loop"] | undefined} status
+   * @param {import("moment").Moment} recent
+   * @protected
+   */
+  getDisplayForStatus(status, recent) {
+    if (
+      status?.failureReason ||
+      (status?.enacted && !status?.enacted.received)
+    ) {
+      return /** @type {const} */ ({
+        symbol: "x",
+        code: "error",
+        label: "Error",
+      });
+    } else if (
+      status?.enacted &&
+      this.moment(status.timestamp).isAfter(recent)
+    ) {
+      return /** @type {const} */ ({
+        symbol: "⌁",
+        code: "enacted",
+        label: "Enacted",
+      });
+    } else if (
+      status?.recommendedTempBasal &&
+      this.moment(status.recommendedTempBasal.timestamp).isAfter(recent)
+    ) {
+      return /** @type {const} */ ({
+        symbol: "⏀",
+        code: "recommendation",
+        label: "Recomendation",
+      });
+    } else if (status?.moment?.isAfter(recent)) {
+      return /** @type {const} */ ({
+        symbol: "↻",
+        code: "looping",
+        label: "Looping",
+      });
     }
 
-    var result = {
-      lastLoop: null,
-      lastEnacted: null,
-      lastPredicted: null,
-      lastOkMoment: null,
+    return /** @type {const} */ ({
+      symbol: "⚠",
+      code: "warning",
+      label: "Warning",
+    });
+  }
+
+  /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  analyzeData(sbx) {
+    const recentHours = 6;
+    const recentMills = sbx.time - times.hours(recentHours).msecs;
+
+    const recentData = sbx.data.devicestatus.filter(
+      (status) =>
+        "loop" in status &&
+        recentMills <= status.mills &&
+        status.mills <= sbx.time
+    );
+
+    const prefs = this.getPrefs(sbx);
+    const recent = this.moment(sbx.time).subtract(prefs.warn / 2, "minutes");
+
+    const recentLoops = recentData
+      .filter((d) => !!d.loop)
+      .map((d) =>
+        Object.assign(d.loop, { moment: this.moment(d.loop.timestamp) })
+      );
+
+    /**
+     * @typedef {NonNullable<recentLoops[number]["enacted"]> & {
+     *   moment: import("moment").Moment;
+     * }} LastEnacted
+     */
+    const lastEnacted = recentLoops
+      .filter(
+        /** @returns {l is l & {enacted: NonNullable<l["enacted"]>}} } */
+        (l) => !!l.enacted
+      )
+      .map((l) => ({ ...l.enacted, moment: this.moment(l.enacted.timestamp) }))
+      .reduce(
+        (keep, curr) =>
+          !keep || curr.moment.isAfter(keep.moment) ? curr : keep,
+        /** @type {LastEnacted | undefined} */ (undefined)
+      );
+
+    const lastPredicted = recentLoops
+      .filter((l) => l.predicted && l.predicted.startDate)
+      .at(-1)?.predicted;
+
+    const lastLoop = recentLoops.reduce(
+      (keep, curr) => (!keep || curr.moment.isAfter(keep.moment) ? curr : keep),
+      /** @type {recentLoops[number] | undefined} */ (undefined)
+    );
+
+    /**
+     * @typedef {NonNullable<recentData[number]["override"]> & {
+     *   moment: import("moment").Moment;
+     * }} LastOverride
+     */
+    const lastOverride = recentData.reduce((last, curr) => {
+      if (curr.override?.timestamp) {
+        const moment = this.moment(curr.override.timestamp);
+        if (!last || moment.isAfter(last.moment)) {
+          return Object.assign(curr.override, { moment });
+        }
+      }
+      return last;
+    }, /** @type {LastOverride | undefined} */ (undefined));
+
+    const lastOkMoment = recentLoops.reduce((keep, curr) => {
+      if (!keep || (!curr.failureReason && curr.moment.isAfter(keep))) {
+        return curr.moment;
+      }
+      return keep;
+    }, /** @type {import("moment").Moment | undefined} */ (undefined));
+
+    const display = this.getDisplayForStatus(lastLoop, recent);
+
+    return {
+      lastLoop,
+      lastEnacted,
+      lastPredicted,
+      lastOkMoment,
+      ...(lastOverride && { lastOverride }),
+      display,
     };
+  }
 
-    function assignLastEnacted(loopStatus) {
-      var enacted = loopStatus.enacted;
-      if (enacted && enacted.timestamp) {
-        enacted.moment = moment(enacted.timestamp);
-        if (
-          !result.lastEnacted ||
-          enacted.moment.isAfter(result.lastEnacted.moment)
-        ) {
-          result.lastEnacted = enacted;
-        }
-      }
-    }
+  /** @param {import("../sandbox").InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    const prefs = this.getPrefs(sbx);
 
-    function assignLastPredicted(loopStatus) {
-      if (loopStatus.predicted && loopStatus.predicted.startDate) {
-        result.lastPredicted = loopStatus.predicted;
-      }
-    }
+    if (!prefs.enableAlerts) return;
 
-    function assignLastLoop(loopStatus) {
-      if (
-        !result.lastLoop ||
-        loopStatus.moment.isAfter(result.lastLoop.moment)
-      ) {
-        result.lastLoop = loopStatus;
-      }
-    }
+    const prop = sbx.properties.loop;
 
-    function assignLastOverride(status) {
-      var override = status.override;
-      if (override && override.timestamp) {
-        override.moment = moment(override.timestamp);
-        if (
-          !result.lastOverride ||
-          override.moment.isAfter(result.lastOverride.moment)
-        ) {
-          result.lastOverride = override;
-        }
-      }
-    }
-
-    function assignLastOkMoment(loopStatus) {
-      if (
-        !loopStatus.failureReason &&
-        (!result.lastOkMoment || loopStatus.moment.isAfter(result.lastOkMoment))
-      ) {
-        result.lastOkMoment = loopStatus.moment;
-      }
-    }
-
-    _.forEach(recentData, function eachStatus(status) {
-      if (status && status.loop && status.loop.timestamp) {
-        var loopStatus = status.loop;
-        loopStatus.moment = moment(loopStatus.timestamp);
-        assignLastEnacted(loopStatus);
-        assignLastLoop(loopStatus);
-        assignLastPredicted(loopStatus);
-        assignLastOverride(status);
-        assignLastOkMoment(loopStatus);
-      }
-    });
-
-    result.display = getDisplayForStatus(result.lastLoop);
-
-    return result;
-  };
-
-  loop.checkNotifications = function checkNotifications(sbx) {
-    var prefs = loop.getPrefs(sbx);
-
-    if (!prefs.enableAlerts) {
-      return;
-    }
-
-    var prop = sbx.properties.loop;
-
-    if (!prop.lastLoop) {
+    if (!prop?.lastLoop) {
       console.info("Loop hasn't reported a loop yet");
       return;
     }
 
-    var now = moment();
-    var level = statusLevel(prop, prefs, sbx);
-    if (level >= levels.WARN) {
+    const now = this.moment();
+    const level = this.statusLevel(prop, prefs, sbx);
+    if (level >= this.levels.WARN) {
       sbx.notifications.requestNotify({
         level: level,
         title: "Loop isn't looping",
         message:
-          "Last Loop: " + utils.formatAgo(prop.lastOkMoment, now.valueOf()),
+          "Last Loop: " +
+          (!!prop.lastOkMoment &&
+            this.utils.formatAgo(prop.lastOkMoment, now.valueOf())),
         pushoverSound: "echo",
         group: "Loop",
-        plugin: loop,
+        plugin: this,
         debug: prop,
       });
     }
-  };
+  }
 
-  loop.getEventTypes = function getEventTypes(sbx) {
-    var units = sbx.settings.units;
+  /**
+   * @param {import("../sandbox").InitializedSandbox} sbx
+   * @returns {import("../types").PluginEventType[]}
+   */
+  getEventTypes(sbx) {
+    const units = sbx.settings.units;
     console.log("units", units);
 
-    var reasonconf = [];
-
-    if (
-      sbx.data === undefined ||
-      sbx.data.profile === undefined ||
-      sbx.data.profile.data.length == 0
-    ) {
-      return [];
-    }
+    if (!sbx.data.profile?.data?.length) return [];
 
     let profile = sbx.data.profile.data[0];
 
-    if (
-      profile.loopSettings === undefined ||
-      profile.loopSettings.overridePresets == undefined
-    ) {
-      return [];
-    }
+    if (!profile.loopSettings?.overridePresets) return [];
 
     let presets = profile.loopSettings.overridePresets;
 
-    for (var i = 0; i < presets.length; i++) {
-      let preset = presets[i];
-      reasonconf.push({
-        name: preset.name,
-        displayName: preset.symbol + " " + preset.name,
-        duration: preset.duration / 60,
-      });
-    }
+    const reasonconf = presets.map((preset) => ({
+      name: preset.name,
+      displayName: preset.symbol + " " + preset.name,
+      duration: preset.duration / 60,
+    }));
 
-    var postLoopNotification = function (client, data, callback) {
+    /**
+     * @type {NonNullable<
+     *   import("../types").PluginEventType["submitHook"]
+     * >}
+     */
+    const postLoopNotification = function (client, data, callback) {
       $.ajax({
         method: "POST",
         headers: client.headers(),
         url: "/api/v2/notifications/loop",
         data: data,
       })
-        .done(function () {
+        .done(() => {
           callback();
         })
-        .fail(function (jqXHR) {
-          callback(jqXHR.responseText);
+        .fail((jqXHR) => {
+          callback(!!jqXHR.responseText);
         });
     };
 
@@ -298,406 +296,398 @@ function init(ctx) {
         submitHook: postLoopNotification,
       },
     ];
-  };
+  }
 
-  // TODO: Add event listener to customize labels
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  iobValueParts(sbx) {
+    const iob = sbx.properties.loop?.lastLoop?.iob;
+    if (!iob) return [];
 
-  loop.updateVisualisation = function updateVisualisation(sbx) {
-    var prop = sbx.properties.loop;
+    return [
+      ", IOB: ",
+      sbx.roundInsulinForDisplayFormat(iob.iob) + "U",
+      iob.basaliob
+        ? ", Basal IOB " + sbx.roundInsulinForDisplayFormat(iob.basaliob) + "U"
+        : "",
+    ];
+  }
 
-    var prefs = loop.getPrefs(sbx);
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  cobValueParts(sbx) {
+    const cob = sbx.properties.loop?.lastLoop?.cob;
+    if (!cob) return [];
 
+    return [", COB: ", Math.round(cob.cob) + "g"];
+  }
+
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  eventualBgValueParts(sbx) {
+    const lastLoop = sbx.properties.loop?.lastLoop;
+    if (!lastLoop?.predicted) return [];
+
+    const predictedBGvalues = lastLoop.predicted.values;
+    const eventualBG = predictedBGvalues.at(-1);
+    const maxBG = Math.max(...predictedBGvalues);
+    const minBG = Math.min(...predictedBGvalues);
+    const eventualBGscaled =
+      sbx.settings.units === "mmol"
+        ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(eventualBG ?? NaN))
+        : eventualBG;
+    const maxBGscaled =
+      sbx.settings.units === "mmol"
+        ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(maxBG))
+        : maxBG;
+    const minBGscaled =
+      sbx.settings.units === "mmol"
+        ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(minBG))
+        : minBG;
+
+    return [
+      ", Predicted Min-Max BG: ",
+      minBGscaled.toString(),
+      "-",
+      maxBGscaled.toString(),
+      ", Eventual BG: ",
+      eventualBGscaled?.toString() ?? "",
+    ];
+  }
+
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  recommendedBolusValueParts(sbx) {
+    const lastLoop = sbx.properties.loop?.lastLoop;
+    if (!lastLoop?.recommendedBolus) return [];
+
+    return [", Recommended Bolus: ", `${lastLoop.recommendedBolus}U`];
+  }
+
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  recommendedTempBasalEvents(sbx) {
+    const lastLoop = sbx.properties.loop?.lastLoop;
+    if (!lastLoop?.recommendedTempBasal) return [];
+
+    const recommendedTempBasal = lastLoop.recommendedTempBasal;
+
+    const valueParts = [
+      `Suggested Temp: ${recommendedTempBasal.rate}U/hour for ${recommendedTempBasal.duration}m`,
+      ...this.iobValueParts(sbx),
+      ...this.cobValueParts(sbx),
+      ...this.eventualBgValueParts(sbx),
+      ...this.recommendedBolusValueParts(sbx),
+    ];
+
+    const events = [
+      {
+        time: this.moment(recommendedTempBasal.timestamp),
+        value: valueParts.join(""),
+      },
+    ];
+
+    return events;
+  }
+
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  rssiEvents(sbx) {
+    const { mostRecent, pumpRSSI, bleRSSI } = sbx.data.devicestatus.reduce(
+      (acc, entry) => {
+        if (
+          entry.radioAdapter &&
+          acc.mostRecent?.isBefore(this.moment(entry.created_at))
+        ) {
+          const { pumpRSSI, RSSI: bleRSSI } = entry.radioAdapter;
+          return { ...acc, pumpRSSI, bleRSSI };
+        }
+
+        return acc;
+      },
+      /**
+       * @type {Partial<
+       *   Record<`${"pump" | "ble"}RSSI`, number> & {
+       *     mostRecent: import("moment").Moment;
+       *   }
+       * >}
+       */ ({})
+    );
+
+    let reportRSSI = "";
+    if (bleRSSI) reportRSSI += `BLE RSSI: ${bleRSSI} `;
+    if (pumpRSSI) reportRSSI += `Pump RSSI: ${pumpRSSI}`;
+
+    if (!reportRSSI) return [];
+
+    return [
+      {
+        time: mostRecent,
+        value: reportRSSI.trim(),
+      },
+    ];
+  }
+
+  /** @protected @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  lastEnactedEvents(sbx) {
+    const lastEnacted = sbx.properties.loop?.lastEnacted;
+    if (!lastEnacted) return [];
+
+    const valueParts = [];
+
+    if (lastEnacted.bolusVolume) {
+      valueParts.push("<b>Automatic Bolus</b>");
+      valueParts.push(` ${lastEnacted.bolusVolume}U`);
+      if (lastEnacted.rate === 0 && lastEnacted.duration === 0) {
+        valueParts.push(" (Temp Basal Canceled)");
+      }
+    } else if (lastEnacted.rate === 0 && lastEnacted.duration === 0) {
+      valueParts.push("<b>Temp Basal Canceled</b>");
+    } else if (!!lastEnacted.rate) {
+      valueParts.push("<b>Temp Basal Started</b>");
+      valueParts.push(
+        ` ${lastEnacted.rate.toFixed(2)}U/hour for ${lastEnacted.duration}m`
+      );
+    }
+    if (lastEnacted.reason) valueParts.push(`, ${lastEnacted.reason}`);
+
+    valueParts.push(
+      ...this.iobValueParts(sbx),
+      ...this.cobValueParts(sbx),
+      ...this.eventualBgValueParts(sbx),
+      ...this.recommendedBolusValueParts(sbx)
+    );
+
+    return [
+      {
+        time: lastEnacted.moment,
+        value: valueParts.join(""),
+      },
+    ];
+  }
+
+  /** @protected @param {LoopProperties | undefined} prop */
+  getForecastPoints(prop) {
+    const predicted = prop?.lastPredicted;
+    if (!predicted?.values) return [];
+
+    const startTime = this.moment(predicted.startDate);
+    return predicted.values.map((value, index) => ({
+      mgdl: value,
+      color: "#ff00ff",
+      mills: startTime.valueOf() + times.mins(5 * index).msecs,
+      noFade: true,
+    }));
+  }
+
+  /** @param {import("../sandbox").ClientInitializedSandbox} sbx */
+  updateVisualisation(sbx) {
+    const prop = sbx.properties.loop;
+
+    const prefs = this.getPrefs(sbx);
+
+    /** @param {string} prefix @param {string | null | undefined} value */
     function valueString(prefix, value) {
       return value != null ? prefix + value : "";
     }
 
-    var events = [];
-
-    function addRecommendedTempBasal() {
-      if (prop.lastLoop && prop.lastLoop.recommendedTempBasal) {
-        var recommendedTempBasal = prop.lastLoop.recommendedTempBasal;
-
-        var valueParts = [
-          "Suggested Temp: " +
-            recommendedTempBasal.rate +
-            "U/hour for " +
-            recommendedTempBasal.duration +
-            "m",
-        ];
-
-        valueParts = concatIOB(valueParts);
-        valueParts = concatCOB(valueParts);
-        valueParts = concatEventualBG(valueParts);
-        valueParts = concatRecommendedBolus(valueParts);
-
-        events.push({
-          time: moment(recommendedTempBasal.timestamp),
-          value: valueParts.join(""),
-        });
-      }
-    }
-
-    function addRSSI() {
-      var mostRecent = "";
-      var pumpRSSI = "";
-      var bleRSSI = "";
-      var reportRSSI = "";
-
-      _.forEach(sbx.data.devicestatus, function (entry) {
-        if (entry.radioAdapter) {
-          var entryMoment = moment(entry.created_at);
-
-          if (mostRecent == "") {
-            mostRecent = entryMoment;
-            if (entry.radioAdapter.pumpRSSI) {
-              pumpRSSI = entry.radioAdapter.pumpRSSI;
-            }
-            if (entry.radioAdapter.RSSI) {
-              bleRSSI = entry.radioAdapter.RSSI;
-            }
-          }
-
-          if (mostRecent < entryMoment) {
-            mostRecent = entryMoment;
-            if (entry.radioAdapter.pumpRSSI) {
-              pumpRSSI = entry.radioAdapter.pumpRSSI;
-            }
-            if (entry.radioAdapter.RSSI) {
-              bleRSSI = entry.radioAdapter.RSSI;
-            }
-          }
-        }
-      });
-
-      if (bleRSSI != "") {
-        reportRSSI = "BLE RSSI: " + bleRSSI + " ";
-      }
-
-      if (pumpRSSI != "") {
-        reportRSSI = reportRSSI + "Pump RSSI: " + pumpRSSI;
-      }
-
-      if (reportRSSI != "") {
-        events.push({
-          time: mostRecent,
-          value: reportRSSI,
-        });
-      }
-    }
-
-    function addLastEnacted() {
-      if (prop.lastEnacted) {
-        var valueParts = [];
-
-        if (prop.lastEnacted.bolusVolume) {
-          valueParts.push("<b>Automatic Bolus</b>");
-          valueParts.push(" " + prop.lastEnacted.bolusVolume + "U");
-          if (prop.lastEnacted.rate === 0 && prop.lastEnacted.duration === 0) {
-            valueParts.push(" (Temp Basal Canceled)");
-          }
-        } else if (
-          prop.lastEnacted.rate === 0 &&
-          prop.lastEnacted.duration === 0
-        ) {
-          valueParts.push("<b>Temp Basal Canceled</b>");
-        } else if (prop.lastEnacted.rate != null) {
-          valueParts.push("<b>Temp Basal Started</b>");
-          valueParts.push(
-            " " +
-              prop.lastEnacted.rate.toFixed(2) +
-              "U/hour for " +
-              prop.lastEnacted.duration +
-              "m"
-          );
-        }
-        valueParts.push(valueString(", ", prop.lastEnacted.reason));
-
-        valueParts = concatIOB(valueParts);
-        valueParts = concatCOB(valueParts);
-        valueParts = concatEventualBG(valueParts);
-        valueParts = concatRecommendedBolus(valueParts);
-
-        events.push({
-          time: prop.lastEnacted.moment,
-          value: valueParts.join(""),
-        });
-      }
-    }
-
-    function concatIOB(valueParts) {
-      if (prop.lastLoop && prop.lastLoop.iob) {
-        var iob = prop.lastLoop.iob;
-        valueParts = valueParts.concat([
-          ", IOB: ",
-          sbx.roundInsulinForDisplayFormat(iob.iob) + "U",
-          iob.basaliob
-            ? ", Basal IOB " +
-              sbx.roundInsulinForDisplayFormat(iob.basaliob) +
-              "U"
-            : "",
-        ]);
-      }
-
-      return valueParts;
-    }
-
-    function concatCOB(valueParts) {
-      if (prop.lastLoop && prop.lastLoop.cob) {
-        var cob = prop.lastLoop.cob.cob;
-        cob = Math.round(cob);
-        valueParts = valueParts.concat([", COB: ", cob + "g"]);
-      }
-
-      return valueParts;
-    }
-
-    function concatEventualBG(valueParts) {
-      if (prop.lastLoop && prop.lastLoop.predicted) {
-        var predictedBGvalues = prop.lastLoop.predicted.values;
-        var eventualBG = predictedBGvalues[predictedBGvalues.length - 1];
-        var maxBG = Math.max.apply(null, predictedBGvalues);
-        var minBG = Math.min.apply(null, predictedBGvalues);
-        var eventualBGscaled =
-          sbx.settings.units === "mmol"
-            ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(eventualBG))
-            : eventualBG;
-        var maxBGscaled =
-          sbx.settings.units === "mmol"
-            ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(maxBG))
-            : maxBG;
-        var minBGscaled =
-          sbx.settings.units === "mmol"
-            ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(minBG))
-            : minBG;
-
-        valueParts = valueParts.concat([
-          ", Predicted Min-Max BG: ",
-          minBGscaled,
-          "-",
-          maxBGscaled,
-          ", Eventual BG: ",
-          eventualBGscaled,
-        ]);
-      }
-
-      return valueParts;
-    }
-
-    function concatRecommendedBolus(valueParts) {
-      if (prop.lastLoop && prop.lastLoop.recommendedBolus) {
-        var recommendedBolus = prop.lastLoop.recommendedBolus;
-        valueParts = valueParts.concat([
-          ", Recommended Bolus: ",
-          recommendedBolus + "U",
-        ]);
-      }
-
-      return valueParts;
-    }
-
-    function getForecastPoints() {
-      var points = [];
-
-      function toPoints(startTime, offset) {
-        return function toPoint(value, index) {
-          return {
-            mgdl: value,
-            color: "#ff00ff",
-            mills: startTime.valueOf() + times.mins(5 * index).msecs + offset,
-            noFade: true,
-          };
-        };
-      }
-
-      if (prop.lastPredicted) {
-        var predicted = prop.lastPredicted;
-        var startTime = moment(predicted.startDate);
-        if (predicted.values) {
-          points = points.concat(
-            _.map(predicted.values, toPoints(startTime, 0))
-          );
-        }
-      }
-
-      return points;
-    }
-
-    if ("error" === prop.display.code) {
-      events.push({
-        time: prop.lastLoop.moment,
-        value: valueString("Error: ", prop.lastLoop.failureReason),
-      });
-      addRecommendedTempBasal();
-    } else if ("enacted" === prop.display.code) {
-      addLastEnacted();
-    } else if ("looping" === prop.display.code) {
-      addLastEnacted();
+    /** @type {{ time?: import("moment").Moment; value: string }[]} */
+    const events = [];
+    if (["enacted", "looping"].includes(prop?.display.code ?? "")) {
+      events.push(...this.lastEnactedEvents(sbx));
     } else {
-      addRecommendedTempBasal();
-    }
-
-    addRSSI();
-
-    var sorted = _.sortBy(events, function toMill(event) {
-      return event.time.valueOf();
-    }).reverse();
-
-    var info = _.map(sorted, function eventToInfo(event) {
-      return {
-        label: utils.timeAt(false, sbx) + utils.timeFormat(event.time, sbx),
-        value: event.value,
-      };
-    });
-
-    var loopName = "Loop";
-
-    if (prop.lastLoop && prop.lastLoop.name) {
-      loopName = prop.lastLoop.name;
-    }
-
-    var eventualBGValue = "";
-    if (prop.lastLoop && prop.lastLoop.predicted) {
-      var predictedBGvalues = prop.lastLoop.predicted.values;
-      var eventualBG = predictedBGvalues[predictedBGvalues.length - 1];
-      if (sbx.settings.units === "mmol") {
-        eventualBG = sbx.roundBGToDisplayFormat(sbx.scaleMgdl(eventualBG));
+      if ("error" === prop?.display.code) {
+        events.push({
+          time: prop.lastLoop?.moment,
+          value: valueString("Error: ", prop.lastLoop?.failureReason),
+        });
       }
-      eventualBGValue = " ↝ " + eventualBG;
+
+      events.push(...this.recommendedTempBasalEvents(sbx));
     }
 
-    var label = loopName + " " + prop.display.symbol;
+    events.push(...this.rssiEvents(sbx));
 
-    var lastLoopValue = prop.lastLoop
-      ? utils.timeFormat(prop.lastLoop.moment, sbx) + eventualBGValue
-      : null;
+    const sorted = events.sort(
+      (a, b) => (b.time?.valueOf() ?? 0) - (a.time?.valueOf() ?? 0)
+    );
 
-    sbx.pluginBase.updatePillText(loop, {
+    const info = sorted.map((event) => ({
+      label:
+        this.utils.timeAt(null, sbx) + this.utils.timeFormat(event.time, sbx),
+      value: event.value,
+    }));
+
+    let loopName = prop?.lastLoop?.name ?? "Loop";
+
+    const eventualBG = prop?.lastLoop?.predicted?.values?.at(-1);
+    const eventualBGValue = eventualBG
+      ? " ↝ " +
+        (sbx.settings.units === "mmol"
+          ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(eventualBG))
+          : eventualBG)
+      : "";
+
+    const label = `${loopName} ${prop?.display.symbol}`;
+
+    const lastLoopValue =
+      prop?.lastLoop &&
+      this.utils.timeFormat(prop.lastLoop.moment, sbx) + eventualBGValue;
+
+    sbx.pluginBase.updatePillText(this, {
       value: lastLoopValue,
       label: label,
       info: info,
-      pillClass: statusClass(prop, prefs, sbx),
+      pillClass: this.statusClass(prop, prefs, sbx),
     });
 
-    var forecastPoints = getForecastPoints();
+    const forecastPoints = this.getForecastPoints(prop);
     if (forecastPoints && forecastPoints.length > 0) {
       sbx.pluginBase.addForecastPoints(forecastPoints, {
         type: "loop",
         label: "Loop Forecasts",
       });
     }
-  };
-
-  function virtAsstForecastHandler(next, slots, sbx) {
-    var predicted = _.get(sbx, "properties.loop.lastLoop.predicted");
-    if (predicted) {
-      var forecast = predicted.values;
-      var max = forecast[0];
-      var min = forecast[0];
-      var maxForecastIndex = Math.min(6, forecast.length);
-
-      var startPrediction = moment(predicted.startDate);
-      var endPrediction = startPrediction
-        .clone()
-        .add(maxForecastIndex * 5, "minutes");
-      if (endPrediction.valueOf() < sbx.time) {
-        next(
-          translate("virtAsstTitleLoopForecast"),
-          translate("virtAsstForecastUnavailable")
-        );
-      } else {
-        for (
-          var i = 1, len = forecast.slice(0, maxForecastIndex).length;
-          i < len;
-          i++
-        ) {
-          if (forecast[i] > max) {
-            max = forecast[i];
-          }
-          if (forecast[i] < min) {
-            min = forecast[i];
-          }
-        }
-        var response = "";
-        if (min === max) {
-          response = translate("virtAsstLoopForecastAround", {
-            params: [max, moment(endPrediction).from(moment(sbx.time))],
-          });
-        } else {
-          response = translate("virtAsstLoopForecastBetween", {
-            params: [min, max, moment(endPrediction).from(moment(sbx.time))],
-          });
-        }
-        next(translate("virtAsstTitleLoopForecast"), response);
-      }
-    } else {
-      next(
-        translate("virtAsstTitleLoopForecast"),
-        translate("virtAsstUnknown")
-      );
-    }
   }
 
-  function virtAsstLastLoopHandler(next, slots, sbx) {
-    var lastLoop = _.get(sbx, "properties.loop.lastLoop");
-    if (lastLoop) {
-      console.log(JSON.stringify(lastLoop));
-      var response = translate("virtAsstLastLoop", {
+  /** @protected @param {Record<"min" | "max" | "sbxTime", number> & {endPrediction: import("moment").Moment}} values */
+  virtAsstForecastResponse({ min, max, sbxTime, endPrediction }) {
+    if (max === min) {
+      return this.translate("virtAsstLoopForecastAround", {
         params: [
-          moment(sbx.properties.loop.lastOkMoment).from(moment(sbx.time)),
+          max.toString(),
+          this.moment(endPrediction).from(this.moment(sbxTime)),
         ],
       });
-      next(translate("virtAsstTitleLastLoop"), response);
-    } else {
-      next(translate("virtAsstTitleLastLoop"), translate("virtAsstUnknown"));
     }
+
+    return this.translate("virtAsstLoopForecastBetween", {
+      params: [
+        min.toString(),
+        max.toString(),
+        this.moment(endPrediction).from(this.moment(sbxTime)),
+      ],
+    });
   }
 
-  loop.virtAsst = {
+  /** @protected @type {import("../types").VirtAsstIntentHandlerFn} */
+  virtAsstForecastHandler(next, _slots, sbx) {
+    const predicted = sbx.properties.loop?.lastLoop?.predicted;
+
+    if (!predicted) {
+      next(
+        this.translate("virtAsstTitleLoopForecast"),
+        this.translate("virtAsstUnknown")
+      );
+      return;
+    }
+
+    const forecast = predicted.values;
+    const maxForecastIndex = Math.min(6, forecast.length);
+
+    const startPrediction = this.moment(predicted.startDate);
+    const endPrediction = startPrediction
+      .clone()
+      .add(maxForecastIndex * 5, "minutes");
+
+    if (endPrediction.valueOf() < sbx.time) {
+      next(
+        this.translate("virtAsstTitleLoopForecast"),
+        this.translate("virtAsstForecastUnavailable")
+      );
+      return;
+    }
+
+    const { max, min } = forecast.slice(0, maxForecastIndex).reduce(
+      (acc, curr) => {
+        if (curr > acc.max) acc.max = curr;
+        if (curr < acc.min) acc.min = curr;
+
+        return acc;
+      },
+      { max: forecast[0], min: forecast[0] }
+    );
+
+    next(
+      this.translate("virtAsstTitleLoopForecast"),
+      this.virtAsstForecastResponse({
+        min,
+        max,
+        sbxTime: sbx.time,
+        endPrediction,
+      })
+    );
+  }
+
+  /** @protected @type {import("../types").VirtAsstIntentHandlerFn} */
+  virtAsstLastLoopHandler(next, _slots, sbx) {
+    var lastLoop = sbx.properties.loop?.lastLoop;
+    if (!lastLoop) {
+      next(
+        this.translate("virtAsstTitleLastLoop"),
+        this.translate("virtAsstUnknown")
+      );
+    }
+
+    console.log(JSON.stringify(lastLoop));
+
+    const timeSinceLastLoop = this.moment(
+      sbx.properties.loop?.lastOkMoment
+    ).from(this.moment(sbx.time));
+    next(
+      this.translate("virtAsstTitleLastLoop"),
+      this.translate("virtAsstLastLoop", {
+        params: [timeSinceLastLoop],
+      })
+    );
+  }
+
+  virtAsst = {
     intentHandlers: [
       {
         intent: "MetricNow",
         metrics: ["loop forecast", "forecast"],
-        intentHandler: virtAsstForecastHandler,
+        intentHandler: this.virtAsstForecastHandler.bind(this),
       },
       {
         intent: "LastLoop",
-        intentHandler: virtAsstLastLoopHandler,
+        intentHandler: this.virtAsstLastLoopHandler.bind(this),
       },
     ],
   };
 
-  function statusClass(prop, prefs, sbx) {
-    var level = statusLevel(prop, prefs, sbx);
-    var cls = "current";
-
-    if (level === levels.WARN) {
-      cls = "warn";
-    } else if (level === levels.URGENT) {
-      cls = "urgent";
+  /**
+   * @param {LoopProperties | undefined} prop
+   * @param {ReturnType<LoopPlugin["getPrefs"]>} prefs
+   * @param {ReturnType<import("../sandbox")>} sbx
+   * @protected
+   */
+  statusClass(prop, prefs, sbx) {
+    const level = this.statusLevel(prop, prefs, sbx);
+    switch (level) {
+      case this.levels.WARN:
+        return "warn";
+      case this.levels.URGENT:
+        return "urgent";
+      default:
+        return "current";
     }
-
-    return cls;
   }
 
-  function statusLevel(prop, prefs, sbx) {
-    var level = levels.NONE;
-    var now = moment(sbx.time);
+  /**
+   * @param {LoopProperties | undefined} prop
+   * @param {ReturnType<LoopPlugin["getPrefs"]>} prefs
+   * @param {ReturnType<import("../sandbox")>} sbx
+   * @protected
+   */
+  statusLevel(prop, prefs, sbx) {
+    const now = this.moment(sbx.time);
 
-    if (prop.lastOkMoment) {
-      var urgentTime = prop.lastOkMoment.clone().add(prefs.urgent, "minutes");
-      var warningTime = prop.lastOkMoment.clone().add(prefs.warn, "minutes");
+    if (!prop?.lastOkMoment) return this.levels.NONE;
 
-      if (urgentTime.isBefore(now)) {
-        level = levels.URGENT;
-      } else if (warningTime.isBefore(now)) {
-        level = levels.WARN;
-      }
-    }
+    const urgentTime = prop.lastOkMoment.clone().add(prefs.urgent, "minutes");
+    if (urgentTime?.isBefore(now)) return this.levels.URGENT;
 
-    return level;
+    const warningTime = prop.lastOkMoment.clone().add(prefs.warn, "minutes");
+    if (warningTime?.isBefore(now)) return this.levels.WARN;
+
+    return this.levels.NONE;
   }
-
-  return loop;
 }
 
-module.exports = init;
+/** @param {import(".").PluginCtx} ctx */
+module.exports = (ctx) => new LoopPlugin(ctx);
