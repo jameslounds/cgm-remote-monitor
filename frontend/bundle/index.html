@@ -28,7 +28,7 @@
   <meta name="msapplication-TileImage" content="/images/mstile-144x144.png">
   <meta name="msapplication-config" content="/browserconfig.xml">
   <meta name="theme-color" content="#333333">
-  <link rel="preload" href="../static/css/ui-darkness/jquery-ui.min.css" as="style"
+  <link rel="preload" href="/css/ui-darkness/jquery-ui.min.css" as="style"
     onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="/css/jquery.tooltips.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="/css/main.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -360,7 +360,9 @@
         <a id="useDefaults" class="pull-right translate" href="">Reset, and use defaults</a>
       </div>
 
-      <!-- <%- include('partials/authentication-status') %> -->
+      <div class="authentication-status">
+        <strong><span class="translate">Authentication status</span>: </strong><span id="authentication_placeholder"></span>
+      </div>
 
       <fieldset id="about">
         <legend class="translate">About</legend>
