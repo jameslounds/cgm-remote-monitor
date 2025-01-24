@@ -1572,7 +1572,7 @@ class Client {
       client: "web",
       secret: this.authorized?.token ? null : this.hashauth.hash(),
       token: this.authorized?.token,
-      history: history,
+      history: this.history,
     };
 
     this.socket.emit(
