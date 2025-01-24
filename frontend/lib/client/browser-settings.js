@@ -362,7 +362,7 @@ class BrowserSettings {
             );
             dl.append(html);
             const settingsBase = this.settings.extendedSettings[plugin.name];
-            if (settingsBase[p.id] === true) {
+            if (settingsBase?.[p.id] === true) {
               toggleCheckboxes.push(id);
             }
           }
