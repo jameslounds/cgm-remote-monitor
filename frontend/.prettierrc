@@ -1,0 +1,12 @@
+{
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "htmlWhitespaceSensitivity": "ignore",
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "plugins": ["./node_modules/prettier-plugin-jsdoc/dist/index.js"]
+}
