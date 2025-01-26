@@ -5,16 +5,18 @@ const units = require("./units.js")();
 const times = require("./times");
 /**
  * @typedef {Sandbox & {
- *   notifications: ReturnType<ReturnType<import("./sandbox")>['safeNotifications']>;
- *   settings: ReturnType<import("./settings.js")>
- *   translate: ReturnType<import("./language")>['translate']
- *   levels: import("./levels")
+ *   notifications: ReturnType<
+ *     ReturnType<import("./sandbox")>["safeNotifications"]
+ *   >;
+ *   settings: ReturnType<import("./settings.js")>;
+ *   translate: ReturnType<import("./language")>["translate"];
+ *   levels: import("./levels");
  * }} InitializedSandbox
  */
 
 /**
  * @typedef {InitializedSandbox & {
- *   pluginBase: ReturnType<import("./plugins/pluginbase")>
+ *   pluginBase: ReturnType<import("./plugins/pluginbase")>;
  * }} ClientInitializedSandbox
  */
 
@@ -29,12 +31,12 @@ const times = require("./times");
  *   iob?: import("./plugins/iob").IobProperties;
  *   cob?: import("./plugins/cob.js").CobProperties;
  *   basal?: import("./plugins/basalprofile.js").BasalProperties;
- *   bage?: import("./plugins/batteryage.js").BageProperties
- *   bwp?: import("./plugins/boluswizardpreview.js").BWPProperties
- *   cage?: import("./plugins/cannulaage.js").CAgeProperties
- *   dbsize?: import("./plugins/dbsize.js").DbSizeProperties
- *   iage?: import("./plugins/insulinage.js").IAgeProperties
- *   loop?: import("./plugins/loop.js").LoopProperties
+ *   bage?: import("./plugins/batteryage.js").BageProperties;
+ *   bwp?: import("./plugins/boluswizardpreview.js").BWPProperties;
+ *   cage?: import("./plugins/cannulaage.js").CAgeProperties;
+ *   dbsize?: import("./plugins/dbsize.js").DbSizeProperties;
+ *   iage?: import("./plugins/insulinage.js").IAgeProperties;
+ *   loop?: import("./plugins/loop.js").LoopProperties;
  * }} SandboxProperties
  */
 
@@ -60,6 +62,7 @@ class Sandbox {
 
   extend() {
     this.unitsLabel = this.settings.units === "mmol" ? "mmol/L" : "mg/dl";
+    this.data ??= /** @type {ReturnType<import("./data/ddata")>} */ ({});
 
     //default to prevent adding checks everywhere
     this.extendedSettings = { empty: true };
@@ -84,8 +87,11 @@ class Sandbox {
   /**
    * A view into the safe notification functions for plugins
    *
-   * @param {{notifications: ReturnType<import("./notifications.js")>}} ctx
-   * @returns {Pick<ReturnType<import("./notifications.js")>, "requestNotify" | "requestSnooze">}
+   * @param {{ notifications: ReturnType<import("./notifications.js")> }} ctx
+   * @returns {Pick<
+   *   ReturnType<import("./notifications.js")>,
+   *   "requestNotify" | "requestSnooze"
+   * >}
    */
   safeNotifications(ctx) {
     if (!ctx.notifications) {
@@ -103,17 +109,17 @@ class Sandbox {
 
   /**
    * @typedef ServerEnv
-   * @prop {ReturnType<import("./settings")>} settings
-   * @prop {Record<string, any>} extendedSettings
+   * @property {ReturnType<import("./settings")>} settings
+   * @property {Record<string, any>} extendedSettings
    */
   /**
    * @typedef ServerCtx
-   * @prop {import("./levels")} levels
-   * @prop {ReturnType<import("./language")>} language
-   * @prop {ReturnType<import("./data/ddata")>} ddata
-   * @prop {string} runtimeState
-   * @prop {ReturnType<import("./notifications")>} notifications
-   * @prop {import("moment-timezone")} moment
+   * @property {import("./levels")} levels
+   * @property {ReturnType<import("./language")>} language
+   * @property {ReturnType<import("./data/ddata")>} ddata
+   * @property {string} runtimeState
+   * @property {ReturnType<import("./notifications")>} notifications
+   * @property {import("moment-timezone")} moment
    */
   /**
    * @param {ServerEnv} env
@@ -157,18 +163,20 @@ class Sandbox {
 
   /**
    * @typedef ClientInitCtx
-   * @prop {ReturnType<import("./settings")>} settings
-   * @prop {ReturnType<import("./plugins/pluginbase")>} pluginBase
-   * @prop {ReturnType<import("./notifications")>} notifications
-   * @prop {import("./levels")} levels
-   * @prop {ReturnType<import("./language")>} language
+   * @property {ReturnType<import("./settings")>} settings
+   * @property {ReturnType<import("./plugins/pluginbase")>} pluginBase
+   * @property {ReturnType<import("./notifications")>} notifications
+   * @property {import("./levels")} levels
+   * @property {ReturnType<import("./language")>} language
    */
   /**
    * Initialize the sandbox using client state
    *
-   * @param {ClientInitCtx} ctx - specific settings from the client, starting with the defaults
-   * @param {number} time - could be a retro time
-   * @param {ReturnType<import("./data/ddata")>} data - svgs, treatments, profile, etc
+   * @param {ClientInitCtx} ctx - Specific settings from the client, starting
+   *   with the defaults
+   * @param {number} time - Could be a retro time
+   * @param {ReturnType<import("./data/ddata")>} data - Svgs, treatments,
+   *   profile, etc
    * @returns {ClientInitializedSandbox}
    */
   clientInit(ctx, time, data = ddata()) {
@@ -200,7 +208,8 @@ class Sandbox {
   }
 
   /**
-   * Properties are immutable, first plugin to set it wins, plugins should be in the correct order
+   * Properties are immutable, first plugin to set it wins, plugins should be in
+   * the correct order
    *
    * @template {keyof Sandbox["properties"]} T
    * @param {T} name
@@ -240,7 +249,7 @@ class Sandbox {
       .reverse();
   }
 
-  /** @template {import("./types").Entry} T  @param {T[]} entries */
+  /** @template {import("./types").Entry} T @param {T[]} entries */
   prevEntry(entries) {
     const last2 = this.lastNEntries(entries, 2);
     return last2.at(0);
@@ -312,7 +321,7 @@ class Sandbox {
   /**
    * @template {keyof Sandbox["properties"]} T
    * @param {T} propertyName
-   * @param {Array<string | Sandbox["properties"][T]['displayLine']>} lines
+   * @param {(string | Sandbox["properties"][T]["displayLine"])[]} lines
    */
   appendPropertyLine(propertyName, lines) {
     lines = lines || [];
