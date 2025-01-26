@@ -39,6 +39,11 @@ const times = require("./times");
  */
 
 class Sandbox {
+  /**
+   * @type {undefined | ReturnType<import("./settings")>["extendedSettings"] }
+   */
+  #allExtendedSettings;
+
   constructor() {
     this.time = Date.now();
     /** @type {SandboxProperties} */
@@ -62,27 +67,20 @@ class Sandbox {
     this.extendedSettings = { empty: true };
   }
 
-  /**
-   *
-   * @param {{name: string}} plugin
-   * @param {Record<string, any>} allExtendedSettings
-   * @param {Sandbox} sbx
-   */
-  withExtendedSettings(plugin, allExtendedSettings, sbx) {
-    try {
-      const cloned = Object.assign(
-        /** @type {Sandbox} */ (Object.create(Object.getPrototypeOf(sbx))),
-        sbx
-      );
-
-      cloned.extendedSettings =
-        (allExtendedSettings && allExtendedSettings[plugin.name]) || {};
-
-      return cloned;
-    } catch (err) {
-      console.log(err);
-      throw err;
+  /** @param {{ name: string }} plugin */
+  withExtendedSettings(plugin) {
+    if (!this.#allExtendedSettings) {
+      throw new Error("withExtendedSettings called on unitinialized sandbox");
     }
+
+    const cloned = Object.assign(
+      /** @type {Sandbox} */ (Object.create(Object.getPrototypeOf(this))),
+      this
+    );
+
+    cloned.extendedSettings = this.#allExtendedSettings?.[plugin.name] ?? {};
+
+    return cloned;
   }
 
   /**
@@ -152,11 +150,7 @@ class Sandbox {
 
     this.properties = {};
 
-    const withExtendedSettings = this.withExtendedSettings.bind(this);
-    /** @param {import("./types").Plugin} plugin */
-    this.withExtendedSettings = (plugin) => {
-      return withExtendedSettings(plugin, env.extendedSettings, this);
-    };
+    this.#allExtendedSettings = env.extendedSettings;
 
     this.extend();
 
@@ -200,11 +194,7 @@ class Sandbox {
     }
 
     this.extendedSettings = { empty: true };
-    const withExtendedSettings = this.withExtendedSettings.bind(this);
-    /** @param {import("./types").Plugin} plugin */
-    this.withExtendedSettings = (plugin) => {
-      return withExtendedSettings(plugin, this.settings.extendedSettings, this);
-    };
+    this.#allExtendedSettings = this.settings.extendedSettings;
 
     this.extend();
 

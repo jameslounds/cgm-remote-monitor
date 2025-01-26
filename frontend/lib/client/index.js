@@ -1691,11 +1691,7 @@ class Client {
     if (!this.sbx || !this.settings || !this.ddata) return;
 
     // Post processing after data is in
-    const sbx = this.sbx.withExtendedSettings(
-      this.rawbg,
-      this.settings.extendedSettings,
-      this.sbx
-    );
+    const sbx = this.sbx.withExtendedSettings(this.rawbg);
 
     /** @type {import("../types").Rawbg[]} */
     const rawbgs =
