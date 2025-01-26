@@ -59,9 +59,7 @@ class Sandbox {
   }
 
   extend() {
-    this.unitsLabel = this.#unitsLabel();
-    this.data =
-      this.data || /** @type {ReturnType<import("./data/ddata")>} */ ({});
+    this.unitsLabel = this.settings.units === "mmol" ? "mmol/L" : "mg/dl";
 
     //default to prevent adding checks everywhere
     this.extendedSettings = { empty: true };
@@ -390,10 +388,6 @@ class Sandbox {
     }
 
     return (Math.floor(insulin / 0.01) * 0.01).toFixed(2);
-  }
-
-  #unitsLabel() {
-    return this.settings.units === "mmol" ? "mmol/L" : "mg/dl";
   }
 
   /** @param {number} bg */
