@@ -61,8 +61,8 @@ class Utils {
 
   /** @param {string} device */
   deviceName(device) {
-    const last = device ? device.split("://").at(1) : "unknown";
-    return last?.split("/")?.at(0);
+    const last = device ? device.split("://").at(-1) ?? "" : "unknown";
+    return last.split("/")[0];
   }
 
   /**

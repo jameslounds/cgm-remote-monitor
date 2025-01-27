@@ -1,24 +1,42 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
-var consts = require("../constants");
+const times = require("../times");
+const consts = require("../constants");
+
+/** @import {Plugin, PluginEventType, DeviceStatus, OpenApsIob, OpenApsPredBGs, VirtAsstIntentHandlerFn} from "../types" */
+/** @import {Sbx, InitializedSandbox, ClientInitializedSandbox} from "../sandbox" */
+/** @import {PluginCtx} from "." */
+/** @import {Moment} from "moment" */
+
+/** @typedef {ReturnType<OpenApsPlugin["analyzeData"]>} OpenApsProperties */
+
+/**
+ * @typedef {Partial<Pick<DeviceStatus, "mmtune">> & {
+ *   name: string;
+ *   uri: string;
+ *   status: ReturnType<OpenApsPlugin["momentsToLoopStatus"]> & {
+ *     when: Moment;
+ *   };
+ * }} OpenApsDevice
+ */
 
 // var ALL_STATUS_FIELDS = ['status-symbol', 'status-label', 'iob', 'meal-assist', 'freq', 'rssi']; Unused variable
+/** @implements {Plugin} */
+class OpenApsPlugin {
+  name = /** @type {const} */ ("openaps");
+  label = "OpenAPS";
+  pluginType = "pill-status";
 
-function init(ctx) {
-  var moment = ctx.moment;
-  var utils = require("../utils")(ctx);
-  var openaps = {
-    name: /** @type {const} */ ("openaps"),
-    label: "OpenAPS",
-    pluginType: "pill-status",
-  };
-  var translate = ctx.language.translate;
-  var firstPrefs = true;
-  var levels = ctx.levels;
+  /** @param {PluginCtx} ctx */
+  constructor(ctx) {
+    this.moment = ctx.moment;
+    this.utils = require("../utils")(ctx);
+    this.translate = ctx.language.translate;
+    this.levels = ctx.levels;
+  }
 
-  openaps.getClientPrefs = function getClientPrefs() {
+  /** @type {NonNullable<Plugin["getClientPrefs"]>} */
+  getClientPrefs() {
     return [
       {
         label: "Color prediction lines",
@@ -26,235 +44,295 @@ function init(ctx) {
         type: "boolean",
       },
     ];
-  };
+  }
 
-  openaps.getPrefs = function getPrefs(sbx) {
+  firstPrefs = true;
+  /** @param {Sbx} sbx */
+  getPrefs(sbx) {
+    /** @param {string | undefined} value */
     function cleanList(value) {
-      return decodeURIComponent(value || "")
-        .toLowerCase()
-        .split(" ");
-    }
-
-    function isEmpty(list) {
-      return _.isEmpty(list) || _.isEmpty(list[0]);
+      if (!value) return;
+      const cleaned = decodeURIComponent(value).toLowerCase().split(" ");
+      if (!cleaned.length || !cleaned[0]) return;
+      return cleaned;
     }
 
     const settings = sbx.extendedSettings || {};
 
-    var fields = cleanList(settings.fields);
-    fields = isEmpty(fields)
-      ? ["status-symbol", "status-label", "iob", "meal-assist", "rssi"]
-      : fields;
+    const fields = cleanList(settings.fields) ?? [
+      "status-symbol",
+      "status-label",
+      "iob",
+      "meal-assist",
+      "rssi",
+    ];
 
-    var retroFields = cleanList(settings.retroFields);
-    retroFields = isEmpty(retroFields)
-      ? ["status-symbol", "status-label", "iob", "meal-assist", "rssi"]
-      : retroFields;
+    const retroFields = cleanList(settings.retroFields) ?? [
+      "status-symbol",
+      "status-label",
+      "iob",
+      "meal-assist",
+      "rssi",
+    ];
 
-    if (typeof settings.colorPredictionLines == "undefined") {
+    if (typeof settings.colorPredictionLines === "undefined") {
       settings.colorPredictionLines = true;
     }
 
-    var prefs = {
+    return {
       fields: fields,
       retroFields: retroFields,
-      warn: settings.warn ? settings.warn : 30,
-      urgent: settings.urgent ? settings.urgent : 60,
+      warn: Number(settings.warn) || 30,
+      urgent: Number(settings.urgent) || 60,
       enableAlerts: settings.enableAlerts,
-      predIOBColor: settings.predIobColor ? settings.predIobColor : "#1e88e5",
-      predCOBColor: settings.predCobColor ? settings.predCobColor : "#FB8C00",
-      predACOBColor: settings.predAcobColor
-        ? settings.predAcobColor
-        : "#FB8C00",
-      predZTColor: settings.predZtColor ? settings.predZtColor : "#00d2d2",
-      predUAMColor: settings.predUamColor ? settings.predUamColor : "#c9bd60",
+      predIOBColor: String(settings.predIobColor) ?? "#1e88e5",
+      predCOBColor: String(settings.predCobColor) ?? "#FB8C00",
+      predACOBColor: String(settings.predAcobColor) ?? "#FB8C00",
+      predZTColor: String(settings.predZtColor) ?? "#00d2d2",
+      predUAMColor: String(settings.predUamColor) ?? "#c9bd60",
       colorPredictionLines: settings.colorPredictionLines,
     };
+  }
 
-    if (firstPrefs) {
-      firstPrefs = false;
+  /** @param {ClientInitializedSandbox} sbx */
+  setProperties(sbx) {
+    sbx.offerProperty("openaps", () => this.analyzeData(sbx));
+  }
+
+  /**
+   * @param {DeviceStatus} status
+   * @param {Partial<
+   *   Record<
+   *     string,
+   *     Omit<OpenApsDevice, "status"> & { status?: OpenApsDevice["status"] }
+   *   >
+   * >} seenDevices
+   * @protected
+   */
+  getDevice(status, seenDevices) {
+    const uri = status.device || "device";
+    let device = seenDevices[uri];
+    if (device) return device;
+
+    device = {
+      name: this.utils.deviceName(uri),
+      uri,
+    };
+    seenDevices[uri] = device;
+    return device;
+  }
+
+  /**
+   * @param {DeviceStatus} status
+   * @protected
+   */
+  toEnactedMoment(status) {
+    if (
+      status.openaps?.enacted?.timestamp &&
+      (status.openaps.enacted.recieved || status.openaps.enacted.received)
+    ) {
+      return {
+        enacted: this.moment(
+          status.openaps.enacted.mills || status.openaps.enacted.timestamp
+        ),
+      };
+    }
+    if (
+      status.openaps?.enacted?.timestamp &&
+      !(status.openaps.enacted.recieved || status.openaps.enacted.received)
+    ) {
+      return {
+        notEnacted: this.moment(
+          status.openaps.enacted.mills || status.openaps.enacted.timestamp
+        ),
+      };
+    }
+  }
+
+  /**
+   * @param {DeviceStatus & {
+   *   openaps?: { iob?: OpenApsIob };
+   * }} status
+   * @protected
+   */
+  toMoments(status) {
+    const { openaps } = status;
+
+    const enacted =
+      !!openaps?.enacted?.timestamp &&
+      !!(openaps.enacted.recieved || openaps.enacted.received) &&
+      this.moment(openaps.enacted.mills || openaps.enacted.timestamp);
+    const notEnacted =
+      !!openaps?.enacted?.timestamp &&
+      !(openaps.enacted.recieved || openaps.enacted.received) &&
+      this.moment(openaps.enacted.mills || openaps.enacted.timestamp);
+
+    const suggested =
+      openaps?.suggested &&
+      this.moment(openaps.suggested.mills || openaps.suggested.timestamp);
+
+    const iob =
+      openaps?.iob && this.moment(openaps.iob.mills || openaps.iob.timestamp);
+
+    return {
+      when: this.moment(status.mills),
+      enacted: enacted || undefined,
+      notEnacted: notEnacted || undefined,
+      suggested,
+      iob,
+    };
+  }
+
+  /**
+   * @param {Partial<ReturnType<OpenApsPlugin["toMoments"]>>} moments
+   * @param {Moment} recent
+   * @param {boolean} [noWarning]
+   * @protected
+   */
+  momentsToLoopStatus(moments, recent, noWarning) {
+    if (
+      moments.notEnacted &&
+      ((moments.enacted && moments.notEnacted.isAfter(moments.enacted)) ||
+        (!moments.enacted && moments.notEnacted.isAfter(recent)))
+    ) {
+      return /** @type {const} */ ({
+        symbol: "x",
+        code: "notenacted",
+        label: "Not Enacted",
+      });
+    } else if (moments.enacted && moments.enacted.isAfter(recent)) {
+      return /** @type {const} */ ({
+        symbol: "⌁",
+        code: "enacted",
+        label: "Enacted",
+      });
+    } else if (moments.suggested && moments.suggested.isAfter(recent)) {
+      return /** @type {const} */ ({
+        symbol: "↻",
+        code: "looping",
+        label: "Looping",
+      });
+    } else if (moments.when && (noWarning || moments.when.isAfter(recent))) {
+      return /** @type {const} */ ({
+        symbol: "◉",
+        code: "waiting",
+        label: "Waiting",
+      });
     }
 
-    return prefs;
-  };
-
-  openaps.setProperties = function setProperties(sbx) {
-    sbx.offerProperty("openaps", function setOpenAPS() {
-      return openaps.analyzeData(sbx);
+    return /** @type {const} */ ({
+      symbol: "⚠",
+      code: "warning",
+      label: "Warning",
     });
-  };
+  }
 
-  openaps.analyzeData = function analyzeData(sbx) {
-    var recentHours = 6; //TODO dia*2
-    var recentMills = sbx.time - times.hours(recentHours).msecs;
+  /** @param {ClientInitializedSandbox} sbx */
+  analyzeData(sbx) {
+    const recentHours = 6; //TODO dia*2
+    const recentMills = sbx.time - times.hours(recentHours).msecs;
 
-    var recentData = _.chain(sbx.data.devicestatus)
-      .filter(function (status) {
-        return (
+    const recentData = sbx.data.devicestatus
+      .filter(
+        /**
+         * @returns {status is DeviceStatus & {
+         *  openaps: NonNullable<DeviceStatus['openaps']>
+         * }}
+         */
+        (status) =>
           "openaps" in status &&
-          sbx.entryMills(status) <= sbx.time &&
-          sbx.entryMills(status) >= recentMills
-        );
-      })
-      .map(function (status) {
-        if (
-          status.openaps &&
-          _.isArray(status.openaps.iob) &&
-          status.openaps.iob.length > 0
-        ) {
-          status.openaps.iob = status.openaps.iob[0];
-          if (status.openaps.iob.time) {
-            status.openaps.iob.timestamp = status.openaps.iob.time;
+          status.mills <= sbx.time &&
+          status.mills >= recentMills
+      )
+      .map((status) => {
+        if (Array.isArray(status.openaps.iob)) {
+          if (status.openaps.iob.length === 0) {
+            return Object.assign(status, {
+              openaps: Object.assign(status.openaps, { iob: undefined }),
+            });
           }
+
+          const iob = status.openaps.iob[0];
+          if (iob.time) iob.timestamp = iob.time;
+
+          return Object.assign(status, {
+            openaps: Object.assign(status.openaps, {
+              iob: iob,
+            }),
+          });
         }
-        return status;
-      })
-      .value();
 
-    var prefs = openaps.getPrefs(sbx);
-    var recent = moment(sbx.time).subtract(prefs.warn / 2, "minutes");
+        return Object.assign(status, {
+          openaps: Object.assign(status.openaps, { iob: status.openaps.iob }),
+        });
+      });
 
-    var result = {
+    const prefs = this.getPrefs(sbx);
+    const recent = this.moment(sbx.time).subtract(prefs.warn / 2, "minutes");
+
+    /**
+     * @template {keyof NonNullable<DeviceStatus["openaps"]>} T
+     * @typedef {NonNullable<NonNullable<DeviceStatus["openaps"]>[T]> & {
+     *   moment: Moment;
+     * }} PropWithMoment
+     */
+    const result = {
+      /** @type {Partial<Record<string, OpenApsDevice>>} */
       seenDevices: {},
+      /** @type {null | PropWithMoment<"enacted">} */
       lastEnacted: null,
+      /** @type {null | PropWithMoment<"enacted">} */
       lastNotEnacted: null,
+      /** @type {null | PropWithMoment<"suggested">} */
       lastSuggested: null,
+      /** @type {null | (OpenApsIob & { moment: Moment })} */
       lastIOB: null,
+      /** @type {null | PropWithMoment<"mmtune">} */
       lastMMTune: null,
+      /** @type {null | (OpenApsPredBGs & { moment: Moment })} */
       lastPredBGs: null,
+      /** @type {undefined | Moment} */
+      lastLoopMoment: undefined,
+      /**
+       * @type {undefined
+       *   | NonNullable<
+       *       NonNullable<DeviceStatus["openaps"]>["enacted"]
+       *     >["eventualBG"]}
+       */
+      lastEventualBG: undefined,
     };
 
-    function getDevice(status) {
-      var uri = status.device || "device";
-      var device = result.seenDevices[uri];
+    recentData.forEach((status) => {
+      const device = this.getDevice(status, result.seenDevices);
 
-      if (!device) {
-        device = {
-          name: utils.deviceName(uri),
-          uri: uri,
-        };
-
-        result.seenDevices[uri] = device;
-      }
-      return device;
-    }
-
-    function toMoments(status) {
-      var enacted = false;
-      var notEnacted = false;
-      if (
-        status.openaps.enacted &&
-        status.openaps.enacted.timestamp &&
-        (status.openaps.enacted.recieved || status.openaps.enacted.received)
-      ) {
-        if (status.openaps.enacted.mills) {
-          enacted = moment(status.openaps.enacted.mills);
-        } else {
-          enacted = moment(status.openaps.enacted.timestamp);
-        }
-      } else if (
-        status.openaps.enacted &&
-        status.openaps.enacted.timestamp &&
-        !(status.openaps.enacted.recieved || status.openaps.enacted.received)
-      ) {
-        if (status.openaps.enacted.mills) {
-          notEnacted = moment(status.openaps.enacted.mills);
-        } else {
-          notEnacted = moment(status.openaps.enacted.timestamp);
-        }
-      }
-
-      var suggested = false;
-      if (status.openaps.suggested && status.openaps.suggested.mills) {
-        suggested = moment(status.openaps.suggested.mills);
-      } else if (
-        status.openaps.suggested &&
-        status.openaps.suggested.timestamp
-      ) {
-        suggested = moment(status.openaps.suggested.timestamp);
-      }
-
-      var iob = false;
-      if (status.openaps.iob && status.openaps.iob.mills) {
-        iob = moment(status.openaps.iob.mills);
-      } else if (status.openaps.iob && status.openaps.iob.timestamp) {
-        iob = moment(status.openaps.iob.timestamp);
-      }
-
-      return {
-        when: moment(status.mills),
-        enacted,
-        notEnacted,
-        suggested,
-        iob,
-      };
-    }
-
-    function momentsToLoopStatus(moments, noWarning) {
-      var status = {
-        symbol: "⚠",
-        code: "warning",
-        label: "Warning",
-      };
-
-      if (
-        moments.notEnacted &&
-        ((moments.enacted && moments.notEnacted.isAfter(moments.enacted)) ||
-          (!moments.enacted && moments.notEnacted.isAfter(recent)))
-      ) {
-        status.symbol = "x";
-        status.code = "notenacted";
-        status.label = "Not Enacted";
-      } else if (moments.enacted && moments.enacted.isAfter(recent)) {
-        status.symbol = "⌁";
-        status.code = "enacted";
-        status.label = "Enacted";
-      } else if (moments.suggested && moments.suggested.isAfter(recent)) {
-        status.symbol = "↻";
-        status.code = "looping";
-        status.label = "Looping";
-      } else if (moments.when && (noWarning || moments.when.isAfter(recent))) {
-        status.symbol = "◉";
-        status.code = "waiting";
-        status.label = "Waiting";
-      }
-
-      return status;
-    }
-
-    _.forEach(recentData, function eachStatus(status) {
-      var device = getDevice(status);
-
-      var moments = toMoments(status);
-      var loopStatus = momentsToLoopStatus(moments, true);
+      const moments = this.toMoments(status);
+      const loopStatus = this.momentsToLoopStatus(moments, recent, true);
 
       if (!device.status || moments.when.isAfter(device.status.when)) {
-        device.status = loopStatus;
-        device.status.when = moments.when;
+        device.status = { ...loopStatus, when: moments.when };
       }
 
-      var enacted = status.openaps && status.openaps.enacted;
+      const enacted = status.openaps.enacted;
       if (
         enacted &&
         moments.enacted &&
         (!result.lastEnacted ||
           moments.enacted.isAfter(result.lastEnacted.moment))
       ) {
-        if (enacted.mills) {
-          enacted.moment = moment(enacted.mills);
-        } else {
-          enacted.moment = moment(enacted.timestamp);
-        }
-        result.lastEnacted = enacted;
+        const enactedMoment = this.moment(enacted.mills ?? enacted.timestamp);
+        result.lastEnacted = Object.assign(enacted, { moment: enactedMoment });
+
         if (
           enacted.predBGs &&
           (!result.lastPredBGs ||
-            enacted.moment.isAfter(result.lastPredBGs.moment))
+            enactedMoment.isAfter(result.lastPredBGs.moment))
         ) {
-          result.lastPredBGs = _.isArray(enacted.predBGs)
-            ? { values: enacted.predBGs }
-            : enacted.predBGs;
-          result.lastPredBGs.moment = enacted.moment;
+          result.lastPredBGs = {
+            ...(Array.isArray(enacted.predBGs)
+              ? { values: enacted.predBGs }
+              : enacted.predBGs),
+            moment: enactedMoment,
+          };
         }
       }
 
@@ -264,51 +342,50 @@ function init(ctx) {
         (!result.lastNotEnacted ||
           moments.notEnacted.isAfter(result.lastNotEnacted.moment))
       ) {
-        if (enacted.mills) {
-          enacted.moment = moment(enacted.mills);
-        } else {
-          enacted.moment = moment(enacted.timestamp);
-        }
-        result.lastNotEnacted = enacted;
+        result.lastNotEnacted = Object.assign(enacted, {
+          moment: this.moment(enacted.mills ?? enacted.timestamp),
+        });
       }
 
-      var suggested = status.openaps && status.openaps.suggested;
+      const suggested = status.openaps.suggested;
       if (
         suggested &&
         moments.suggested &&
         (!result.lastSuggested ||
           moments.suggested.isAfter(result.lastSuggested.moment))
       ) {
-        if (suggested.mills) {
-          suggested.moment = moment(suggested.mills);
-        } else {
-          suggested.moment = moment(suggested.timestamp);
-        }
-        result.lastSuggested = suggested;
+        const suggestedMoment = this.moment(
+          suggested.mills ?? suggested.timestamp
+        );
+        result.lastSuggested = Object.assign(suggested, {
+          moment: suggestedMoment,
+        });
         if (
           suggested.predBGs &&
           (!result.lastPredBGs ||
-            suggested.moment.isAfter(result.lastPredBGs.moment))
+            suggestedMoment.isAfter(result.lastPredBGs.moment))
         ) {
-          result.lastPredBGs = _.isArray(suggested.predBGs)
-            ? { values: suggested.predBGs }
-            : suggested.predBGs;
-          result.lastPredBGs.moment = suggested.moment;
+          result.lastPredBGs = {
+            ...(Array.isArray(suggested.predBGs)
+              ? { values: suggested.predBGs }
+              : suggested.predBGs),
+            moment: suggestedMoment,
+          };
         }
       }
 
-      var iob = status.openaps && status.openaps.iob;
+      const iob = status.openaps.iob;
       if (
+        iob &&
         moments.iob &&
         (!result.lastIOB ||
-          moment(iob.timestamp).isAfter(result.lastIOB.moment))
+          this.moment(iob.timestamp).isAfter(result.lastIOB.moment))
       ) {
-        iob.moment = moments.iob;
-        result.lastIOB = iob;
+        result.lastIOB = Object.assign(iob, { moment: moments.iob });
       }
 
       if (status.mmtune && status.mmtune.timestamp) {
-        status.mmtune.moment = moment(status.mmtune.timestamp);
+        status.mmtune.moment = this.moment(status.mmtune.timestamp);
         if (!device.mmtune || moments.when.isAfter(device.mmtune.moment)) {
           device.mmtune = status.mmtune;
         }
@@ -323,62 +400,48 @@ function init(ctx) {
         result.lastLoopMoment = result.lastSuggested.moment;
         result.lastEventualBG = result.lastSuggested.eventualBG;
       }
-    } else if (result.lastEnacted && result.lastEnacted.moment) {
+    } else if (result.lastEnacted?.moment) {
       result.lastLoopMoment = result.lastEnacted.moment;
       result.lastEventualBG = result.lastEnacted.eventualBG;
-    } else if (result.lastSuggested && result.lastSuggested.moment) {
+    } else if (result.lastSuggested?.moment) {
       result.lastLoopMoment = result.lastSuggested.moment;
       result.lastEventualBG = result.lastSuggested.eventualBG;
     }
 
-    result.status = momentsToLoopStatus(
+    const status = this.momentsToLoopStatus(
       {
-        enacted: result.lastEnacted && result.lastEnacted.moment,
-        notEnacted: result.lastNotEnacted && result.lastNotEnacted.moment,
-        suggested: result.lastSuggested && result.lastSuggested.moment,
+        enacted: result.lastEnacted?.moment,
+        notEnacted: result.lastNotEnacted?.moment,
+        suggested: result.lastSuggested?.moment,
       },
-      false,
       recent,
+      false
     );
 
-    return result;
-  };
+    return { ...result, status };
+  }
 
-  openaps.getEventTypes = function getEventTypes(sbx) {
-    var units = sbx.settings.units;
+  /** @param {InitializedSandbox} sbx @returns {PluginEventType[]} */
+  getEventTypes(sbx) {
+    const units = sbx.settings.units;
     console.log("units", units);
 
-    var reasonconf = [];
-
-    if (units == "mmol") {
-      reasonconf.push({
-        name: translate("Eating Soon"),
-        targetTop: 4.5,
-        targetBottom: 4.5,
+    /** @type {NonNullable<PluginEventType["reasons"]>} */
+    const reasonconf = [
+      {
+        name: "Eating Soon",
+        targetTop: units === "mmol" ? 4.5 : 80,
+        targetBottom: units === "mmol" ? 4.5 : 80,
         duration: 60,
-      });
-      reasonconf.push({
-        name: translate("Activity"),
-        targetTop: 8,
-        targetBottom: 6.5,
+      },
+      {
+        name: "Activity",
+        targetTop: units === "mmol" ? 8 : 140,
+        targetBottom: units === "mmol" ? 6.5 : 120,
         duration: 120,
-      });
-    } else {
-      reasonconf.push({
-        name: translate("Eating Soon"),
-        targetTop: 80,
-        targetBottom: 80,
-        duration: 60,
-      });
-      reasonconf.push({
-        name: translate("Activity"),
-        targetTop: 140,
-        targetBottom: 120,
-        duration: 120,
-      });
-    }
-
-    reasonconf.push({ name: "Manual" });
+      },
+      { name: "Manual" },
+    ];
 
     return [
       {
@@ -423,353 +486,380 @@ function init(ctx) {
         split: false,
       },
     ];
-  };
+  }
 
-  openaps.checkNotifications = function checkNotifications(sbx) {
-    var prefs = openaps.getPrefs(sbx);
+  /** @param {InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    const prefs = this.getPrefs(sbx);
 
-    if (!prefs.enableAlerts) {
-      return;
-    }
+    if (!prefs.enableAlerts) return;
 
-    var prop = sbx.properties.openaps;
+    const prop = sbx.properties.openaps;
 
-    if (!prop.lastLoopMoment) {
+    if (!prop?.lastLoopMoment) {
       console.info("OpenAPS hasn't reported a loop yet");
       return;
     }
 
-    var now = moment();
-    var level = statusLevel(prop, prefs, sbx);
-    if (level >= levels.WARN) {
+    const now = this.moment();
+    const level = this.statusLevel(prop, prefs, sbx);
+    if (level >= this.levels.WARN) {
       sbx.notifications.requestNotify({
         level: level,
         title: "OpenAPS isn't looping",
         message:
-          "Last Loop: " + utils.formatAgo(prop.lastLoopMoment, now.valueOf()),
+          "Last Loop: " +
+          this.utils.formatAgo(prop.lastLoopMoment, now.valueOf()),
         pushoverSound: "echo",
         group: "OpenAPS",
-        plugin: openaps,
+        plugin: this,
         debug: prop,
       });
     }
-  };
+  }
 
-  openaps.findOfflineMarker = function findOfflineMarker(sbx) {
-    return _.findLast(sbx.data.treatments, function match(treatment) {
-      var eventTime = sbx.entryMills(treatment);
-      var eventEnd = treatment.duration
-        ? eventTime + times.mins(treatment.duration).msecs
-        : eventTime;
+  /** @param {Sbx} sbx */
+  findOfflineMarker(sbx) {
+    return sbx.data.treatments?.findLast((treatment) => {
+      const eventTime = treatment.mills;
+      const eventEnd = eventTime + times.mins(treatment.duration ?? 0).msecs;
       return (
         eventTime <= sbx.time &&
-        treatment.eventType === "OpenAPS Offline" &&
-        eventEnd >= sbx.time
+        sbx.time <= eventEnd &&
+        treatment.eventType === "OpenAPS Offline"
       );
     });
-  };
+  }
 
-  openaps.updateVisualisation = function updateVisualisation(sbx) {
-    var prop = sbx.properties.openaps;
+  /**
+   * @param {string} prefix
+   * @param {string | number} [value]
+   * @protected
+   */
+  valueString(prefix, value) {
+    return value ? prefix + value : "";
+  }
 
-    var prefs = openaps.getPrefs(sbx);
+  /**
+   * @param {ClientInitializedSandbox} sbx
+   * @param {string[]} selectedFields
+   * @param {ReturnType<OpenApsPlugin["analyzeData"]>} [prop]
+   * @protected
+   */
+  suggestionEvents(sbx, selectedFields, prop) {
+    if (!prop?.lastSuggested) return [];
 
-    var selectedFields = sbx.data.inRetroMode
+    const units = sbx.settings.units;
+    const bg =
+      units === "mmol"
+        ? Math.round((prop.lastSuggested.bg / consts.MMOL_TO_MGDL) * 10) / 10
+        : prop.lastSuggested.bg;
+
+    const valueParts = [
+      this.valueString("BG: ", bg),
+      this.valueString(", ", prop.lastSuggested.reason),
+      prop.lastSuggested.sensitivityRatio
+        ? ", <b>Sensitivity Ratio:</b> " + prop.lastSuggested.sensitivityRatio
+        : "",
+      ...(selectedFields.includes("iob") ? this.iobValueParts(sbx, prop) : []),
+    ];
+
+    return [
+      {
+        time: prop.lastSuggested.moment,
+        value: valueParts.join(""),
+      },
+    ];
+  }
+
+  /**
+   * @param {ClientInitializedSandbox} sbx
+   * @param {ReturnType<OpenApsPlugin["analyzeData"]>} [prop]
+   * @protected
+   */
+  iobValueParts(sbx, prop) {
+    if (!prop?.lastIOB) return [];
+
+    return [
+      ", IOB: ",
+      sbx.roundInsulinForDisplayFormat(prop.lastIOB.iob) + "U",
+      prop.lastIOB.basaliob
+        ? ", Basal IOB " +
+          sbx.roundInsulinForDisplayFormat(prop.lastIOB.basaliob) +
+          "U"
+        : "",
+      prop.lastIOB.bolusiob
+        ? ", Bolus IOB " +
+          sbx.roundInsulinForDisplayFormat(prop.lastIOB.bolusiob) +
+          "U"
+        : "",
+    ];
+  }
+
+  /**
+   * @param {ReturnType<OpenApsPlugin["getPrefs"]>} prefs
+   * @param {ReturnType<OpenApsPlugin["analyzeData"]>} [prop]
+   * @protected
+   */
+  getForecastPoints(prefs, prop) {
+    if (!prop?.lastPredBGs) return [];
+    const lastPredBGs = prop.lastPredBGs;
+
+    const colors = {
+      Values: "#ff00ff",
+      IOB: prefs.predIOBColor,
+      "Zero-Temp": prefs.predZTColor,
+      COB: prefs.predCOBColor,
+      "Accel-COB": prefs.predACOBColor,
+      UAM: prefs.predUAMColor,
+    };
+
+    /**
+     * @param {number} offset
+     * @param {keyof colors} forecastType
+     */
+    function toPoints(offset, forecastType) {
+      /** @param {number} value @param {number} index */
+      return function toPoint(value, index) {
+        return {
+          mgdl: value,
+          color: prefs.colorPredictionLines ? colors[forecastType] : "#ff00ff",
+          mills:
+            lastPredBGs.moment.valueOf() + times.mins(5 * index).msecs + offset,
+          noFade: true,
+          forecastType: forecastType,
+        };
+      };
+    }
+
+    return [
+      ...(lastPredBGs.values ?? []).map(toPoints(0, "Values")),
+      ...(lastPredBGs.IOB ?? []).map(toPoints(3333, "IOB")),
+      ...(lastPredBGs.ZT ?? []).map(toPoints(4444, "Zero-Temp")),
+      ...(lastPredBGs.aCOB ?? []).map(toPoints(5555, "Accel-COB")),
+      ...(lastPredBGs.COB ?? []).map(toPoints(7777, "COB")),
+      ...(lastPredBGs.UAM ?? []).map(toPoints(9999, "UAM")),
+    ];
+  }
+
+  /**
+   * @param {ClientInitializedSandbox} sbx
+   * @param {string[]} selectedFields
+   * @param {ReturnType<OpenApsPlugin["analyzeData"]>} [prop]
+   * @protected
+   */
+  enactedEvents(sbx, selectedFields, prop) {
+    if (!prop?.lastEnacted) return [];
+
+    const canceled =
+      prop.lastEnacted.rate === 0 && prop.lastEnacted.duration === 0;
+    const units = sbx.settings.units;
+    const bg =
+      units === "mmol"
+        ? Math.round((prop.lastEnacted.bg / consts.MMOL_TO_MGDL) * 10) / 10
+        : prop.lastEnacted.bg;
+
+    const valueParts = [
+      this.valueString("BG: ", bg),
+      `, <b>Temp Basal${canceled ? " Canceled" : " Started"}</b>`,
+      canceled
+        ? ""
+        : ` ${prop.lastEnacted.rate.toFixed(2)} for ${prop.lastEnacted.duration}m`,
+      this.valueString(", ", prop.lastEnacted.reason),
+      prop.lastEnacted.mealAssist && selectedFields.includes("meal-assist")
+        ? ` <b>Meal Assist:</b> ${prop.lastEnacted.mealAssist}`
+        : "",
+    ];
+
+    /** @type {{ time: Moment; value: string }[]} */
+    const events = [];
+
+    if (prop.lastSuggested?.moment.isAfter(prop.lastEnacted.moment)) {
+      events.push(...this.suggestionEvents(sbx, selectedFields, prop));
+    } else {
+      valueParts.push(...this.iobValueParts(sbx, prop));
+    }
+
+    events.push({
+      time: prop.lastEnacted.moment,
+      value: valueParts.join(""),
+    });
+    return events;
+  }
+
+  /**
+   * @param {string[]} selectedFields
+   * @param {ReturnType<OpenApsPlugin["analyzeData"]>} [prop]
+   * @protected
+   */
+  deviceInfoEvents(selectedFields, prop) {
+    return Object.values(prop?.seenDevices ?? {})
+      .map((device) => {
+        if (!device) return;
+        const deviceInfo = [device.name];
+
+        if (selectedFields.includes("status-symbol")) {
+          deviceInfo.push(device.status.symbol);
+        }
+        if (selectedFields.includes("status-label")) {
+          deviceInfo.push(device.status.label);
+        }
+
+        if (device.mmtune) {
+          /** Will be `-Infinity` if no valid `mmtune.scanDetails` are found */
+          const best = Math.max(
+            ...(device.mmtune.scanDetails ?? [])
+              .map((d) => d.at(2))
+              .filter((el) => el !== undefined)
+          );
+
+          if (selectedFields.includes("freq")) {
+            deviceInfo.push(device.mmtune.setFreq + "MHz");
+          }
+          if (best !== -Infinity && selectedFields.includes("rssi")) {
+            deviceInfo.push(`@ ${best}dB`);
+          }
+        }
+
+        return {
+          time: device.status.when,
+          value: deviceInfo.join(" "),
+        };
+      })
+      .filter((e) => !!e);
+  }
+
+  /** @param {ClientInitializedSandbox} sbx */
+  updateVisualisation(sbx) {
+    const prop = sbx.properties.openaps;
+
+    const prefs = this.getPrefs(sbx);
+
+    const selectedFields = sbx.data.inRetroMode
       ? prefs.retroFields
       : prefs.fields;
 
-    function valueString(prefix, value) {
-      return value ? prefix + value : "";
-    }
+    const events = [
+      ...("enacted" === prop?.status.code
+        ? this.enactedEvents(sbx, selectedFields, prop)
+        : this.suggestionEvents(sbx, selectedFields, prop)),
 
-    var events = [];
+      ...this.deviceInfoEvents(selectedFields, prop),
+    ];
 
-    function addSuggestion() {
-      if (prop.lastSuggested) {
-        var bg = prop.lastSuggested.bg;
-        var units = sbx.settings.units;
+    const sorted = events.toSorted((a, b) => +b.time - +a.time);
 
-        if (units === "mmol") {
-          bg = Math.round((bg / consts.MMOL_TO_MGDL) * 10) / 10;
-        }
+    const info = sorted.map((event) => ({
+      label:
+        this.utils.timeAt(undefined, sbx) +
+        this.utils.timeFormat(event.time, sbx),
+      value: event.value,
+    }));
 
-        var valueParts = [
-          valueString("BG: ", bg),
-          valueString(", ", prop.lastSuggested.reason),
-          prop.lastSuggested.sensitivityRatio
-            ? ", <b>Sensitivity Ratio:</b> " +
-              prop.lastSuggested.sensitivityRatio
-            : "",
-        ];
+    const label = selectedFields.includes("status-symbol")
+      ? `OpenAPS ${prop?.status.symbol}`
+      : "OpenAPS";
 
-        if (_.includes(selectedFields, "iob")) {
-          valueParts = concatIOB(valueParts);
-        }
-
-        events.push({
-          time: prop.lastSuggested.moment,
-          value: valueParts.join(""),
-        });
-      }
-    }
-
-    function concatIOB(valueParts) {
-      if (prop.lastIOB) {
-        valueParts = valueParts.concat([
-          ", IOB: ",
-          sbx.roundInsulinForDisplayFormat(prop.lastIOB.iob) + "U",
-          prop.lastIOB.basaliob
-            ? ", Basal IOB " +
-              sbx.roundInsulinForDisplayFormat(prop.lastIOB.basaliob) +
-              "U"
-            : "",
-          prop.lastIOB.bolusiob
-            ? ", Bolus IOB " +
-              sbx.roundInsulinForDisplayFormat(prop.lastIOB.bolusiob) +
-              "U"
-            : "",
-        ]);
-      }
-
-      return valueParts;
-    }
-
-    function getForecastPoints() {
-      var points = [];
-
-      function toPoints(offset, forecastType) {
-        return function toPoint(value, index) {
-          var colors = {
-            Values: "#ff00ff",
-            IOB: prefs.predIOBColor,
-            "Zero-Temp": prefs.predZTColor,
-            COB: prefs.predCOBColor,
-            "Accel-COB": prefs.predACOBColor,
-            UAM: prefs.predUAMColor,
-          };
-
-          return {
-            mgdl: value,
-            color: prefs.colorPredictionLines
-              ? colors[forecastType]
-              : "#ff00ff",
-            mills:
-              prop.lastPredBGs.moment.valueOf() +
-              times.mins(5 * index).msecs +
-              offset,
-            noFade: true,
-            forecastType: forecastType,
-          };
-        };
-      }
-
-      if (prop.lastPredBGs) {
-        if (prop.lastPredBGs.values) {
-          points = points.concat(
-            _.map(prop.lastPredBGs.values, toPoints(0, "Values")),
-          );
-        }
-        if (prop.lastPredBGs.IOB) {
-          points = points.concat(
-            _.map(prop.lastPredBGs.IOB, toPoints(3333, "IOB")),
-          );
-        }
-        if (prop.lastPredBGs.ZT) {
-          points = points.concat(
-            _.map(prop.lastPredBGs.ZT, toPoints(4444, "Zero-Temp")),
-          );
-        }
-        if (prop.lastPredBGs.aCOB) {
-          points = points.concat(
-            _.map(prop.lastPredBGs.aCOB, toPoints(5555, "Accel-COB")),
-          );
-        }
-        if (prop.lastPredBGs.COB) {
-          points = points.concat(
-            _.map(prop.lastPredBGs.COB, toPoints(7777, "COB")),
-          );
-        }
-        if (prop.lastPredBGs.UAM) {
-          points = points.concat(
-            _.map(prop.lastPredBGs.UAM, toPoints(9999, "UAM")),
-          );
-        }
-      }
-
-      return points;
-    }
-
-    if ("enacted" === prop.status.code) {
-      var canceled =
-        prop.lastEnacted.rate === 0 && prop.lastEnacted.duration === 0;
-      var bg = prop.lastEnacted.bg;
-      var units = sbx.settings.units;
-
-      if (units === 'mmol') {
-        bg = Math.round(bg / consts.MMOL_TO_MGDL * 10) / 10;
-      }
-
-      var valueParts = [
-        valueString("BG: ", bg),
-        ", <b>Temp Basal" + (canceled ? " Canceled" : " Started") + "</b>",
-        canceled
-          ? ""
-          : " " +
-            prop.lastEnacted.rate.toFixed(2) +
-            " for " +
-            prop.lastEnacted.duration +
-            "m",
-        valueString(", ", prop.lastEnacted.reason),
-        prop.lastEnacted.mealAssist && _.includes(selectedFields, "meal-assist")
-          ? " <b>Meal Assist:</b> " + prop.lastEnacted.mealAssist
-          : "",
-      ];
-
-      if (
-        prop.lastSuggested &&
-        prop.lastSuggested.moment.isAfter(prop.lastEnacted.moment)
-      ) {
-        addSuggestion();
-      } else {
-        valueParts = concatIOB(valueParts);
-      }
-
-      events.push({
-        time: prop.lastEnacted.moment,
-        value: valueParts.join(""),
-      });
-    } else {
-      addSuggestion();
-    }
-
-    _.forIn(prop.seenDevices, function seenDevice(device) {
-      var deviceInfo = [device.name];
-
-      if (_.includes(selectedFields, "status-symbol")) {
-        deviceInfo.push(device.status.symbol);
-      }
-
-      if (_.includes(selectedFields, "status-label")) {
-        deviceInfo.push(device.status.label);
-      }
-
-      if (device.mmtune) {
-        var best = _.maxBy(device.mmtune.scanDetails, function (d) {
-          return d[2];
-        });
-
-        if (_.includes(selectedFields, "freq")) {
-          deviceInfo.push(device.mmtune.setFreq + "MHz");
-        }
-        if (best && best.length > 2 && _.includes(selectedFields, "rssi")) {
-          deviceInfo.push("@ " + best[2] + "dB");
-        }
-      }
-      events.push({
-        time: device.status.when,
-        value: deviceInfo.join(" "),
-      });
-    });
-
-    var sorted = _.sortBy(events, function toMill(event) {
-      return event.time.valueOf();
-    }).reverse();
-
-    var info = _.map(sorted, function eventToInfo(event) {
-      return {
-        label: utils.timeAt(false, sbx) + utils.timeFormat(event.time, sbx),
-        value: event.value,
-      };
-    });
-
-    var label = "OpenAPS";
-    if (_.includes(selectedFields, "status-symbol")) {
-      label += " " + prop.status.symbol;
-    }
-
-    sbx.pluginBase.updatePillText(openaps, {
-      value: utils.timeFormat(prop.lastLoopMoment, sbx),
+    sbx.pluginBase.updatePillText(this, {
+      value: this.utils.timeFormat(prop?.lastLoopMoment, sbx),
       label: label,
       info: info,
-      pillClass: statusClass(prop, prefs, sbx),
+      pillClass: this.statusClass(prop, prefs, sbx),
     });
 
-    var forecastPoints = getForecastPoints();
-    if (forecastPoints && forecastPoints.length > 0) {
+    const forecastPoints = this.getForecastPoints(prefs, prop);
+    if (forecastPoints.length > 0) {
       sbx.pluginBase.addForecastPoints(forecastPoints, {
         type: "openaps",
         label: "OpenAPS Forecasts",
       });
     }
-  };
+  }
 
-  function virtAsstForecastHandler(next, slots, sbx) {
-    var lastEventualBG = _.get(sbx, "properties.openaps.lastEventualBG");
+  /** @type {VirtAsstIntentHandlerFn} */
+  virtAsstForecastHandler(next, _slots, sbx) {
+    const lastEventualBG = sbx.properties.openaps?.lastEventualBG;
     if (lastEventualBG) {
-      var response = translate("virtAsstOpenAPSForecast", {
-        params: [lastEventualBG],
+      const response = this.translate("virtAsstOpenAPSForecast", {
+        params: [lastEventualBG.toString()],
       });
-      next(translate("virtAsstTitleOpenAPSForecast"), response);
+      next(this.translate("virtAsstTitleOpenAPSForecast"), response);
     } else {
       next(
-        translate("virtAsstTitleOpenAPSForecast"),
-        translate("virtAsstUnknown"),
+        this.translate("virtAsstTitleOpenAPSForecast"),
+        this.translate("virtAsstUnknown")
       );
     }
   }
 
-  function virtAsstLastLoopHandler(next, slots, sbx) {
-    var lastLoopMoment = _.get(sbx, "properties.openaps.lastLoopMoment");
+  /** @type {VirtAsstIntentHandlerFn} */
+  virtAsstLastLoopHandler(next, _slots, sbx) {
+    const lastLoopMoment = sbx.properties.openaps?.lastLoopMoment;
     if (lastLoopMoment) {
-      var response = translate("virtAsstLastLoop", {
-        params: [moment(lastLoopMoment).from(moment(sbx.time))],
+      const response = this.translate("virtAsstLastLoop", {
+        params: [this.moment(lastLoopMoment).from(this.moment(sbx.time))],
       });
-      next(translate("virtAsstTitleLastLoop"), response);
+      next(this.translate("virtAsstTitleLastLoop"), response);
     } else {
-      next(translate("virtAsstTitleLastLoop"), translate("virtAsstUnknown"));
+      next(
+        this.translate("virtAsstTitleLastLoop"),
+        this.translate("virtAsstUnknown")
+      );
     }
   }
 
-  openaps.virtAsst = {
+  virtAsst = {
     intentHandlers: [
       {
         intent: "MetricNow",
         metrics: ["openaps forecast", "forecast"],
-        intentHandler: virtAsstForecastHandler,
+        intentHandler: this.virtAsstForecastHandler.bind(this),
       },
       {
         intent: "LastLoop",
-        intentHandler: virtAsstLastLoopHandler,
+        intentHandler: this.virtAsstLastLoopHandler.bind(this),
       },
     ],
   };
 
-  function statusClass(prop, prefs, sbx) {
-    var level = statusLevel(prop, prefs, sbx);
-    return levels.toStatusClass(level);
+  /**
+   * @param {OpenApsProperties | undefined} prop
+   * @param {ReturnType<OpenApsPlugin["getPrefs"]>} prefs
+   * @param {Sbx} sbx
+   * @protected
+   */
+  statusClass(prop, prefs, sbx) {
+    const level = this.statusLevel(prop, prefs, sbx);
+    return this.levels.toStatusClass(level);
   }
 
-  function statusLevel(prop, prefs, sbx) {
-    var level = levels.NONE;
-    var now = moment(sbx.time);
+  /**
+   * @param {OpenApsProperties | undefined} prop
+   * @param {ReturnType<OpenApsPlugin["getPrefs"]>} prefs
+   * @param {Sbx} sbx
+   * @protected
+   */
+  statusLevel(prop, prefs, sbx) {
+    const now = this.moment(sbx.time);
 
-    if (openaps.findOfflineMarker(sbx)) {
+    if (this.findOfflineMarker(sbx)) {
       console.info("OpenAPS known offline, not checking for alerts");
-    } else if (prop.lastLoopMoment) {
-      var urgentTime = prop.lastLoopMoment.clone().add(prefs.urgent, "minutes");
-      var warningTime = prop.lastLoopMoment.clone().add(prefs.warn, "minutes");
+      return this.levels.NONE;
+    }
+    if (!prop?.lastLoopMoment) return this.levels.NONE;
 
-      if (urgentTime.isBefore(now)) {
-        level = levels.URGENT;
-      } else if (warningTime.isBefore(now)) {
-        level = levels.WARN;
-      }
+    const urgentTime = prop.lastLoopMoment.clone().add(prefs.urgent, "minutes");
+    const warningTime = prop.lastLoopMoment.clone().add(prefs.warn, "minutes");
+
+    if (urgentTime.isBefore(now)) {
+      return this.levels.URGENT;
+    } else if (warningTime.isBefore(now)) {
+      return this.levels.WARN;
     }
 
-    return level;
+    return this.levels.NONE;
   }
-
-  return openaps;
 }
 
-module.exports = init;
+/** @param {PluginCtx} ctx */
+module.exports = (ctx) => new OpenApsPlugin(ctx);

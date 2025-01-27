@@ -3,6 +3,8 @@
 const ddata = require("./data/ddata");
 const units = require("./units.js")();
 const times = require("./times");
+
+/** @typedef {Sandbox} Sbx */
 /**
  * @typedef {Sandbox & {
  *   notifications: ReturnType<
@@ -37,6 +39,7 @@ const times = require("./times");
  *   dbsize?: import("./plugins/dbsize.js").DbSizeProperties;
  *   iage?: import("./plugins/insulinage.js").IAgeProperties;
  *   loop?: import("./plugins/loop.js").LoopProperties;
+ *   openaps?: import("./plugins/openaps.js").OpenApsProperties;
  * }} SandboxProperties
  */
 

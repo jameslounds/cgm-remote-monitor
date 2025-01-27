@@ -3,7 +3,7 @@ import { PluginCtx } from "./plugins";
 import { ClientInitializedSandbox, InitializedSandbox } from "./sandbox";
 import newBolusCalc from "./client/boluscalc";
 import newCareportal from "./client/careportal";
-import Client from "./client"
+import Client from "./client";
 import { Moment, MomentInput } from "moment";
 
 type NotifyBase = {
@@ -158,10 +158,21 @@ export type Treatment = {
 
 export type OpenApsIob = {
   iob: number;
+  /** Maybe undefined? */
   basaliob: number;
+  bolusiob?: number;
   activity: number;
   time?: number;
   timestamp: number;
+  mills?: number;
+};
+export type OpenApsPredBGs = {
+  values?: number[];
+  IOB?: number[];
+  ZT?: number[];
+  aCOB?: number[];
+  COB?: number[];
+  UAM?: number[];
 };
 
 export type LoopIob = {
@@ -182,10 +193,33 @@ export type DeviceStatus = {
   created_at: MomentInput;
   uploader: any;
   pump: { iob?: PumpIob };
-  openaps: {
+  openaps?: {
     iob?: OpenApsIob | OpenApsIob[];
-    suggested?: { timestamp: number; COB: number };
-    enacted?: { timestamp: number; COB: number };
+    suggested?: {
+      timestamp: number;
+      mills?: number;
+      COB: number;
+      eventualBG: unknown;
+      predBGs?: { values: number[] } | number[];
+      bg: number;
+      reason: string;
+      sensitivityRatio?: number;
+    };
+    enacted?: {
+      /** @deprecated */
+      recieved?: number;
+      received?: number;
+      timestamp: number;
+      mills?: number;
+      COB: number;
+      eventualBG: unknown;
+      predBGs?: OpenApsPredBGs | number[];
+      rate: number;
+      duration: number;
+      bg: number;
+      reason?: string;
+      mealAssist?: unknown;
+    };
   };
   loop: {
     name?: string;
@@ -219,8 +253,14 @@ export type DeviceStatus = {
   };
   connect?: any;
   xdripjs: any;
-  device: any;
+  device: string;
   moment: Moment;
+  mmtune?: {
+    timestamp?: number;
+    moment?: Moment;
+    scanDetails?: number[][];
+    setFreq: string;
+  };
   override?: { timestamp?: number };
 };
 
