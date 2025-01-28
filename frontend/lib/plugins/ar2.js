@@ -17,7 +17,7 @@ const AR2_COLOR = "cyan";
  * @typedef {{
  *   forecast?: ReturnType<Ar2["forecast"]>;
  *   level?: import("../types").Level;
- *   eventName?: string;
+ *   eventName?: "High" | "Low" | "";
  *   displayLine?: string;
  * }} Ar2Properties
  */
@@ -168,7 +168,6 @@ class Ar2 {
    * @protected
    */
   virtAsstAr2Handler(next, _slots, sbx) {
-    /** @type {ReturnType<Ar2['forecast']>['predicted'] | undefined} */
     const forecast = sbx.properties?.ar2?.forecast?.predicted;
     if (!forecast) {
       return next(
@@ -239,6 +238,7 @@ class Ar2 {
   /**
    * @param {Ar2Properties} prop
    * @param {import("../sandbox").InitializedSandbox} sbx
+   * @returns {Ar2Properties["eventName"]}
    * @protected
    */
   selectEventType(prop, sbx) {
@@ -252,12 +252,12 @@ class Ar2 {
       sbx.settings.alarmHigh &&
       in20Mins > sbx.scaleMgdl(sbx.settings.thresholds.bgTargetTop)
     )
-      return "high";
+      return "High";
     if (
       sbx.settings.alarmLow &&
       in20Mins < sbx.scaleMgdl(sbx.settings.thresholds.bgTargetBottom)
     )
-      return "low";
+      return "Low";
 
     return "";
   }
@@ -267,9 +267,9 @@ class Ar2 {
     switch (true) {
       case prop.level === levels.URGENT:
         return "persistent";
-      case prop.eventName === "low":
+      case prop.eventName === "Low":
         return "falling";
-      case prop.eventName === "high":
+      case prop.eventName === "High":
         return "climb";
     }
   }
