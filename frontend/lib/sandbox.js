@@ -42,6 +42,7 @@ const times = require("./times");
  *   openaps?: import("./plugins/openaps.js").OpenApsProperties;
  *   pump?: import("./plugins/pump.js").PumpProperties;
  *   runtimestate?: import("./plugins/runtimestate.js").RuntimeStateProperties;
+ *   sage?: import("./plugins/sensorage.js").SAgeProperties;
  * }} SandboxProperties
  */
 
