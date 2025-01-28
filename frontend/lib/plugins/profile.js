@@ -1,15 +1,16 @@
 "use strict";
 
-// this is just a fake plugin to hold extended settings
+/** @import {Plugin} from "../types" */
 
-function init() {
-  var profile = {
-    name: /** @type {const} */ ("profile"),
-    label: "Profile",
-    pluginType: "fake",
-  };
-
-  return profile;
+/**
+ * This is just a fake plugin to hold extended settings
+ *
+ * @implements {Plugin}
+ */
+class Profile {
+  name = /** @type {const} */ ("profile");
+  label = "Profile";
+  pluginType = "fake";
 }
 
-module.exports = init;
+module.exports = () => new Profile();
