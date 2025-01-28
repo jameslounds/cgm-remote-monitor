@@ -40,7 +40,8 @@ const times = require("./times");
  *   iage?: import("./plugins/insulinage.js").IAgeProperties;
  *   loop?: import("./plugins/loop.js").LoopProperties;
  *   openaps?: import("./plugins/openaps.js").OpenApsProperties;
- *   pump?: import("./plugins/pump.js").PumpProperties
+ *   pump?: import("./plugins/pump.js").PumpProperties;
+ *   runtimestate?: import("./plugins/runtimestate.js").RuntimeStateProperties;
  * }} SandboxProperties
  */
 

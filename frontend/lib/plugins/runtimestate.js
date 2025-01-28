@@ -1,21 +1,21 @@
 "use strict";
-/** server only ? */
-function init() {
-  var runtime = {
-    name: /** @type {const} */ ("runtimestate"),
-    label: "Runtime state",
-    pluginType: "fake",
-  };
+/** Server only ? */
 
-  runtime.setProperties = function setProperties(sbx) {
-    sbx.offerProperty("runtimestate", function setProp() {
-      return {
-        state: sbx.runtimeState,
-      };
-    });
-  };
+/** @import {Plugin} from "../types" */
+/** @import {Sbx} from "../sandbox" */
 
-  return runtime;
+/** @typedef {{ state: string | undefined }} RuntimeStateProperties */
+
+/** @implements {Plugin} */
+class RuntimeStatePlugin {
+  name = /** @type {const} */ ("runtimestate");
+  label = "Runtime state";
+  pluginType = "fake";
+
+  /** @param {Sbx} sbx */
+  setProperties(sbx) {
+    sbx.offerProperty("runtimestate", () => ({ state: sbx.runtimeState }));
+  }
 }
 
-module.exports = init;
+module.exports = () => new RuntimeStatePlugin();
