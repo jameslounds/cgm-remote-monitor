@@ -81,25 +81,30 @@ class Utils {
 
   /**
    * @param {import("moment-timezone").Moment} m
-   * @param {number} nowMills
-   * Assuming the time between `m` and `nowMills` is neither negative, nor more than a week,
-   * this will return a translated string of `n{d|m|h} ago`.
-   * However, if the time difference *is* negative, or more than a week,
-   * then it will return just `"future"` or `"ago"`.
-   * This is because before the class migration, `formatAgo` just returned
-   * ```js
-   *  translate(`%1${ago.shortLabel} ago`,
-   *    { params: [ago.value ? ago.value : ''] }
-   *   )
-   * ```
-   * Since `ago.value` is undefined when `shortLabel` is `"future"` or `"ago"`
-   * (@see {@link https://github.com/nightscout/cgm-remote-monitor/blob/46069a/lib/plugins/timeago.js#L115-L181 Original `timeago.js#calcDisplay`}),
-   * this is equivalent to `translate(ago.shortLabel)`.
-   * However, since `timeago.js` actually (sometimes) pre-translated these `shortLabel`s before the class migration,
-   * this would have mostly been fine for users. Since the class migration, the `shortLabel` is always untranslated 
-   * (only this function and `pump`'s reimplementation of this function actually use `shortLabel`).
-   * This function seems to only be called by the `loop` and `openaps` plugins, who want to
-   * display the time since the last update from their respective services.
+   * @param {number} nowMills Assuming the time between `m` and `nowMills` is
+   *   neither negative, nor more than a week, this will return a translated
+   *   string of `n{d|m|h} ago`. However, if the time difference _is_ negative,
+   *   or more than a week, then it will return just `"future"` or `"ago"`. This
+   *   is because before the class migration, `formatAgo` just returned
+   *
+   *   ```js
+   *   translate(`%1${ago.shortLabel} ago`, {
+   *     params: [ago.value ? ago.value : ""],
+   *   });
+   *   ```
+   *
+   *   Since `ago.value` is undefined when `shortLabel` is `"future"` or `"ago"`
+   *   (@see
+   *   {@link https://github.com/nightscout/cgm-remote-monitor/blob/46069a/lib/plugins/timeago.js#L115-L181 Original `timeago.js#calcDisplay`}),
+   *   this is equivalent to `translate(ago.shortLabel)`. However, since
+   *   `timeago.js` actually (sometimes) pre-translated these `shortLabel`s
+   *   before the class migration, this would have mostly been fine for users.
+   *   Since the class migration, the `shortLabel` is always untranslated (only
+   *   this function actually use `shortLabel`). This function seems to only be
+   *   called by the `loop` and `openaps` plugins, who want to display the time
+   *   since the last update from their respective services. The `pump` plugin
+   *   used to reimplement this, but since its class migration, it uses this
+   *   function instead.
    * @see {@link https://github.com/nightscout/cgm-remote-monitor/blob/46069a/lib/utils.js#L76 Original `utils.js#formatAgo`}
    */
   formatAgo(m, nowMills) {

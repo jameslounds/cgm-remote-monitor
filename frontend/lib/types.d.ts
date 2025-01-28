@@ -44,7 +44,7 @@ export type Profile = {
   sens?: number;
   carbratio?: number;
   basal: number;
-  timezone?: string;
+  timezone: string;
   dia?: number;
   target_low?: number;
   target_high?: number;
@@ -192,7 +192,25 @@ export type DeviceStatus = {
   mills: number;
   created_at: MomentInput;
   uploader: any;
-  pump: { iob?: PumpIob };
+  pump?: {
+    iob?: PumpIob;
+    clock?: number;
+    reservoir?: number;
+    reservoir_display_override?: string;
+    reservoir_level_override?: Level;
+    manufacturer?: string;
+    model?: string;
+    extended?: Record<string, string>;
+    battery?:
+      | { percent: number; voltage?: number }
+      | { percent?: number; voltage: number };
+    status?: {
+      status?: string;
+      bolusing?: boolean;
+      suspended?: boolean;
+    };
+    warnOnSuspend?: boolean;
+  };
   openaps?: {
     iob?: OpenApsIob | OpenApsIob[];
     suggested?: {
