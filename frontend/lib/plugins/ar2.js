@@ -14,7 +14,12 @@ const AR = /** @type {const} */ ([-0.723, 1.716]);
 const AR2_COLOR = "cyan";
 
 /**
- * @typedef {{forecast?: ReturnType<Ar2['forecast']>, level?: import("../types").Level, eventName?: string, displayLine?: string}} Ar2Properties
+ * @typedef {{
+ *   forecast?: ReturnType<Ar2["forecast"]>;
+ *   level?: import("../types").Level;
+ *   eventName?: string;
+ *   displayLine?: string;
+ * }} Ar2Properties
  */
 
 /** @typedef {import("../types").Plugin} Plugin */
@@ -34,7 +39,7 @@ class Ar2 {
   /**
    * @param {Ar2Properties} prop
    * @param {import("../sandbox").InitializedSandbox} sbx
-   * */
+   */
   buildTitle(prop, sbx) {
     const rangeLabel = prop.eventName
       ? sbx.translate(prop.eventName, { ci: true }).toUpperCase()
@@ -125,7 +130,7 @@ class Ar2 {
 
     const coneFactor = this.getConeFactor(sbx);
 
-    /** @param {ReturnType<Ar2['initAR2']>} result @param {number} step */
+    /** @param {ReturnType<Ar2["initAR2"]>} result @param {number} step */
     const pushConePoints = (result, step) => {
       const next = this.incrementAR2(result);
 
@@ -157,10 +162,10 @@ class Ar2 {
   }
 
   /**
-   * @protected
    * @param {(a: string, b: string) => void} next
    * @param {unknown} _slots
    * @param {import("../sandbox").InitializedSandbox} sbx
+   * @protected
    */
   virtAsstAr2Handler(next, _slots, sbx) {
     /** @type {ReturnType<Ar2['forecast']>['predicted'] | undefined} */
@@ -230,7 +235,12 @@ class Ar2 {
       eventName: this.selectEventType({ forecast }, sbx),
     };
   }
-  /** @protected @param {Ar2Properties} prop @param {import("../sandbox").InitializedSandbox} sbx */
+
+  /**
+   * @param {Ar2Properties} prop
+   * @param {import("../sandbox").InitializedSandbox} sbx
+   * @protected
+   */
   selectEventType(prop, sbx) {
     const predicted = prop.forecast?.predicted.map((p) => sbx.scaleEntry(p));
     if (!predicted) return "";
@@ -303,7 +313,7 @@ class Ar2 {
       forecastTime: result.forecastTime + times.mins(5).msecs,
       points: result.points || [],
       prev: result.curr,
-      curr:  AR[0] * result.prev + AR[1] * result.curr,
+      curr: AR[0] * result.prev + AR[1] * result.curr,
     };
   }
 
@@ -315,10 +325,10 @@ class Ar2 {
   }
 
   /**
+   * @param {ReturnType<Ar2["incrementAR2"]>} result
+   * @param {{ step?: number; coneFactor?: number; offset?: number }} options
    * @protected
-   * @param {ReturnType<Ar2['incrementAR2']>} result
-   * @param {{step?: number; coneFactor?: number; offset?: number;}} options
-   * */
+   */
   ar2Point(result, options) {
     const step = options.step || 0;
     const coneFactor = options.coneFactor || 0;
