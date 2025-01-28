@@ -1,76 +1,85 @@
 "use strict";
 
-function init() {
-  var override = {
-    name: /** @type {const} */ ("override"),
-    label: "Override",
-    pluginType: "pill-status",
-  };
+/** @import {Moment} from "moment" */
+/** @import {Plugin} from "../types" */
+/** @import {ClientInitializedSandbox, Sbx} from "../sandbox" */
+/** @import {LoopProperties} from "./loop" */
 
-  override.isActive = function isActive(overrideStatus, sbx) {
-    if (!overrideStatus) {
-      return false;
-    } else {
-      var endMoment = overrideStatus.duration
-        ? overrideStatus.moment.clone().add(overrideStatus.duration, "seconds")
-        : null;
-      overrideStatus.endMoment = endMoment;
-      return (
-        overrideStatus.active && (!endMoment || endMoment.isAfter(sbx.time))
-      );
-    }
-  };
+/** @implements {Plugin} */
+class OverridePlugin {
+  name = /** @type {const} */ ("override");
+  label = "Override";
+  pluginType = "pill-status";
 
-  override.updateVisualisation = function updateVisualisation(sbx) {
-    var lastOverride = sbx.properties.loop.lastOverride;
-    var info = [];
-    var label = "";
-    var isActive = override.isActive(lastOverride, sbx);
+  /** @typedef {LoopProperties["lastOverride"] & { endMoment?: Moment }} LastOverride */
+
+  /**
+   * @param {Sbx} sbx
+   * @param {LastOverride} [overrideStatus]
+   * @returns {overrideStatus is {active: true}}
+   */
+  isActive(sbx, overrideStatus) {
+    if (!overrideStatus) return false;
+
+    const endMoment = overrideStatus.duration
+      ? overrideStatus.moment.clone().add(overrideStatus.duration, "seconds")
+      : undefined;
+
+    overrideStatus.endMoment = endMoment;
+
+    return (
+      !!overrideStatus.active && (!endMoment || endMoment.isAfter(sbx.time))
+    );
+  }
+
+  /** @protected @param {Sbx} sbx @param {number} val */
+  scale(sbx, val) {
+    return sbx.settings.units === "mmol"
+      ? sbx.roundBGToDisplayFormat(sbx.scaleMgdl(val))
+      : val;
+  }
+
+  /** @param {ClientInitializedSandbox} sbx */
+  updateVisualisation(sbx) {
+    /** @type {undefined | LastOverride} */
+    const lastOverride = sbx.properties.loop?.lastOverride;
+
+    let label = "";
+
+    const isActive = this.isActive(sbx, lastOverride);
 
     if (isActive) {
-      if (lastOverride.currentCorrectionRange) {
-        var max = lastOverride.currentCorrectionRange.maxValue;
-        var min = lastOverride.currentCorrectionRange.minValue;
+      const correctionRange = lastOverride.currentCorrectionRange;
+      if (correctionRange) {
+        const max = this.scale(sbx, correctionRange.maxValue);
+        const min = this.scale(sbx, correctionRange.minValue);
 
-        if (sbx.settings.units === "mmol") {
-          max = sbx.roundBGToDisplayFormat(sbx.scaleMgdl(max));
-          min = sbx.roundBGToDisplayFormat(sbx.scaleMgdl(min));
-        }
-
-        if (
-          lastOverride.currentCorrectionRange.minValue ===
-          lastOverride.currentCorrectionRange.maxValue
-        ) {
-          label += "BG Target: " + min;
+        if (min === max) {
+          label += `BG Target: ${min}`;
         } else {
-          label += "BG Targets: " + min + ":" + max;
+          label += `BG Targets: ${min}:${max}`;
         }
       }
-      if (
-        (lastOverride.multiplier || lastOverride.multiplier === 0) &&
-        lastOverride.multiplier !== 1
-      ) {
-        var multiplier = (lastOverride.multiplier * 100).toFixed(0);
-        label += " | O: " + multiplier + "%";
+
+      const { multiplier } = lastOverride;
+      if ((multiplier || multiplier === 0) && multiplier !== 1) {
+        const percentMultiplier = (multiplier * 100).toFixed(0);
+        label += ` | O: ${percentMultiplier}%`;
       }
     }
 
-    var endOverrideValue =
-      lastOverride && lastOverride.endMoment
-        ? "⇥ " + lastOverride.endMoment.format("LT")
-        : lastOverride
-          ? "∞"
-          : "";
+    const endOverrideValue = lastOverride?.endMoment
+      ? `⇥ ${lastOverride.endMoment.format("LT")}`
+      : !!lastOverride
+        ? "∞"
+        : "";
 
-    sbx.pluginBase.updatePillText(override, {
+    sbx.pluginBase.updatePillText(this, {
       value: endOverrideValue,
       label: label,
-      info: info,
       hide: !isActive,
     });
-  };
-
-  return override;
+  }
 }
 
-module.exports = init;
+module.exports = () => new OverridePlugin();

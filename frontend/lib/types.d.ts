@@ -4,7 +4,7 @@ import { ClientInitializedSandbox, InitializedSandbox } from "./sandbox";
 import newBolusCalc from "./client/boluscalc";
 import newCareportal from "./client/careportal";
 import Client from "./client";
-import { Moment, MomentInput } from "moment";
+import { DurationInputArg1, Moment, MomentInput } from "moment";
 
 type NotifyBase = {
   level: Level;
@@ -261,7 +261,13 @@ export type DeviceStatus = {
     scanDetails?: number[][];
     setFreq: string;
   };
-  override?: { timestamp?: number };
+  override?: {
+    timestamp?: number;
+    duration?: DurationInputArg1;
+    active?: boolean;
+    multiplier?: number;
+    currentCorrectionRange?: { maxValue: number; minValue: number };
+  };
 };
 
 export interface EntryBase {
