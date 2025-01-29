@@ -235,7 +235,7 @@ class Sandbox {
     return entry && this.time - entry.mills <= times.mins(15).msecs;
   }
 
-  /** @template {import("./types").Entry} T @param {T[]} [entries] */
+  /** @template {{mills: number}} T @param {T[]} [entries] */
   lastEntry(entries) {
     return entries
       ?.slice()
@@ -278,7 +278,7 @@ class Sandbox {
     return this.entryMills(this.lastSGVEntry());
   }
 
-  /** @param {import("./types.js").Entry} [entry] */
+  /** @param {{mills: number}} [entry] */
   entryMills(entry) {
     // JHL: NaN is falsy, but counts as a `number`, so this narrows the return type.
     // Before, it would return undefined, which when used for comparison behaves the same as NaN

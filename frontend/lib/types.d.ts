@@ -24,6 +24,8 @@ export type Notify = NotifyBase & {
   plugin?: Plugin;
   isAnnouncement?: boolean;
 
+  notifyhash?: string;
+
   pushoverSound?: string;
 };
 export type Snooze = NotifyBase & { lengthMills: number };
@@ -93,13 +95,14 @@ export type Treatment = {
   mills: number;
   _id: string;
   created_at: string;
+  timestamp?: number;
 
   // are these real?
   mgdl: number;
   mmol?: number;
 
   endmills: number;
-  eventType: string;
+  eventType: TranslationKey;
 
   duration?: number;
   durationType?: string;

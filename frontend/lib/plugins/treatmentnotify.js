@@ -2,7 +2,10 @@
 
 /** Server only? */
 
-const _ = require("lodash");
+/** @import {Mbg, Plugin, Treatment} from "../types" */
+/** @import {PluginCtx} from "." */
+/** @import {InitializedSandbox, Sbx} from "../sandbox" */
+
 const times = require("../times");
 const crypto = require("crypto");
 
@@ -13,127 +16,137 @@ const MANUAL_TREATMENTS = [
   "Correction Bolus",
 ];
 
-function init(ctx) {
-  const treatmentnotify = {
-    name: /** @type {const} */ ("treatmentnotify"),
-    label: "Treatment Notifications",
-    pluginType: "notification",
-  };
+/** @implements {Plugin} */
+class TreatmentNotifyPlugin {
+  name = /** @type {const} */ ("treatmentnotify");
+  label = "Treatment Notifications";
+  pluginType = "notification";
 
-  const simplealarms = require("./simplealarms")(ctx);
-
-  //automated treatments from OpenAPS or Loop shouldn't trigger notifications or snooze alarms
-  function filterTreatments(sbx) {
-    var treatments = sbx.data.treatments;
-
-    var includeBolusesOver = sbx.extendedSettings.includeBolusesOver || 0;
-
-    treatments = _.filter(treatments, function notOpenAPS(treatment) {
-      var ok = true;
-      var enteredBy = treatment.enteredBy;
-      if (
-        enteredBy &&
-        (enteredBy.indexOf("openaps://") === 0 ||
-          enteredBy.indexOf("loop://") === 0)
-      ) {
-        ok = _.indexOf(MANUAL_TREATMENTS, treatment.eventType) >= 0;
-      }
-      if (
-        ok &&
-        _.isNumber(treatment.insulin) &&
-        _.includes(["Meal Bolus", "Correction Bolus"], treatment.eventType)
-      ) {
-        ok = treatment.insulin >= includeBolusesOver;
-      }
-      return ok;
-    });
-
-    return treatments;
+  /** @param {PluginCtx} ctx */
+  constructor(ctx) {
+    this.simplealarms = require("./simplealarms")(ctx);
+    this.translate = ctx.language.translate;
   }
 
-  treatmentnotify.checkNotifications = function checkNotifications(sbx) {
-    var treatments = filterTreatments(sbx);
-    var lastMBG = sbx.lastEntry(sbx.data.mbgs);
-    var lastTreatment = sbx.lastEntry(treatments);
+  /**
+   * Filter out automated treatments from OpenAPS and Loop - we shouldn't
+   * trigger notifications or snooze alarms for these
+   *
+   * @param {Sbx} sbx
+   * @protected
+   */
+  filterTreatments(sbx) {
+    const includeBolusesOver = sbx.extendedSettings.includeBolusesOver || 0;
 
-    var mbgCurrent = isCurrent(lastMBG);
-    var treatmentCurrent = isCurrent(lastTreatment);
+    return sbx.data.treatments.filter((treatment) => {
+      const enteredBy = treatment.enteredBy;
+      if (
+        (enteredBy?.startsWith("openaps://") ||
+          enteredBy?.startsWith("loop://")) &&
+        !MANUAL_TREATMENTS.includes(treatment.eventType)
+      )
+        return false;
 
-    var translate = sbx.language.translate;
+      if (
+        typeof treatment.insulin === "number" &&
+        ["Meal Bolus", "Correction Bolus"].includes(treatment.eventType) &&
+        treatment.insulin < includeBolusesOver
+      )
+        return false;
+
+      return true;
+    });
+  }
+
+  /** @param {InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    const treatments = this.filterTreatments(sbx);
+    const lastMBG = sbx.lastEntry(sbx.data.mbgs);
+    const lastTreatment = sbx.lastEntry(treatments);
+
+    const mbgCurrent = isCurrent(lastMBG);
+    const treatmentCurrent = isCurrent(lastTreatment);
 
     if (mbgCurrent || treatmentCurrent) {
-      var mbgMessage = mbgCurrent
-        ? translate("Meter BG") +
-          " " +
-          sbx.scaleEntry(lastMBG) +
-          " " +
-          sbx.unitsLabel
+      const mbgMessage = mbgCurrent
+        ? `${this.translate("Meter BG")} ${sbx.scaleEntry(lastMBG)} ${sbx.unitsLabel}`
         : "";
-      var treatmentMessage = treatmentCurrent
-        ? translate("Treatment") + ": " + lastTreatment.eventType
+      const treatmentMessage = treatmentCurrent
+        ? `${this.translate("Treatment")}: ${lastTreatment.eventType}`
         : "";
 
-      autoSnoozeAlarms(mbgMessage, treatmentMessage, lastTreatment, sbx);
+      this.autoSnoozeAlarms(mbgMessage, treatmentMessage, lastTreatment, sbx);
 
       //and add some info notifications
       //the notification providers (push, websockets, etc) are responsible to not sending the same notifications repeatedly
       if (mbgCurrent) {
-        requestMBGNotify(lastMBG, sbx);
+        this.requestMBGNotify(lastMBG, sbx);
       }
       if (treatmentCurrent) {
-        requestTreatmentNotify(lastTreatment, sbx);
+        this.requestTreatmentNotify(lastTreatment, sbx);
       }
-    }
-  };
-
-  function autoSnoozeAlarms(mbgMessage, treatmentMessage, lastTreatment, sbx) {
-    //announcements don't snooze alarms
-    if (lastTreatment && !lastTreatment.isAnnouncement) {
-      var snoozeLength =
-        (sbx.extendedSettings.snoozeMins &&
-          times.mins(sbx.extendedSettings.snoozeMins).msecs) ||
-        times.mins(10).msecs;
-      sbx.notifications.requestSnooze({
-        level: sbx.levels.URGENT,
-        title: "Snoozing alarms since there was a recent treatment",
-        message: _.trim([mbgMessage, treatmentMessage].join("\n")),
-        lengthMills: snoozeLength,
-      });
     }
   }
 
-  function requestMBGNotify(lastMBG, sbx) {
+  /**
+   * @param {string} mbgMessage
+   * @param {string} treatmentMessage
+   * @param {Treatment | undefined} lastTreatment
+   * @param {InitializedSandbox} sbx
+   * @protected
+   */
+  autoSnoozeAlarms(mbgMessage, treatmentMessage, lastTreatment, sbx) {
+    //announcements don't snooze alarms
+    if (!lastTreatment || lastTreatment.isAnnouncement) return;
+
+    const snoozeLength = times.mins(
+      sbx.extendedSettings.snoozeMins || 10
+    ).msecs;
+
+    sbx.notifications.requestSnooze({
+      level: sbx.levels.URGENT,
+      title: "Snoozing alarms since there was a recent treatment",
+      message: [mbgMessage, treatmentMessage].join("\n").trim(),
+      lengthMills: snoozeLength,
+    });
+  }
+
+  /**
+   * @param {Mbg} lastMBG
+   * @param {InitializedSandbox} sbx
+   * @protected
+   */
+  requestMBGNotify(lastMBG, sbx) {
     console.info("requestMBGNotify for", lastMBG);
-    var translate = sbx.language.translate;
 
     sbx.notifications.requestNotify({
       level: sbx.levels.INFO,
       title: "Calibration", //assume all MGBs are calibrations for now
-      message:
-        translate("Meter BG") +
-        ": " +
-        sbx.scaleEntry(lastMBG) +
-        " " +
-        sbx.unitsLabel,
-      plugin: treatmentnotify,
+      message: `${this.translate("Meter BG")}: ${sbx.scaleEntry(lastMBG)} ${sbx.unitsLabel}`,
+      plugin: this,
       pushoverSound: "magic",
     });
   }
 
-  function requestAnnouncementNotify(lastTreatment, sbx) {
-    var result = simplealarms.compareBGToTresholds(
+  /**
+   * @param {Treatment} lastTreatment
+   * @param {InitializedSandbox} sbx
+   * @protected
+   */
+  requestAnnouncementNotify(lastTreatment, sbx) {
+    const result = this.simplealarms.compareBGToTresholds(
       sbx.scaleMgdl(lastTreatment.mgdl),
-      sbx,
+      sbx
     );
 
     sbx.notifications.requestNotify({
       level: result.level,
       title:
-        (result.level === sbx.levels.URGENT
-          ? sbx.levels.toDisplay(sbx.levels.URGENT) + " "
-          : "") + lastTreatment.eventType,
+        result.level === sbx.levels.URGENT
+          ? `${sbx.levels.toDisplay(sbx.levels.URGENT)} ${lastTreatment.eventType}`
+          : lastTreatment.eventType,
       message: lastTreatment.notes || ".", //some message is required
-      plugin: treatmentnotify,
+      plugin: this,
       group: "Announcement",
       pushoverSound: sbx.levels.isAlarm(result.level)
         ? result.pushoverSound
@@ -142,114 +155,107 @@ function init(ctx) {
     });
   }
 
-  function requestTreatmentNotify(lastTreatment, sbx) {
-    var translate = sbx.language.translate;
-
+  /**
+   * @param {Treatment} lastTreatment
+   * @param {InitializedSandbox} sbx
+   * @protected
+   */
+  requestTreatmentNotify(lastTreatment, sbx) {
     if (lastTreatment.isAnnouncement) {
-      requestAnnouncementNotify(lastTreatment, sbx);
-    } else {
-      let message = buildTreatmentMessage(lastTreatment, sbx);
-
-      let eventType = lastTreatment.eventType;
-      if (lastTreatment.duration === 0 && eventType === "Temporary Target") {
-        eventType += " Cancel";
-        message = translate("Canceled");
-      }
-
-      const timestamp = lastTreatment.timestamp;
-
-      if (!message) {
-        message = "...";
-      }
-
-      if (!eventType && lastTreatment.carbs && lastTreatment.insulin)
-        eventType = "Meal Bolus";
-      if (!eventType && lastTreatment.carbs) eventType = "Carb Correction";
-      if (!eventType && lastTreatment.insulin) eventType = "Correcton Bolus";
-      if (!eventType) eventType = "Note";
-
-      const hash = crypto.createHash("sha1");
-      const info = JSON.stringify({ eventType, timestamp });
-      hash.update(info);
-      const notifyhash = hash.digest("hex");
-
-      sbx.notifications.requestNotify({
-        level: sbx.levels.INFO,
-        title: translate(eventType),
-        message,
-        timestamp,
-        plugin: treatmentnotify,
-        notifyhash,
-      });
+      this.requestAnnouncementNotify(lastTreatment, sbx);
+      return;
     }
+
+    let message = this.buildTreatmentMessage(lastTreatment, sbx) ?? "...";
+
+    let eventType = lastTreatment.eventType;
+    if (lastTreatment.duration === 0 && eventType === "Temporary Target") {
+      eventType += " Cancel";
+      message = this.translate("Canceled");
+    }
+
+    const { timestamp, carbs, insulin } = lastTreatment;
+
+    if (!eventType && carbs && insulin) eventType = "Meal Bolus";
+    else if (carbs) eventType = "Carb Correction";
+    else if (insulin) eventType = "Correction Bolus";
+    else eventType = "Note";
+
+    const hash = crypto.createHash("sha1");
+    const info = JSON.stringify({ eventType, timestamp });
+    hash.update(info);
+    const notifyhash = hash.digest("hex");
+
+    sbx.notifications.requestNotify({
+      level: sbx.levels.INFO,
+      title: this.translate(eventType),
+      message,
+      timestamp,
+      plugin: this,
+      notifyhash,
+    });
   }
 
-  function buildTreatmentMessage(lastTreatment, sbx) {
-    var translate = sbx.language.translate;
+  /**
+   * @param {Treatment} lastTreatment
+   * @param {InitializedSandbox} sbx
+   * @protected
+   */
+  buildTreatmentMessage(lastTreatment, sbx) {
+    const translate = this.translate;
 
-    return (
-      (lastTreatment.glucose
-        ? translate("BG") +
-          ": " +
-          lastTreatment.glucose +
-          " (" +
-          lastTreatment.glucoseType +
-          ")"
-        : "") +
-      (lastTreatment.reason
-        ? "\n" + translate("Reason") + ": " + lastTreatment.reason
-        : "") +
-      (lastTreatment.targetTop
-        ? "\n" + translate("Target Top") + ": " + lastTreatment.targetTop
-        : "") +
-      (lastTreatment.targetBottom
-        ? "\n" + translate("Target Bottom") + ": " + lastTreatment.targetBottom
-        : "") +
-      (lastTreatment.carbs
-        ? "\n" + translate("Carbs") + ": " + lastTreatment.carbs + "g"
-        : "") +
-      (lastTreatment.insulin
-        ? "\n" +
-          translate("Insulin") +
-          ": " +
-          sbx.roundInsulinForDisplayFormat(lastTreatment.insulin) +
-          "U"
-        : "") +
-      (lastTreatment.duration
-        ? "\n" + translate("Duration") + ": " + lastTreatment.duration + " min"
-        : "") +
-      (lastTreatment.percent
-        ? "\n" +
-          translate("Percent") +
-          ": " +
-          (lastTreatment.percent > 0 ? "+" : "") +
-          lastTreatment.percent +
-          "%"
-        : "") +
-      (!isNaN(lastTreatment.absolute)
-        ? "\n" + translate("Value") + ": " + lastTreatment.absolute + "U"
-        : "") +
-      (lastTreatment.enteredBy
-        ? "\n" + translate("Entered By") + ": " + lastTreatment.enteredBy
-        : "") +
-      (lastTreatment.notes
-        ? "\n" + translate("Notes") + ": " + lastTreatment.notes
-        : "")
-    );
+    return [
+      lastTreatment.glucose &&
+        `${translate("BG")}: ${lastTreatment.glucose} (${lastTreatment.glucoseType})`,
+
+      lastTreatment.reason && `${translate("Reason")}: ${lastTreatment.reason}`,
+
+      lastTreatment.targetTop &&
+        `${translate("Target Top")}: ${lastTreatment.targetTop}`,
+
+      lastTreatment.targetBottom &&
+        `${translate("Target Bottom")}: ${lastTreatment.targetBottom}`,
+
+      lastTreatment.carbs && `${translate("Carbs")}: ${lastTreatment.carbs}g`,
+
+      lastTreatment.insulin &&
+        `${translate("Insulin")}: ${sbx.roundInsulinForDisplayFormat(lastTreatment.insulin)}U`,
+
+      lastTreatment.duration &&
+        `${translate("Duration")}: ${lastTreatment.duration} min`,
+
+      lastTreatment.percent &&
+        `${translate("Percent")}: ${lastTreatment.percent > 0 ? "+" : ""}${lastTreatment.percent}%`,
+
+      !isNaN(lastTreatment.absolute) &&
+        `${translate("Value")}: ${lastTreatment.absolute}U`,
+
+      lastTreatment.enteredBy &&
+        `${translate("Entered By")}: ${lastTreatment.enteredBy}`,
+
+      lastTreatment.notes && `${translate("Notes")}: ${lastTreatment.notes}`,
+    ]
+      .filter((el) => el !== undefined && el !== 0)
+      .join("\n");
   }
-
-  return treatmentnotify;
 }
 
+/**
+ * @template {{ mills: number }} T
+ * @param {T | undefined} last
+ * @returns {last is T & {}}
+ */
 function isCurrent(last) {
   if (!last) {
     return false;
   }
 
-  var now = Date.now();
-  var lastTime = last.mills;
-  var ago = last.mills <= now ? now - lastTime : -1;
-  return ago !== -1 && ago < times.mins(10).msecs;
+  const now = Date.now();
+  if (now < last.mills) return false;
+
+  const ago = now - last.mills;
+  return ago < times.mins(10).msecs;
 }
 
-module.exports = init;
+/** @param {PluginCtx} ctx */
+module.exports = (ctx) => new TreatmentNotifyPlugin(ctx);
