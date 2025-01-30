@@ -194,7 +194,11 @@ export type DeviceStatus = {
   _id: string;
   mills: number;
   created_at: MomentInput;
-  uploader: any;
+  uploader?: {
+    battery: number;
+    batteryVoltage?: number;
+    temperature?: number;
+  };
   pump?: {
     iob?: PumpIob;
     clock?: number;
@@ -275,6 +279,7 @@ export type DeviceStatus = {
   connect?: any;
   xdripjs: any;
   device: string;
+  isCharging?: boolean;
   moment: Moment;
   mmtune?: {
     timestamp?: number;

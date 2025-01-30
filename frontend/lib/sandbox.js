@@ -43,6 +43,7 @@ const times = require("./times");
  *   pump?: import("./plugins/pump.js").PumpProperties;
  *   runtimestate?: import("./plugins/runtimestate.js").RuntimeStateProperties;
  *   sage?: import("./plugins/sensorage.js").SAgeProperties;
+ *   upbat?: import("./plugins/upbat.js").UpBatProperties;
  * }} SandboxProperties
  */
 

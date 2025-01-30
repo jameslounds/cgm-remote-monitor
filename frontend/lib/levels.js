@@ -53,7 +53,7 @@ class Levels {
     return this.toDisplay(level).toLowerCase();
   }
 
-  /** @param {import("./types").Level} level */
+  /** @param {import("./types").Level | undefined} level */
   toStatusClass(level) {
     if (level === this.WARN) {
       return "warn";
