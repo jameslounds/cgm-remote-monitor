@@ -1,294 +1,248 @@
 "use strict";
 
-var _ = require("lodash");
-var times = require("../times");
+/** @import {Moment} from "moment" */
 
-function init(ctx) {
-  var moment = ctx.moment;
-  var levels = ctx.levels;
-  var utils = require("../utils")(ctx);
-  var firstPrefs = true;
-  var lastStateNotification = null;
-  var translate = ctx.language.translate;
+/** @import {DeviceStatus, KeysOfType, Level, Plugin, RemovePrefix, VirtAsstIntentHandlerFn} from "../types" */
+/** @import {PluginCtx} from "." */
+/** @import {ClientInitializedSandbox, InitializedSandbox, Sbx} from "../sandbox" */
+/** @import {TranslationKey} from "../language" */
 
-  var sensorState = {
-    name: /** @type {const} */ ("xdripjs"),
-    label: "CGM Status",
-    pluginType: "pill-status",
-  };
+/** @typedef {ReturnType<XDripJsPlugin["analyzeData"]>} SensorStateProperties */
 
-  sensorState.getPrefs = function getPrefs(sbx) {
-    var prefs = {
-      enableAlerts: sbx.extendedSettings.enableAlerts || false,
-      warnBatV: sbx.extendedSettings.warnBatV || 300,
-      stateNotifyIntrvl: sbx.extendedSettings.stateNotifyIntrvl || 0.5,
+const times = require("../times");
+
+/** @implements {Plugin} */
+class XDripJsPlugin {
+  name = /** @type {const} */ ("xdripjs");
+  label = "CGM Status";
+  pluginType = "pill-status";
+
+  /** @param {PluginCtx} ctx */
+  constructor(ctx) {
+    this.moment = ctx.moment;
+    this.levels = ctx.levels;
+    this.utils = require("../utils")(ctx);
+    this.translate = ctx.language.translate;
+
+    /** @type {null | { timestamp: Moment; state: number }} */
+    this.lastStateNotification = null;
+    this.firstPrefs = true;
+  }
+
+  /** @param {Sbx} sbx */
+  getPrefs(sbx) {
+    const prefs = {
+      enableAlerts: Boolean(sbx.extendedSettings.enableAlerts) || false,
+      warnBatV: Number(sbx.extendedSettings.warnBatV) || 300,
+      stateNotifyIntrvl: Number(sbx.extendedSettings.stateNotifyIntrvl) || 0.5,
     };
 
-    if (firstPrefs) {
-      firstPrefs = false;
+    if (this.firstPrefs) {
+      this.firstPrefs = false;
       console.info("xdripjs Prefs:", prefs);
     }
 
     return prefs;
-  };
+  }
 
-  sensorState.setProperties = function setProperties(sbx) {
-    sbx.offerProperty("sensorState", function setProp() {
-      return sensorState.getStateString(sbx);
-    });
-  };
+  /** @param {Sbx} sbx */
+  setProperties(sbx) {
+    sbx.offerProperty("sensorState", () => this.analyzeData(sbx));
+  }
 
-  sensorState.checkNotifications = function checkNotifications(sbx) {
-    var info = sbx.properties.sensorState;
+  /** @param {InitializedSandbox} sbx */
+  checkNotifications(sbx) {
+    const info = sbx.properties.sensorState;
 
-    if (info && info.notification) {
-      var notification = _.extend({}, info.notification, {
-        plugin: sensorState,
+    if (info?.notification) {
+      const notification = {
+        ...info.notification,
+        plugin: this,
         debug: {
           stateString: info.lastStateString,
         },
-      });
+      };
 
       sbx.notifications.requestNotify(notification);
     }
-  };
+  }
 
-  sensorState.getStateString = function findLatestState(sbx) {
-    var prefs = sensorState.getPrefs(sbx);
-
-    var recentHours = 24;
-    var recentMills = sbx.time - times.hours(recentHours).msecs;
-
-    var result = {
-      seenDevices: {},
-      latest: null,
-      lastDevice: null,
-      lastState: null,
-      lastStateString: null,
-      lastStateStringShort: null,
-      lastSessionStart: null,
-      lastStateTime: null,
-      lastTxId: null,
-      lastTxStatus: null,
-      lastTxStatusString: null,
-      lastTxStatusStringShort: null,
-      lastTxActivation: null,
-      lastMode: null,
-      lastRssi: null,
-      lastUnfiltered: null,
-      lastFiltered: null,
-      lastNoise: null,
-      lastNoiseString: null,
-      lastSlope: null,
-      lastIntercept: null,
-      lastCalType: null,
-      lastCalibrationDate: null,
-      lastBatteryTimestamp: null,
-      lastVoltageA: null,
-      lastVoltageB: null,
-      lastTemperature: null,
-      lastResistance: null,
-    };
-
-    function toMoments(status) {
+  /**
+   * @param {ReturnType<XDripJsPlugin["getPrefs"]>} prefs
+   * @param {DeviceStatus["xdripjs"] & {}} data
+   * @protected
+   */
+  latestStateNotificationInfo(
+    prefs,
+    { state, stateString, voltagea, voltageb }
+  ) {
+    if (voltageb && voltageb < prefs.warnBatV - 10) {
       return {
-        when: moment(status.mills),
-        timestamp:
-          status.xdripjs &&
-          status.xdripjs.timestamp &&
-          moment(status.xdripjs.timestamp),
+        message: "CGM Transmitter Battery B Low Voltage: " + voltageb,
+        title: "CGM Transmitter Battery Low",
+        level: this.levels.WARN,
       };
     }
 
-    function getDevice(status) {
-      var uri = status.device || "device";
-      var device = result.seenDevices[uri];
-
-      if (!device) {
-        device = {
-          name: utils.deviceName(uri),
-          uri: uri,
-        };
-
-        result.seenDevices[uri] = device;
-      }
-      return device;
+    if (voltagea && voltagea < prefs.warnBatV) {
+      return {
+        message: "CGM Transmitter Battery A Low Voltage: " + voltagea,
+        title: "CGM Transmitter Battery Low",
+        level: this.levels.WARN,
+      };
     }
 
-    var recentData = _.chain(sbx.data.devicestatus)
-      .filter(function (status) {
-        return (
+    if (state !== 0x6) {
+      // Send warning notification for all states that are not 'OK'
+      // but only send state notifications at interval preference
+      if (
+        !this.lastStateNotification ||
+        this.lastStateNotification.state !== state ||
+        !prefs.stateNotifyIntrvl ||
+        this.moment().diff(this.lastStateNotification.timestamp, "minutes") >
+          prefs.stateNotifyIntrvl * 60
+      ) {
+        this.lastStateNotification = {
+          timestamp: this.moment(),
+          state,
+        };
+      }
+
+      return {
+        message: "CGM Transmitter state: " + stateString,
+        title: "CGM Transmitter state: " + stateString,
+
+        // If it is a calibration request, only use INFO
+        level: state === 0x7 ? this.levels.INFO : this.levels.WARN,
+      };
+    }
+  }
+
+  /** @param {Sbx} sbx */
+  analyzeData(sbx) {
+    const prefs = this.getPrefs(sbx);
+
+    const recentHours = 24;
+    const recentMills = sbx.time - times.hours(recentHours).msecs;
+
+    const recentData = sbx.data.devicestatus
+      .filter(
+        /** @returns {status is DeviceStatus & {xdripjs: {timestamp: {}}}} */
+        (status) =>
           "xdripjs" in status &&
+          recentMills <= sbx.entryMills(status) &&
           sbx.entryMills(status) <= sbx.time &&
-          sbx.entryMills(status) >= recentMills
-        );
-      })
-      .value();
+          !!status.xdripjs?.timestamp
+      )
+      .toSorted((a, b) => a.xdripjs.timestamp - b.xdripjs.timestamp);
 
-    recentData = _.sortBy(recentData, "xdripjs.timestamp");
+    const devices = recentData.reduce(
+      (devices, status) => {
+        const uri = status.device || "device";
+        devices[uri] ??= { name: this.utils.deviceName(uri), uri };
+        return devices;
+      },
+      /** @type {Record<string, Record<"uri" | "name", string>>} */
+      ({})
+    );
 
-    _.forEach(recentData, function eachStatus(status) {
-      getDevice(status);
+    const sensorInfo = recentData.at(-1);
 
-      var moments = toMoments(status);
+    if (!sensorInfo) return { seenDevices: devices };
 
-      if (
-        status.xdripjs &&
-        (!result.latest ||
-          (moments.timestamp &&
-            moments.timestamp.isAfter(result.lastStateTime)))
-      ) {
-        result.latest = status;
-        result.lastStateTime = moment(status.xdripjs.timestamp);
-      }
-    });
+    const notificationInfo = this.latestStateNotificationInfo(
+      prefs,
+      sensorInfo.xdripjs
+    );
 
-    var sendNotification = false;
-    var sound = "incoming";
-    var message;
-    var title;
+    const level = notificationInfo?.level ?? this.levels.NONE;
 
-    var sensorInfo = result.latest;
+    const notification =
+      notificationInfo && prefs.enableAlerts
+        ? { ...notificationInfo, pushoverSound: "incoming", group: "xDrip-js" }
+        : undefined;
 
-    result.level = levels.NONE;
+    const lastStateTime = this.moment(sensorInfo.xdripjs.timestamp);
 
-    if (sensorInfo && sensorInfo.xdripjs) {
-      if (sensorInfo.xdripjs.state != 0x6) {
-        // Send warning notification for all states that are not 'OK'
-        // but only send state notifications at interval preference
-        if (
-          !lastStateNotification ||
-          lastStateNotification.state != sensorInfo.xdripjs.state ||
-          !prefs.stateNotifyIntrvl ||
-          moment().diff(lastStateNotification.timestamp, "minutes") >
-            prefs.stateNotifyIntrvl * 60
-        ) {
-          sendNotification = true;
-          lastStateNotification = {
-            timestamp: moment(),
-            state: sensorInfo.xdripjs.state,
-          };
-        }
+    return {
+      seenDevices: devices,
+      notification,
+      level,
+      lastStateTime,
+      lastState: sensorInfo.xdripjs.state,
+      lastStateString: sensorInfo.xdripjs.stateString,
+      lastStateStringShort: sensorInfo.xdripjs.stateStringShort,
+      lastSessionStart: sensorInfo.xdripjs.sessionStart,
+      lastTxId: sensorInfo.xdripjs.txId,
+      lastTxStatus: sensorInfo.xdripjs.txStatus,
+      lastTxStatusString: sensorInfo.xdripjs.txStatusString,
+      lastTxStatusStringShort: sensorInfo.xdripjs.txStatusStringShort,
+      lastTxActivation: sensorInfo.xdripjs.txActivation,
+      lastMode: sensorInfo.xdripjs.mode,
+      lastRssi: sensorInfo.xdripjs.rssi,
+      lastUnfiltered: sensorInfo.xdripjs.unfiltered,
+      lastFiltered: sensorInfo.xdripjs.filtered,
+      lastNoise: sensorInfo.xdripjs.noise,
+      lastNoiseString: sensorInfo.xdripjs.noiseString,
+      lastSlope: Math.round(sensorInfo.xdripjs.slope * 100) / 100.0,
+      lastIntercept: Math.round(sensorInfo.xdripjs.intercept * 100) / 100.0,
+      lastCalType: sensorInfo.xdripjs.calType,
+      lastCalibrationDate: sensorInfo.xdripjs.lastCalibrationDate,
+      lastBatteryTimestamp: sensorInfo.xdripjs.batteryTimestamp,
+      lastVoltageA: sensorInfo.xdripjs.voltagea,
+      lastVoltageB: sensorInfo.xdripjs.voltageb,
+      lastTemperature: sensorInfo.xdripjs.temperature,
+      lastResistance: sensorInfo.xdripjs.resistance,
+    };
+  }
 
-        message = "CGM Transmitter state: " + sensorInfo.xdripjs.stateString;
-        title = "CGM Transmitter state: " + sensorInfo.xdripjs.stateString;
+  /** @param {ClientInitializedSandbox} sbx */
+  updateVisualisation(sbx) {
+    const sensor = sbx.properties.sensorState;
+    /** @type {{ label: string; value: string }[]} */
+    const info = [];
 
-        if (sensorInfo.xdripjs.state == 0x7) {
-          // If it is a calibration request, only use INFO
-          result.level = levels.INFO;
-        } else {
-          result.level = levels.WARN;
-        }
-      }
-
-      if (
-        sensorInfo.xdripjs.voltagea &&
-        sensorInfo.xdripjs.voltagea < prefs.warnBatV
-      ) {
-        sendNotification = true;
-        message =
-          "CGM Transmitter Battery A Low Voltage: " +
-          sensorInfo.xdripjs.voltagea;
-        title = "CGM Transmitter Battery Low";
-        result.level = levels.WARN;
-      }
-
-      if (
-        sensorInfo.xdripjs.voltageb &&
-        sensorInfo.xdripjs.voltageb < prefs.warnBatV - 10
-      ) {
-        sendNotification = true;
-        message =
-          "CGM Transmitter Battery B Low Voltage: " +
-          sensorInfo.xdripjs.voltageb;
-        title = "CGM Transmitter Battery Low";
-        result.level = levels.WARN;
-      }
-
-      if (prefs.enableAlerts && sendNotification) {
-        result.notification = {
-          title: title,
-          message: message,
-          pushoverSound: sound,
-          level: result.level,
-          group: "xDrip-js",
-        };
-      }
-
-      result.lastState = sensorInfo.xdripjs.state;
-      result.lastStateString = sensorInfo.xdripjs.stateString;
-      result.lastStateStringShort = sensorInfo.xdripjs.stateStringShort;
-      result.lastSessionStart = sensorInfo.xdripjs.sessionStart;
-      result.lastTxId = sensorInfo.xdripjs.txId;
-      result.lastTxStatus = sensorInfo.xdripjs.txStatus;
-      result.lastTxStatusString = sensorInfo.xdripjs.txStatusString;
-      result.lastTxStatusStringShort = sensorInfo.xdripjs.txStatusStringShort;
-      result.lastTxActivation = sensorInfo.xdripjs.txActivation;
-      result.lastMode = sensorInfo.xdripjs.mode;
-      result.lastRssi = sensorInfo.xdripjs.rssi;
-      result.lastUnfiltered = sensorInfo.xdripjs.unfiltered;
-      result.lastFiltered = sensorInfo.xdripjs.filtered;
-      result.lastNoise = sensorInfo.xdripjs.noise;
-      result.lastNoiseString = sensorInfo.xdripjs.noiseString;
-      result.lastSlope = Math.round(sensorInfo.xdripjs.slope * 100) / 100.0;
-      result.lastIntercept =
-        Math.round(sensorInfo.xdripjs.intercept * 100) / 100.0;
-      result.lastCalType = sensorInfo.xdripjs.calType;
-      result.lastCalibrationDate = sensorInfo.xdripjs.lastCalibrationDate;
-      result.lastBatteryTimestamp = sensorInfo.xdripjs.batteryTimestamp;
-      result.lastVoltageA = sensorInfo.xdripjs.voltagea;
-      result.lastVoltageB = sensorInfo.xdripjs.voltageb;
-      result.lastTemperature = sensorInfo.xdripjs.temperature;
-      result.lastResistance = sensorInfo.xdripjs.resistance;
-    }
-
-    return result;
-  };
-
-  sensorState.updateVisualisation = function updateVisualisation(sbx) {
-    var sensor = sbx.properties.sensorState;
-    var sessionDuration = "Unknown";
-    var info = [];
-
-    _.forIn(sensor.seenDevices, function seenDevice(device) {
-      info.push({ label: "Seen: ", value: device.name });
-    });
+    info.push(
+      ...Object.values(sensor?.seenDevices ?? {}).map(({ name }) => ({
+        label: "Seen: ",
+        value: name,
+      }))
+    );
 
     info.push({
       label: "State Time: ",
       value:
-        (sensor &&
-          sensor.lastStateTime &&
-          moment().diff(sensor.lastStateTime, "minutes") + " minutes ago") ||
+        (sensor?.lastStateTime &&
+          this.moment().diff(sensor.lastStateTime, "minutes") +
+            " minutes ago") ||
         "Unknown",
     });
     info.push({
       label: "Mode: ",
-      value: (sensor && sensor.lastMode) || "Unknown",
+      value: sensor?.lastMode || "Unknown",
     });
     info.push({
       label: "Status: ",
-      value: (sensor && sensor.lastStateString) || "Unknown",
+      value: sensor?.lastStateString || "Unknown",
     });
 
     // session start is only valid if in a session
-    if (sensor && sensor.lastSessionStart && sensor.lastState != 0x1) {
-      var diffTime = moment().diff(moment(sensor.lastSessionStart));
-      var duration = moment.duration(diffTime);
+    if (sensor?.lastSessionStart && sensor.lastState !== 0x1) {
+      const diffTime = this.moment().diff(this.moment(sensor.lastSessionStart));
+      const duration = this.moment.duration(diffTime);
 
-      sessionDuration =
-        duration.days() + " days " + duration.hours() + " hours";
+      const sessionDuration = `${duration.days()} days ${duration.hours()} hours`;
 
       info.push({ label: "Session Age: ", value: sessionDuration });
     }
 
     info.push({
       label: "Tx ID: ",
-      value: (sensor && sensor.lastTxId) || "Unknown",
+      value: sensor?.lastTxId || "Unknown",
     });
     info.push({
       label: "Tx Status: ",
-      value: (sensor && sensor.lastTxStatusString) || "Unknown",
+      value: sensor?.lastTxStatusString || "Unknown",
     });
 
     if (sensor) {
@@ -296,32 +250,45 @@ function init(ctx) {
         info.push({
           label: "Tx Age: ",
           value:
-            moment().diff(moment(sensor.lastTxActivation), "days") + " days",
+            this.moment().diff(this.moment(sensor.lastTxActivation), "days") +
+            " days",
         });
       }
 
       if (sensor.lastRssi) {
-        info.push({ label: "RSSI: ", value: sensor.lastRssi });
+        info.push({ label: "RSSI: ", value: sensor.lastRssi.toString() });
       }
 
       if (sensor.lastUnfiltered) {
-        info.push({ label: "Unfiltered: ", value: sensor.lastUnfiltered });
+        info.push({
+          label: "Unfiltered: ",
+          value: sensor.lastUnfiltered.toString(),
+        });
       }
 
       if (sensor.lastFiltered) {
-        info.push({ label: "Filtered: ", value: sensor.lastFiltered });
+        info.push({
+          label: "Filtered: ",
+          value: sensor.lastFiltered.toString(),
+        });
       }
 
       if (sensor.lastNoiseString) {
-        info.push({ label: "Noise: ", value: sensor.lastNoiseString });
+        info.push({
+          label: "Noise: ",
+          value: sensor.lastNoiseString.toString(),
+        });
       }
 
       if (sensor.lastSlope) {
-        info.push({ label: "Slope: ", value: sensor.lastSlope });
+        info.push({ label: "Slope: ", value: sensor.lastSlope.toString() });
       }
 
       if (sensor.lastIntercept) {
-        info.push({ label: "Intercept: ", value: sensor.lastIntercept });
+        info.push({
+          label: "Intercept: ",
+          value: sensor.lastIntercept.toString(),
+        });
       }
 
       if (sensor.lastCalType) {
@@ -332,8 +299,10 @@ function init(ctx) {
         info.push({
           label: "Calibration: ",
           value:
-            moment().diff(moment(sensor.lastCalibrationDate), "hours") +
-            " hours ago",
+            this.moment().diff(
+              this.moment(sensor.lastCalibrationDate),
+              "hours"
+            ) + " hours ago",
         });
       }
 
@@ -341,189 +310,219 @@ function init(ctx) {
         info.push({
           label: "Battery: ",
           value:
-            moment().diff(moment(sensor.lastBatteryTimestamp), "minutes") +
-            " minutes ago",
+            this.moment().diff(
+              this.moment(sensor.lastBatteryTimestamp),
+              "minutes"
+            ) + " minutes ago",
         });
       }
 
       if (sensor.lastVoltageA) {
-        info.push({ label: "VoltageA: ", value: sensor.lastVoltageA });
+        info.push({
+          label: "VoltageA: ",
+          value: sensor.lastVoltageA.toString(),
+        });
       }
 
       if (sensor.lastVoltageB) {
-        info.push({ label: "VoltageB: ", value: sensor.lastVoltageB });
+        info.push({
+          label: "VoltageB: ",
+          value: sensor.lastVoltageB.toString(),
+        });
       }
 
       if (sensor.lastTemperature) {
-        info.push({ label: "Temperature: ", value: sensor.lastTemperature });
+        info.push({
+          label: "Temperature: ",
+          value: sensor.lastTemperature.toString(),
+        });
       }
 
       if (sensor.lastResistance) {
-        info.push({ label: "Resistance: ", value: sensor.lastResistance });
+        info.push({
+          label: "Resistance: ",
+          value: sensor.lastResistance.toString(),
+        });
       }
 
-      var statusClass = null;
-      if (sensor.level === levels.URGENT) {
-        statusClass = "urgent";
-      } else if (sensor.level === levels.WARN) {
-        statusClass = "warn";
-      } else if (sensor.level === levels.INFO) {
+      const statusClass =
         // Still highlight even the 'INFO' events for now
-        statusClass = "warn";
-      }
+        sensor.level === this.levels.WARN || sensor.level === this.levels.INFO
+          ? "warn"
+          : undefined;
 
-      sbx.pluginBase.updatePillText(sensorState, {
+      sbx.pluginBase.updatePillText(this, {
         value:
-          (sensor && sensor.lastStateStringShort) ||
-          (sensor && sensor.lastStateString) ||
-          "Unknown",
+          sensor?.lastStateStringShort || sensor?.lastStateString || "Unknown",
         label: "CGM",
         info: info,
         pillClass: statusClass,
       });
     }
-  };
-
-  function virtAsstGenericCGMHandler(translateItem, field, next, sbx) {
-    var response;
-    var state = _.get(sbx, "properties.sensorState." + field);
-    if (state) {
-      response = translate("virtAsstCGM" + translateItem, {
-        params: [
-          state,
-          moment(sbx.properties.sensorState.lastStateTime).from(
-            moment(sbx.time),
-          ),
-        ],
-      });
-    } else {
-      response = translate("virtAsstUnknown");
-    }
-
-    next(translate("virtAsstTitleCGM" + translateItem), response);
   }
 
-  sensorState.virtAsst = {
+  /**
+   * @param {RemovePrefix<
+   *   "virtAsstCGM",
+   *   Extract<TranslationKey, `virtAsstCGM${string}`>
+   * > &
+   *   RemovePrefix<
+   *     "virtAsstTitleCGM",
+   *     Extract<TranslationKey, `virtAsstTitleCGM${string}`>
+   *   >} translateItem
+   * @param {(
+   *   | KeysOfType<string | number, SensorStateProperties>
+   *   | KeysOfType<Level, SensorStateProperties>
+   * ) & {}} field
+   * @returns {VirtAsstIntentHandlerFn}
+   * @protected
+   */
+  makeVirtAsstGenericCGMHandler(translateItem, field) {
+    return (next, _slots, sbx) => {
+      let response;
+      const state = sbx.properties.sensorState?.[field];
+
+      if (state) {
+        response = this.translate(`virtAsstCGM${translateItem}`, {
+          params: [
+            state.toString(),
+            this.moment(sbx.properties.sensorState?.lastStateTime).from(
+              this.moment(sbx.time)
+            ),
+          ],
+        });
+      } else {
+        response = this.translate("virtAsstUnknown");
+      }
+
+      next(this.translate(`virtAsstTitleCGM${translateItem}`), response);
+    };
+  }
+
+  /** @satisfies {Plugin["virtAsst"]} */
+  virtAsst = {
     intentHandlers: [
       {
         intent: "MetricNow",
         metrics: ["cgm mode"],
-        intentHandler: function (next, slots, sbx) {
-          virtAsstGenericCGMHandler("Mode", "lastMode", next, sbx);
-        },
+        intentHandler: this.makeVirtAsstGenericCGMHandler("Mode", "lastMode"),
       },
       {
         intent: "MetricNow",
         metrics: ["cgm status"],
-        intentHandler: function (next, slots, sbx) {
-          virtAsstGenericCGMHandler("Status", "lastStateString", next, sbx);
-        },
+        intentHandler: this.makeVirtAsstGenericCGMHandler(
+          "Status",
+          "lastStateString"
+        ),
       },
       {
         intent: "MetricNow",
         metrics: ["cgm session age"],
-        intentHandler: function (next, slots, sbx) {
-          var response;
-          var lastSessionStart = _.get(
-            sbx,
-            "properties.sensorState.lastSessionStart",
-          );
+        intentHandler: (next, _slots, sbx) => {
+          const lastSessionStart = sbx.properties.sensorState?.lastSessionStart;
+
+          let response;
+
           // session start is only valid if in a session
           if (lastSessionStart) {
-            if (_.get(sbx, "properties.sensorState.lastState") != 0x1) {
-              var duration = moment.duration(
-                moment().diff(moment(lastSessionStart)),
+            if (sbx.properties.sensorState?.lastState !== 0x1) {
+              const duration = this.moment.duration(
+                this.moment().diff(this.moment(lastSessionStart))
               );
-              response = translate("virtAsstCGMSessAge", {
-                params: [duration.days(), duration.hours()],
+              response = this.translate("virtAsstCGMSessAge", {
+                params: [
+                  duration.days().toString(),
+                  duration.hours().toString(),
+                ],
               });
             } else {
-              response = translate("virtAsstCGMSessNotStarted");
+              response = this.translate("virtAsstCGMSessNotStarted");
             }
           } else {
-            response = translate("virtAsstUnknown");
+            response = this.translate("virtAsstUnknown");
           }
 
-          next(translate("virtAsstTitleCGMSessAge"), response);
+          // `virtAsstTitleCGMSessAge` is not a translation key,
+          // but `virtAsstTitleCGMSessionAge` and `virtAsstCGMSessAge` both are
+          next(this.translate("virtAsstTitleCGMSessAge"), response);
         },
       },
       {
         intent: "MetricNow",
         metrics: ["cgm tx status"],
-        intentHandler: function (next, slots, sbx) {
-          virtAsstGenericCGMHandler(
-            "TxStatus",
-            "lastTxStatusString",
-            next,
-            sbx,
-          );
-        },
+        intentHandler: this.makeVirtAsstGenericCGMHandler(
+          "TxStatus",
+          "lastTxStatusString"
+        ),
       },
       {
         intent: "MetricNow",
         metrics: ["cgm tx age"],
-        intentHandler: function (next, slots, sbx) {
-          var lastTxActivation = _.get(
-            sbx,
-            "properties.sensorState.lastTxActivation",
-          );
+        intentHandler: (next, _slots, sbx) => {
+          const lastTxActivation = sbx.properties.sensorState?.lastTxActivation;
+
           next(
-            translate("virtAsstTitleCGMTxAge"),
+            this.translate("virtAsstTitleCGMTxAge"),
             lastTxActivation
-              ? translate("virtAsstCGMTxAge", {
-                  params: [moment().diff(moment(lastTxActivation), "days")],
+              ? this.translate("virtAsstCGMTxAge", {
+                  params: [
+                    this.moment()
+                      .diff(this.moment(lastTxActivation), "days")
+                      .toString(),
+                  ],
                 })
-              : translate("virtAsstUnknown"),
+              : this.translate("virtAsstUnknown")
           );
         },
       },
       {
         intent: "MetricNow",
         metrics: ["cgm noise"],
-        intentHandler: function (next, slots, sbx) {
-          virtAsstGenericCGMHandler("Noise", "lastNoiseString", next, sbx);
-        },
+        intentHandler: this.makeVirtAsstGenericCGMHandler(
+          "Noise",
+          "lastNoiseString"
+        ),
       },
       {
         intent: "MetricNow",
         metrics: ["cgm battery"],
-        intentHandler: function (next, slots, sbx) {
-          var response;
-          var lastVoltageA = _.get(sbx, "properties.sensorState.lastVoltageA");
-          var lastVoltageB = _.get(sbx, "properties.sensorState.lastVoltageB");
-          var lastBatteryTimestamp = _.get(
-            sbx,
-            "properties.sensorState.lastBatteryTimestamp",
-          );
+        intentHandler: (next, _slots, sbx) => {
+          const lastVoltageA = sbx.properties.sensorState?.lastVoltageA;
+          const lastVoltageB = sbx.properties.sensorState?.lastVoltageB;
+          const lastBatteryTimestamp =
+            sbx.properties.sensorState?.lastBatteryTimestamp;
+
+          let response;
+
           if (lastVoltageA || lastVoltageB) {
             if (lastVoltageA && lastVoltageB) {
-              response = translate("virtAsstCGMBattTwo", {
+              response = this.translate("virtAsstCGMBattTwo", {
                 params: [
-                  lastVoltageA / 100,
-                  lastVoltageB / 100,
-                  moment(lastBatteryTimestamp).from(moment(sbx.time)),
+                  (lastVoltageA / 100).toString(),
+                  (lastVoltageB / 100).toString(),
+                  this.moment(lastBatteryTimestamp).from(this.moment(sbx.time)),
                 ],
               });
             } else {
-              var finalValue = lastVoltageA ? lastVoltageA : lastVoltageB;
-              response = translate("virtAsstCGMBattOne", {
+              // TODO types: typescript isn't smart enough to figure out this is definitely defined
+              const finalValue = lastVoltageA ? lastVoltageA : lastVoltageB;
+              response = this.translate("virtAsstCGMBattOne", {
                 params: [
-                  finalValue / 100,
-                  moment(lastBatteryTimestamp).from(moment(sbx.time)),
+                  ((finalValue ?? NaN) / 100).toString(),
+                  this.moment(lastBatteryTimestamp).from(this.moment(sbx.time)),
                 ],
               });
             }
           } else {
-            response = translate("virtAsstUnknown");
+            response = this.translate("virtAsstUnknown");
           }
 
-          next(translate("virtAsstTitleCGMBatt"), response);
+          next(this.translate("virtAsstTitleCGMBatt"), response);
         },
       },
     ],
   };
-
-  return sensorState;
 }
 
-module.exports = init;
+/** @param {PluginCtx} ctx */
+module.exports = (ctx) => new XDripJsPlugin(ctx);

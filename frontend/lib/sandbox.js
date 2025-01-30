@@ -44,6 +44,7 @@ const times = require("./times");
  *   runtimestate?: import("./plugins/runtimestate.js").RuntimeStateProperties;
  *   sage?: import("./plugins/sensorage.js").SAgeProperties;
  *   upbat?: import("./plugins/upbat.js").UpBatProperties;
+ *   sensorState?: import("./plugins/xdripjs.js").SensorStateProperties
  * }} SandboxProperties
  */
 

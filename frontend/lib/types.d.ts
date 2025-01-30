@@ -277,7 +277,34 @@ export type DeviceStatus = {
     RSSI?: number;
   };
   connect?: any;
-  xdripjs: any;
+  xdripjs?: {
+    timestamp?: number;
+    state: number;
+    stateString: string;
+    stateStringShort?: string;
+    sessionStart?: string;
+    txId?: string;
+    txStatus?: string;
+    txStatusString?: string;
+    txStatusStringShort?: string;
+    txActivation?: string;
+    mode?: string;
+    rssi?: number;
+    unfiltered?: number;
+    filtered?: number;
+    noise?: number;
+    noiseString?: number;
+    slope: number;
+    intercept: number;
+    calType?: string;
+    /** Maybe a Date, maybe a number? */
+    lastCalibrationDate?: string;
+    batteryTimestamp?: number;
+    temperature?: number;
+    resistance?: number;
+    voltagea?: number;
+    voltageb?: number;
+  };
   device: string;
   isCharging?: boolean;
   moment: Moment;
@@ -462,3 +489,12 @@ export type PluginByName<
   Plugins extends Plugin[],
   T extends PluginNames<Plugins>,
 > = FilterPluginsByName<Plugins, T>[keyof FilterPluginsByName<Plugins, T>];
+
+type RemovePrefix<
+  Prefix extends string,
+  Key extends string,
+> = Key extends `${Prefix}${infer Suffix}` ? Suffix : never;
+
+type KeysOfType<TType, TKeys> = {
+  [K in keyof TKeys]: TType extends TKeys[K]  ? K : never;
+}[keyof TKeys];
