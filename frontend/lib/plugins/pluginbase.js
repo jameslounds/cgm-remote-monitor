@@ -50,15 +50,18 @@ class PluginBase {
     }
 
     container.append(pill);
+
+    return pill;
   }
 
   /** @param {import("../types").Plugin} plugin */
   findOrCreatePill(plugin) {
     const container = this.#getContainerForPlugin(plugin);
 
-    const pill =
-      container.find(`span.pill.${plugin.name}`) ??
-      this.#createPill(container, plugin);
+    const foundPill = container.find(`span.pill.${plugin.name}`);
+    const pill = foundPill.length > 0
+      ? foundPill
+      : this.#createPill(container, plugin);
 
     const classes = "pill " + plugin.name;
     pill.attr("class", classes);
