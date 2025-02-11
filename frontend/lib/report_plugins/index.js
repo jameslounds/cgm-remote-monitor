@@ -59,7 +59,7 @@ function init(ctx) {
             .attr("id", p.name + "-placeholder")
             .addClass("tabplaceholder")
             .css("display", "none")
-            .append(p.html(client)),
+            .append(p.html(client))
         );
       }
       // add menu item
@@ -68,7 +68,7 @@ function init(ctx) {
           $("<li>")
             .attr("id", p.name)
             .addClass("menutab")
-            .append(client.translate(p.label)),
+            .append(client.translate(p.label))
         );
       }
       // add css

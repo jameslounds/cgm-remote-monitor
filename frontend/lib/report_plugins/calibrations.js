@@ -17,17 +17,21 @@ module.exports = init;
 calibrations.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Calibrations") +
-    "</h2>" +
-    '<div style="width:50%;height:500px;float:left;overflow:scroll;overflow-x:hidden;" id="calibrations-list"></div>' +
-    '<div style="width:48%;float:right;" id="calibrations-chart"></div>';
+    /* HTML */
+    `
+      <h2>${translate("Calibrations")}</h2>
+      <div
+        style="width:50%;height:500px;float:left;overflow:scroll;overflow-x:hidden;"
+        id="calibrations-list"
+      ></div>
+      <div style="width:48%;float:right;" id="calibrations-chart"></div>
+    `;
   return ret;
 };
 
 calibrations.report = function report_calibrations(
   datastorage,
-  sorteddaystoshow,
+  sorteddaystoshow
 ) {
   var Nightscout = window.Nightscout;
   var report_plugins = Nightscout.report_plugins;
@@ -44,7 +48,7 @@ calibrations.report = function report_calibrations(
           return true;
         }
         return false;
-      }),
+      })
     );
   });
 
@@ -98,43 +102,27 @@ calibrations.report = function report_calibrations(
 
     html += "<tr>";
     html +=
-      "<td>" +
-      report_plugins.utils.localeDateTime(new Date(e.mills)) +
-      '</td><td style="background-color:' +
-      currentcolor +
-      '">';
+      /* html */
+      `<td>${report_plugins.utils.localeDateTime(new Date(e.mills))}</td><td style="background-color:${currentcolor}">`;
     e.bgcolor = colors[colorindex];
     if (e.eventType) {
       html +=
-        '<b style="text-decoration: underline;padding-left:0em">' +
-        translate(e.eventType) +
-        "</b>:<br>";
+        /* html */
+        `<b style="text-decoration: underline;padding-left:0em">${translate(e.eventType)}</b>:<br>`;
     } else if (typeof e.device !== "undefined") {
       html +=
-        '<input type="checkbox" index="' +
-        i +
-        '" class="calibrations-checkbox" id="calibrations-' +
-        i +
-        '"> ';
+        /* html */
+        `<input type="checkbox" index="${i}" class="calibrations-checkbox" id="calibrations-${i}"> `;
       html +=
-        '<b style="padding-left:2em">MBG</b>: ' +
-        e.y +
-        " Raw: " +
-        e.raw +
-        "<br>";
+        /* html */
+        `<b style="padding-left:2em">MBG</b>: ${e.y} Raw: ${e.raw}<br>`;
       lastmbg = e;
       e.cals = [];
       e.checked = false;
     } else if (typeof e.scale !== "undefined") {
       html +=
-        '<b style="padding-left:4em">CAL</b>: ' +
-        " Scale: " +
-        e.scale.toFixed(2) +
-        " Intercept: " +
-        e.intercept.toFixed(0) +
-        " Slope: " +
-        e.slope.toFixed(2) +
-        "<br>";
+        /* html */
+        `<b style="padding-left:4em">CAL</b>:  Scale: ${e.scale.toFixed(2)} Intercept: ${e.intercept.toFixed(0)} Slope: ${e.slope.toFixed(2)}<br>`;
       if (lastmbg) {
         lastmbg.cals.push(e);
       }
@@ -235,7 +223,7 @@ calibrations.report = function report_calibrations(
       .select(".y")
       .attr(
         "transform",
-        "translate(" + /*chartWidth + */ padding.left + "," + padding.top + ")",
+        "translate(" + /*chartWidth + */ padding.left + "," + padding.top + ")"
       )
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
@@ -247,7 +235,7 @@ calibrations.report = function report_calibrations(
       .select(".x")
       .attr(
         "transform",
-        "translate(" + padding.left + "," + (chartHeight + padding.top) + ")",
+        "translate(" + padding.left + "," + (chartHeight + padding.top) + ")"
       )
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
@@ -265,7 +253,7 @@ calibrations.report = function report_calibrations(
           .attr("y2", yScale2(li) + padding.top)
           .style("stroke-dasharray", "3, 3")
           .attr("stroke", "grey");
-      },
+      }
     );
     [50, 100, 150, 200, 250, 300, 350, 400, 450, 500].forEach(function (li) {
       calibration_context
@@ -305,7 +293,7 @@ calibrations.report = function report_calibrations(
           "Last SGV too old for MBG. Time diff: " +
             ((mbg.mills - lastsgv.mills) / 1000 / 60).toFixed(1) +
             " min",
-          mbg,
+          mbg
         );
       } else {
         mbg.raw = lastsgv.filtered || lastsgv.unfiltered;

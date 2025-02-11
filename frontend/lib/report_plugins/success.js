@@ -17,14 +17,16 @@ module.exports = init;
 success.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Weekly Distribution") +
-    "</h2>" +
-    '<div id="success-grid"></div>';
+    /* HTML */
+    `
+      <h2>${translate("Weekly Distribution")}</h2>
+      <div id="success-grid"></div>
+    `;
   return ret;
 };
 
-success.css = `#success-placeholder td {
+success.css = /* CSS */ `
+  #success-placeholder td {
   	border: 1px #ccc solid;
   	margin: 0;
   	padding: 1px;
@@ -49,7 +51,7 @@ success.css = `#success-placeholder td {
 success.report = function report_success(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -78,13 +80,14 @@ success.report = function report_success(
 
   if (quarters === 0) {
     // insufficent data
-    grid.append(
-      "<p>" +
-        translate(
-          "There is not sufficient data to run this report. Select more days.",
-        ) +
-        "</p>",
-    );
+    grid.append(/* HTML */
+    `
+      <p>
+        ${translate(
+          "There is not sufficient data to run this report. Select more days."
+        )}
+      </p>
+    `);
     return;
   }
 
@@ -182,25 +185,21 @@ success.report = function report_success(
     }
   };
 
-  table.append(
-    "<thead><tr><th>" +
-      translate("Period") +
-      "</th><th>" +
-      translate("Low") +
-      "</th><th>" +
-      translate("In Range") +
-      "</th><th>" +
-      translate("High") +
-      "</th><th>" +
-      translate("Standard Deviation") +
-      "</th><th>" +
-      translate("Low Quartile") +
-      "</th><th>" +
-      translate("Average") +
-      "</th><th>" +
-      translate("Upper Quartile") +
-      "</th></tr></thead>",
-  );
+  table.append(/* HTML */
+  `
+    <thead>
+      <tr>
+        <th>${translate("Period")}</th>
+        <th>${translate("Low")}</th>
+        <th>${translate("In Range")}</th>
+        <th>${translate("High")}</th>
+        <th>${translate("Standard Deviation")}</th>
+        <th>${translate("Low Quartile")}</th>
+        <th>${translate("Average")}</th>
+        <th>${translate("Upper Quartile")}</th>
+      </tr>
+    </thead>
+  `);
   table.append(
     "<tbody>" +
       quarters
@@ -212,9 +211,7 @@ success.report = function report_success(
           return (
             "<tr>" +
             [
-              quarter.starting.toLocaleDateString() +
-                " - " +
-                quarter.ending.toLocaleDateString(),
+              `${quarter.starting.toLocaleDateString()} - ${quarter.ending.toLocaleDateString()}`,
               {
                 klass: lowComparison(quarter, averages, "percentLow"),
                 text: Math.round(quarter.percentLow) + "%",
@@ -224,7 +221,7 @@ success.report = function report_success(
                   quarter,
                   averages,
                   "percentInRange",
-                  INVERT,
+                  INVERT
                 ),
                 text: Math.round(quarter.percentInRange) + "%",
               },
@@ -254,9 +251,13 @@ success.report = function report_success(
             ]
               .map(function (v) {
                 if (typeof v === "object") {
-                  return '<td class="' + v.klass + '">' + v.text + "</td>";
+                  return /* HTML */ `
+                    <td class="${v.klass}">${v.text}</td>
+                  `;
                 } else {
-                  return "<td>" + v + "</td>";
+                  return /* HTML */ `
+                    <td>${v}</td>
+                  `;
                 }
               })
               .join("") +
@@ -264,7 +265,7 @@ success.report = function report_success(
           );
         })
         .join("") +
-      "</tbody>",
+      "</tbody>"
   );
   table.appendTo(grid);
 };

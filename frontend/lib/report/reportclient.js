@@ -57,11 +57,14 @@ var init = function init() {
     function fillFoodForm(event) {
       $("#rp_category")
         .empty()
-        .append('<option value="">' + translate("(none)") + "</option>");
+        .append(/* HTML */ `
+          <option value="">${translate("(none)")}</option>
+        `);
       Object.keys(food_categories).forEach(function eachCategory(s) {
-        $("#rp_category").append(
-          '<option value="' + s + '">' + s + "</option>",
-        );
+        $("#rp_category").append(/* HTML */
+        `
+          <option value="${s}">${s}</option>
+        `);
       });
       filter.category = "";
       fillFoodSubcategories();
@@ -78,14 +81,16 @@ var init = function init() {
       filter.subcategory = "";
       $("#rp_subcategory")
         .empty()
-        .append('<option value="">' + translate("(none)") + "</option>");
+        .append(/* HTML */ `
+          <option value="">${translate("(none)")}</option>
+        `);
       if (filter.category !== "") {
         Object.keys(food_categories[filter.category] || {}).forEach(
           function eachSubCategory(s) {
             $("#rp_subcategory").append(
-              '<option value="' + s + '">' + s + "</option>",
+              '<option value="' + s + '">' + s + "</option>"
             );
-          },
+          }
         );
       }
       doFoodFilter();
@@ -119,13 +124,10 @@ var init = function init() {
           continue;
         }
         var o = "";
-        o += food_list[i].name + " | ";
-        o += translate("Portion") + ": " + food_list[i].portion + " ";
-        o += food_list[i].unit + " | ";
-        o += translate("Carbs") + ": " + food_list[i].carbs + " g";
-        $("#rp_food").append(
-          '<option value="' + food_list[i]._id + '">' + o + "</option>",
-        );
+        o += `${food_list[i].name} | ${translate("Portion")}: ${food_list[i].portion} ${food_list[i].unit} | ${translate("Carbs")}: ${food_list[i].carbs} g`;
+        $("#rp_food").append(/* HTML */ `
+          <option value="${food_list[i]._id}">${o}</option>
+        `);
       }
 
       return maybePrevent(event);
@@ -194,26 +196,19 @@ var init = function init() {
       // fill careportal events
       $("#rp_eventtype").empty();
       _.each(client.careportal.events, function eachEvent(event) {
-        $("#rp_eventtype").append(
-          '<option value="' +
-            event.val +
-            '">' +
-            translate(event.name) +
-            "</option>",
-        );
+        $("#rp_eventtype").append(/* HTML */ `
+          <option value="${event.val}">${translate(event.name)}</option>
+        `);
       });
-      $("#rp_eventtype").append(
-        '<option value="sensor">' +
-          ">>> " +
-          translate("All sensor events") +
-          "</option>",
-      );
+      $("#rp_eventtype").append(/* HTML */ `
+        <option value="sensor">>>> ${translate("All sensor events")}</option>
+      `);
 
       $("#rp_targetlow").val(
-        targetBGdefault[client.settings.units.toLowerCase()].low,
+        targetBGdefault[client.settings.units.toLowerCase()].low
       );
       $("#rp_targethigh").val(
-        targetBGdefault[client.settings.units.toLowerCase()].high,
+        targetBGdefault[client.settings.units.toLowerCase()].high
       );
 
       if (client.settings.scaleY === "linear") {
@@ -269,10 +264,10 @@ var init = function init() {
         moment.tz("2000-01-01", zone).toISOString();
       //console.log(timerange,zone);
       options.targetLow = parseFloat(
-        $("#rp_targetlow").val().replace(",", "."),
+        $("#rp_targetlow").val().replace(",", ".")
       );
       options.targetHigh = parseFloat(
-        $("#rp_targethigh").val().replace(",", "."),
+        $("#rp_targethigh").val().replace(",", ".")
       );
       options.raw = $("#rp_optionsraw").is(":checked");
       options.iob = $("#rp_optionsiob").is(":checked");
@@ -280,7 +275,7 @@ var init = function init() {
       options.openAps = $("#rp_optionsopenaps").is(":checked");
       options.predicted = $("#rp_optionspredicted").is(":checked");
       options.predictedTruncate = $("#rp_optionsPredictedTruncate").is(
-        ":checked",
+        ":checked"
       );
       options.basal = $("#rp_optionsbasal").is(":checked");
       options.notes = $("#rp_optionsnotes").is(":checked");
@@ -336,7 +331,7 @@ var init = function init() {
             "TO",
             to.format(),
             "timerange",
-            timerange,
+            timerange
           );
           //console.log($('#rp_from').val(),$('#rp_to').val(),zone,timerange);
           while (from <= to) {
@@ -517,7 +512,7 @@ var init = function init() {
             loadData(d, options, dataLoadedCallback);
           } else {
             $("#info").append(
-              $("<div>" + d + " " + translate("not displayed") + ".</div>"),
+              $("<div>" + d + " " + translate("not displayed") + ".</div>")
             );
             delete daystoshow[d];
           }
@@ -582,12 +577,12 @@ var init = function init() {
               sorteddaystoshow.length,
               function loadProfilesCallback() {
                 $("#info > b").html(
-                  "<b>" + translate("Rendering") + " ...</b>",
+                  "<b>" + translate("Rendering") + " ...</b>"
                 );
                 window.setTimeout(function () {
                   showreports(options);
                 }, 0);
-              },
+              }
             );
           });
         }
@@ -607,7 +602,7 @@ var init = function init() {
       sorteddaystoshow.forEach(function eachDay(day) {
         if (!daystoshow[day].treatmentsonly) {
           datastorage.allstatsrecords = datastorage.allstatsrecords.concat(
-            datastorage[day].statsrecords,
+            datastorage[day].statsrecords
           );
           datastorage.alldays++;
         }
@@ -622,23 +617,23 @@ var init = function init() {
       datastorage.tempbasalTreatments = [];
       Object.keys(daystoshow).forEach(function eachDay(day) {
         datastorage.treatments = datastorage.treatments.concat(
-          datastorage[day].treatments,
+          datastorage[day].treatments
         );
         datastorage.devicestatus = datastorage.devicestatus.concat(
-          datastorage[day].devicestatus,
+          datastorage[day].devicestatus
         );
         datastorage.combobolusTreatments =
           datastorage.combobolusTreatments.concat(
-            datastorage[day].combobolusTreatments,
+            datastorage[day].combobolusTreatments
           );
         datastorage.tempbasalTreatments =
           datastorage.tempbasalTreatments.concat(
-            datastorage[day].tempbasalTreatments,
+            datastorage[day].tempbasalTreatments
           );
       });
       datastorage.tempbasalTreatments =
         Nightscout.client.ddata.processDurations(
-          datastorage.tempbasalTreatments,
+          datastorage.tempbasalTreatments
         );
       datastorage.treatments.sort(function sort(a, b) {
         return a.mills - b.mills;
@@ -699,7 +694,7 @@ var init = function init() {
       $("#rp_from").val(
         moment()
           .add(-days + 1, "days")
-          .format("YYYY-MM-DD"),
+          .format("YYYY-MM-DD")
       );
       return maybePrevent(event);
     }
@@ -753,7 +748,7 @@ var init = function init() {
           return $.Deferred().resolve();
         }
         $("#info-" + day).html(
-          "<b>" + translate("Loading CGM data of") + " " + day + " ...</b>",
+          "<b>" + translate("Loading CGM data of") + " " + day + " ...</b>"
         );
         var query =
           "?find[date][$gte]=" +
@@ -830,7 +825,7 @@ var init = function init() {
             translate("Loading treatments data of") +
             " " +
             day +
-            " ...</b>",
+            " ...</b>"
         );
         var tquery =
           "?find[created_at][$gte]=" +
@@ -844,7 +839,7 @@ var init = function init() {
           success: function (xhr) {
             treatmentData = xhr.map(function (treatment) {
               var timestamp = new Date(
-                treatment.timestamp || treatment.created_at,
+                treatment.timestamp || treatment.created_at
               );
               treatment.mills = timestamp.getTime();
               return treatment;
@@ -857,19 +852,19 @@ var init = function init() {
             data.combobolusTreatments = data.treatments.filter(
               function filterComboBoluses(t) {
                 return t.eventType === "Combo Bolus";
-              },
+              }
             );
             // filter temp basal treatments
             data.tempbasalTreatments = data.treatments.filter(
               function filterTempBasals(t) {
                 return t.eventType === "Temp Basal";
-              },
+              }
             );
             // filter profile switch treatments
             var profileSwitch = data.treatments.filter(
               function filterProfileSwitch(t) {
                 return t.eventType === "Profile Switch";
-              },
+              }
             );
             datastorage.profileSwitchTreatments =
               datastorage.profileSwitchTreatments.concat(profileSwitch);
@@ -893,7 +888,7 @@ var init = function init() {
               translate("Loading device status data of") +
               " " +
               day +
-              " ...</b>",
+              " ...</b>"
           );
           var tquery =
             "?find[created_at][$gte]=" +
@@ -906,7 +901,7 @@ var init = function init() {
             success: function (xhr) {
               data.devicestatus = xhr.map(function (devicestatus) {
                 devicestatus.mills = new Date(
-                  devicestatus.timestamp || devicestatus.created_at,
+                  devicestatus.timestamp || devicestatus.created_at
                 ).getTime();
                 return devicestatus;
               });
@@ -921,16 +916,16 @@ var init = function init() {
       $.when(loadCGMData(), loadTreatmentData(), loadDevicestatusData()).done(
         function () {
           $("#info-" + day).html(
-            "<b>" + translate("Processing data of") + " " + day + " ...</b>",
+            "<b>" + translate("Processing data of") + " " + day + " ...</b>"
           );
           processData(data, day, options, callback);
-        },
+        }
       );
     }
 
     function loadProfileSwitch(from, callback) {
       $("#info > b").html(
-        "<b>" + translate("Loading profile switch data") + " ...</b>",
+        "<b>" + translate("Loading profile switch data") + " ...</b>"
       );
       var tquery =
         "?find[eventType]=Profile Switch" +
@@ -942,7 +937,7 @@ var init = function init() {
         success: function (xhr) {
           var treatmentData = xhr.map(function (treatment) {
             var timestamp = new Date(
-              treatment.timestamp || treatment.created_at,
+              treatment.timestamp || treatment.created_at
             );
             treatment.mills = timestamp.getTime();
             return treatment;
@@ -962,13 +957,13 @@ var init = function init() {
 
     function loadProfilesRange(dateFrom, dateTo, dayCount, callback) {
       $("#info > b").html(
-        "<b>" + translate("Loading profile range") + " ...</b>",
+        "<b>" + translate("Loading profile range") + " ...</b>"
       );
 
       $.when(
         loadProfilesRangeCore(dateFrom, dateTo, dayCount),
         loadProfilesRangePrevious(dateFrom),
-        loadProfilesRangeNext(dateTo),
+        loadProfilesRangeNext(dateTo)
       )
         .done(callback)
         .fail(function () {
@@ -978,7 +973,7 @@ var init = function init() {
 
     function loadProfilesRangeCore(dateFrom, dateTo) {
       $("#info > b").html(
-        "<b>" + translate("Loading core profiles") + " ...</b>",
+        "<b>" + translate("Loading core profiles") + " ...</b>"
       );
 
       //The results must be returned in descending order to work with key logic in routines such as getCurrentProfile
@@ -1000,7 +995,7 @@ var init = function init() {
 
     function loadProfilesRangePrevious(dateFrom) {
       $("#info > b").html(
-        "<b>" + translate("Loading previous profile") + " ...</b>",
+        "<b>" + translate("Loading previous profile") + " ...</b>"
       );
 
       //Find first one before the start date and add to datastorage.profiles
@@ -1022,7 +1017,7 @@ var init = function init() {
 
     function loadProfilesRangeNext(dateTo) {
       $("#info > b").html(
-        "<b>" + translate("Loading next profile") + " ...</b>",
+        "<b>" + translate("Loading next profile") + " ...</b>"
       );
 
       //Find first one after the end date and add to datastorage.profiles
@@ -1125,7 +1120,7 @@ var init = function init() {
             type: "mbg",
             device: obj.device,
           };
-        }),
+        })
       );
 
       // make sure data range will be exactly 24h

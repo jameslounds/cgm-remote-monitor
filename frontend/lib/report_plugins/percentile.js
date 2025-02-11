@@ -15,25 +15,26 @@ module.exports = init;
 percentile.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Glucose Percentile report") +
-    " (" +
-    '<span id="percentile-days"></span>' +
-    ")" +
-    "</h2>" +
-    '<div style="height:500px;">' +
-    '  <div class="chart" id="percentile-chart"></div>' +
-    "</div>";
+    /* HTML */
+    `
+      <h2>
+        ${translate("Glucose Percentile report")} (
+        <span id="percentile-days"></span>
+        )
+      </h2>
+      <div style="height:500px;">
+        <div class="chart" id="percentile-chart"></div>
+      </div>
+    `;
   return ret;
 };
 
-percentile.css =
-  "#percentile-chart {" + "  width: 100%;" + "  height: 100%;" + "}";
+percentile.css = /* CSS */ `#percentile-chart {  width: 100%;  height: 100%;}`;
 
 percentile.report = function report_percentile(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -56,19 +57,13 @@ percentile.report = function report_percentile(
 
   var reportPlugins = Nightscout.report_plugins;
   var firstDay = reportPlugins.utils.localeDate(
-    sorteddaystoshow[sorteddaystoshow.length - 1],
+    sorteddaystoshow[sorteddaystoshow.length - 1]
   );
   var lastDay = reportPlugins.utils.localeDate(sorteddaystoshow[0]);
   var countDays = sorteddaystoshow.length;
 
   $("#percentile-days").text(
-    countDays +
-      " " +
-      translate("days total") +
-      ", " +
-      firstDay +
-      " - " +
-      lastDay,
+    `${countDays} ${translate("days total")}, ${firstDay} - ${lastDay}`
   );
 
   for (var hour = 0; hour < 24; hour++) {
@@ -217,6 +212,6 @@ percentile.report = function report_percentile(
         ],
         //hoverable: true
       },
-    },
+    }
   );
 };

@@ -24,30 +24,27 @@ function init(ctx) {
   weektoweek.html = function html(client) {
     var translate = client.translate;
     var ret =
-      "<h2>" +
-      translate("Week to week") +
-      "</h2>" +
-      "<b>" +
-      translate("To see this report, press SHOW while in this view") +
-      "</b><br>" +
-      "&nbsp;" +
-      translate("Size") +
-      ' <select id="wrp_size">' +
-      '  <option x="800" y="250">800x250px</option>' +
-      '  <option x="1000" y="300" selected>1000x300px</option>' +
-      '  <option x="1200" y="400">1200x400px</option>' +
-      '  <option x="1550" y="600">1550x600px</option>' +
-      "</select>" +
-      "<br>" +
-      translate("Scale") +
-      ": " +
-      '<input type="radio" name="wrp_scale" id="wrp_linear" checked>' +
-      translate("Linear") +
-      '<input type="radio" name="wrp_scale" id="wrp_log">' +
-      translate("Logarithmic") +
-      "<br>" +
-      '<div id="weektoweekcharts">' +
-      "</div>";
+      /* HTML */
+      `
+        <h2>${translate("Week to week")}</h2>
+        <b>${translate("To see this report, press SHOW while in this view")}</b>
+        <br />
+        &nbsp;${translate("Size")}
+        <select id="wrp_size">
+          <option x="800" y="250">800x250px</option>
+          <option x="1000" y="300" selected>1000x300px</option>
+          <option x="1200" y="400">1200x400px</option>
+          <option x="1550" y="600">1550x600px</option>
+        </select>
+        <br />
+        ${translate("Scale")}:
+        <input type="radio" name="wrp_scale" id="wrp_linear" checked />
+        ${translate("Linear")}
+        <input type="radio" name="wrp_scale" id="wrp_log" />
+        ${translate("Logarithmic")}
+        <br />
+        <div id="weektoweekcharts"></div>
+      `;
     return ret;
   };
 
@@ -58,67 +55,68 @@ function init(ctx) {
 
     var colorIdx = 0;
 
-    var legend = "<table>";
-
-    legend +=
-      '<tr><td><svg width="16" height="16"><g><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Sunday") +
-      "</td>";
-    legend +=
-      '<td><svg width="16" height="16"><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Monday") +
-      "</td>";
-    legend +=
-      '<td><svg width="16" height="16"><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Tuesday") +
-      "</td>";
-    legend +=
-      '<td><svg width="16" height="16"><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Wednesday") +
-      "</td></tr>";
-    legend +=
-      '<tr><td><svg width="16" height="16"><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Thursday") +
-      "</td>";
-    legend +=
-      '<td><svg width="16" height="16"><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Friday") +
-      "</td>";
-    legend +=
-      '<td><svg width="16" height="16"><circle fill="' +
-      dayColors[colorIdx++] +
-      '" r="40"></circle></g></svg></td><td>' +
-      translate("Saturday") +
-      "</td></tr>";
-    legend += "</table>";
+    var legend = /* HTML */ `
+      <table>
+        <tr>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Sunday")}</td>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Monday")}</td>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Tuesday")}</td>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Wednesday")}</td>
+        </tr>
+        <tr>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Thursday")}</td>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Friday")}</td>
+          <td>
+            <svg width="16" height="16">
+              <g><circle fill="${dayColors[colorIdx++]}" r="40"></circle></g>
+            </svg>
+          </td>
+          <td>${translate("Saturday")}</td>
+        </tr>
+      </table>
+    `;
 
     $("#weektoweekcharts").append($(legend));
 
     weekstoshow.forEach(function eachWeek(d) {
       $("#weektoweekcharts").append(
         $(
-          '<table><tr><td><div id="weektoweekchart-' +
-            d[0] +
-            "-" +
-            d[d.length - 1] +
-            '"></div></td><td><div id="weektoweekstatchart-' +
-            d[0] +
-            "-" +
-            d[d.length - 1] +
-            '"></td></tr></table>',
-        ),
+          /* HTML */
+          `<table><tr>
+          <td><div id="weektoweekchart-${d[0]}-${d[d.length - 1]}"></div></td>
+          <td><div id="weektoweekstatchart-${d[0]}-${d[d.length - 1]}"></td>
+          </tr></table>`
+        )
       );
     });
   };
@@ -126,7 +124,7 @@ function init(ctx) {
   weektoweek.report = function report_weektoweek(
     datastorage,
     sorteddaystoshow,
-    options,
+    options
   ) {
     var Nightscout = window.Nightscout;
     var client = Nightscout.client;
@@ -160,7 +158,7 @@ function init(ctx) {
 
       week.forEach(function eachDay(day) {
         var dayNum = Math.abs(
-          moment(day + " 00:00:00").diff(weekStart, "days"),
+          moment(day + " 00:00:00").diff(weekStart, "days")
         );
 
         datastorage[day].sgv.forEach(function eachSgv(sgv) {
@@ -273,7 +271,7 @@ function init(ctx) {
             report_plugins.utils.localeDate(week[0]) +
             "-" +
             report_plugins.utils.localeDate(week[week.length - 1]) +
-            "</b><br>",
+            "</b><br>"
         )
         .append("svg");
 
@@ -329,7 +327,7 @@ function init(ctx) {
         .attr("width", xScale2(dataRange[1] - xScale2(dataRange[0])))
         .attr(
           "height",
-          yScale2(options.targetLow) - yScale2(options.targetHigh),
+          yScale2(options.targetLow) - yScale2(options.targetHigh)
         )
         .style("fill", "#D6FFD6")
         .attr("stroke", "grey");
@@ -344,7 +342,7 @@ function init(ctx) {
         .select(".y")
         .attr(
           "transform",
-          "translate(" + padding.left + "," + padding.top + ")",
+          "translate(" + padding.left + "," + padding.top + ")"
         )
         .style("stroke", "black")
         .style("shape-rendering", "crispEdges")
@@ -356,7 +354,7 @@ function init(ctx) {
         .select(".x")
         .attr(
           "transform",
-          "translate(" + padding.left + "," + (chartHeight + padding.top) + ")",
+          "translate(" + padding.left + "," + (chartHeight + padding.top) + ")"
         )
         .style("stroke", "black")
         .style("shape-rendering", "crispEdges")

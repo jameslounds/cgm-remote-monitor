@@ -21,72 +21,45 @@ daytoday.html = function html(client) {
   const reportStorage = require("../report/reportstorage");
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Day to day") +
-    "</h2>" +
-    "<b>" +
-    translate("To see this report, press SHOW while in this view") +
-    "</b><br>" +
-    translate("Display") +
-    ": " +
-    `<label><input type="checkbox" id="rp_optionsinsulin" ${reportStorage.getValue("insulin") ? "checked" : ""}><span style="color:blue;opacity:0.5"> ${translate("Insulin")} </span></label>` +
-    `<label><input type="checkbox" id="rp_optionscarbs" ${reportStorage.getValue("carbs") ? "checked" : ""}><span style="color:red;opacity:0.5">${translate("Carbs")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsbasal" ${reportStorage.getValue("basal") ? "checked" : ""}><span style="color:#0099ff;opacity:0.5">${translate("Basal rate")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsnotes" ${reportStorage.getValue("notes") ? "checked" : ""}>${translate("Notes")}</label>` +
-    `<label><input type="checkbox" id="rp_optionsfood" ${reportStorage.getValue("food") ? "checked" : ""}>${translate("Food")}</label>` +
-    `<label><input type="checkbox" id="rp_optionsraw" ${reportStorage.getValue("raw") ? "checked" : ""}><span style="color:gray;opacity:1">${translate("Raw")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsiob" ${reportStorage.getValue("iob") ? "checked" : ""}><span style="color:blue;opacity:0.5">${translate("IOB")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionscob" ${reportStorage.getValue("cob") ? "checked" : ""}><span style="color:red;opacity:0.5">${translate("COB")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionspredicted" ${reportStorage.getValue("predicted") ? "checked" : ""}><span style="color:sienna;opacity:0.5">${translate("Predictions")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsopenaps" ${reportStorage.getValue("openAps") ? "checked" : ""}><span style="color:sienna;opacity:0.5">${translate("OpenAPS")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsdistribution" ${reportStorage.getValue("insulindistribution") ? "checked" : ""}><span style="color:blue;opacity:0.5">${translate("Insulin distribution")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsbgcheck" ${reportStorage.getValue("bgcheck") ? "checked" : ""}><span style="color:#ff0000;opacity:0.5">${translate("BG Check")}</span></label>` +
-    `<label><input type="checkbox" id="rp_optionsothertreatments" ${reportStorage.getValue("othertreatments") ? "checked" : ""}>${translate("View all treatments")}</span></label>` +
-    "&nbsp;" +
-    translate("Size") +
-    ' <select id="rp_size">' +
-    '  <option x="800" y="250">800x250px</option>' +
-    '  <option x="1000" y="300" selected>1000x300px</option>' +
-    '  <option x="1200" y="400">1200x400px</option>' +
-    '  <option x="1550" y="600">1550x600px</option>' +
-    '  <option x="2400" y="800">2400x800px</option>' +
-    "</select>" +
-    "<br>" +
-    translate("Scale") +
-    ": " +
-    '<label><input type="radio" name="rp_scale" id="rp_linear" checked>' +
-    translate("Linear") +
-    "</label>" +
-    '<label><input type="radio" name="rp_scale" id="rp_log">' +
-    translate("Logarithmic") +
-    "</label>" +
-    `<div id="rp_predictedSettings" ${reportStorage.getValue("predicted") ? "" : 'style="display:none"'}>` +
-    translate("Truncate predictions: ") +
-    `<input type="checkbox" id="rp_optionsPredictedTruncate" ${reportStorage.getValue("predictedTruncate") ? "checked" : ""}>` +
-    "<br>" +
-    translate("Predictions offset") +
-    ": " +
-    '<b><label id="rp_predictedOffset"></label> minutes</b>' +
-    "&nbsp;&nbsp;&nbsp;&nbsp;" +
-    '<input type="button" onclick="Nightscout.predictions.moreBackward();" value="' +
-    translate("-30 min") +
-    '">' +
-    '<input type="button" onclick="Nightscout.predictions.backward();" value="' +
-    translate("-5 min") +
-    '">' +
-    '<input type="button" onclick="Nightscout.predictions.reset();" value="' +
-    translate("Zero") +
-    '">' +
-    '<input type="button" onclick="Nightscout.predictions.forward();" value="' +
-    translate("+5 min") +
-    '">' +
-    '<input type="button" onclick="Nightscout.predictions.moreForward();" value="' +
-    translate("+30 min") +
-    '">' +
-    "</div>" +
-    "<br>" +
-    '<div id="daytodaycharts">' +
-    "</div>";
+    /* HTML */
+    `<h2>${translate("Day to day")}</h2>
+    <b>${translate("To see this report, press SHOW while in this view")}</b><br>
+    ${translate("Display")}:
+    <label><input type="checkbox" id="rp_optionsinsulin" ${reportStorage.getValue("insulin") ? "checked" : ""}><span style="color:blue;opacity:0.5"> ${translate("Insulin")} </span></label>
+    <label><input type="checkbox" id="rp_optionscarbs" ${reportStorage.getValue("carbs") ? "checked" : ""}><span style="color:red;opacity:0.5">${translate("Carbs")}</span></label>
+    <label><input type="checkbox" id="rp_optionsbasal" ${reportStorage.getValue("basal") ? "checked" : ""}><span style="color:#0099ff;opacity:0.5">${translate("Basal rate")}</span></label>
+    <label><input type="checkbox" id="rp_optionsnotes" ${reportStorage.getValue("notes") ? "checked" : ""}>${translate("Notes")}</label>
+    <label><input type="checkbox" id="rp_optionsfood" ${reportStorage.getValue("food") ? "checked" : ""}>${translate("Food")}</label>
+    <label><input type="checkbox" id="rp_optionsraw" ${reportStorage.getValue("raw") ? "checked" : ""}><span style="color:gray;opacity:1">${translate("Raw")}</span></label>
+    <label><input type="checkbox" id="rp_optionsiob" ${reportStorage.getValue("iob") ? "checked" : ""}><span style="color:blue;opacity:0.5">${translate("IOB")}</span></label>
+    <label><input type="checkbox" id="rp_optionscob" ${reportStorage.getValue("cob") ? "checked" : ""}><span style="color:red;opacity:0.5">${translate("COB")}</span></label>
+    <label><input type="checkbox" id="rp_optionspredicted" ${reportStorage.getValue("predicted") ? "checked" : ""}><span style="color:sienna;opacity:0.5">${translate("Predictions")}</span></label>
+    <label><input type="checkbox" id="rp_optionsopenaps" ${reportStorage.getValue("openAps") ? "checked" : ""}><span style="color:sienna;opacity:0.5">${translate("OpenAPS")}</span></label>
+    <label><input type="checkbox" id="rp_optionsdistribution" ${reportStorage.getValue("insulindistribution") ? "checked" : ""}><span style="color:blue;opacity:0.5">${translate("Insulin distribution")}</span></label>
+    <label><input type="checkbox" id="rp_optionsbgcheck" ${reportStorage.getValue("bgcheck") ? "checked" : ""}><span style="color:#ff0000;opacity:0.5">${translate("BG Check")}</span></label>
+    <label><input type="checkbox" id="rp_optionsothertreatments" ${reportStorage.getValue("othertreatments") ? "checked" : ""}>${translate("View all treatments")}</span></label>&nbsp;
+    ${translate("Size")}
+    <select id="rp_size">
+      <option x="800" y="250">800x250px</option>
+      <option x="1000" y="300" selected>1000x300px</option>
+      <option x="1200" y="400">1200x400px</option>
+      <option x="1550" y="600">1550x600px</option>
+      <option x="2400" y="800">2400x800px</option>
+    </select><br>
+    ${translate("Scale")}:
+    <label><input type="radio" name="rp_scale" id="rp_linear" checked>${translate("Linear")}</label>
+    <label><input type="radio" name="rp_scale" id="rp_log">${translate("Logarithmic")}</label>
+    <div id="rp_predictedSettings" ${reportStorage.getValue("predicted") ? "" : 'style="display:none"'}>
+      ${translate("Truncate predictions: ")}<input type="checkbox" id="rp_optionsPredictedTruncate" ${reportStorage.getValue("predictedTruncate") ? "checked" : ""}><br>
+      ${translate("Predictions offset")}:
+      <b><label id="rp_predictedOffset"></label> minutes</b>&nbsp;&nbsp;&nbsp;&nbsp;
+      <input type="button" onclick="Nightscout.predictions.moreBackward();" value="${translate("-30 min")}">
+      <input type="button" onclick="Nightscout.predictions.backward();" value="${translate("-5 min")}">
+      <input type="button" onclick="Nightscout.predictions.reset();" value="${translate("Zero")}">
+      <input type="button" onclick="Nightscout.predictions.forward();" value="${translate("+5 min")}">
+      <input type="button" onclick="Nightscout.predictions.moreForward();" value="${translate("+30 min")}">
+    </div><br>
+    <div id="daytodaycharts"></div>`;
   return ret;
 };
 
@@ -95,12 +68,9 @@ daytoday.prepareHtml = function daytodayPrepareHtml(sorteddaystoshow) {
   sorteddaystoshow.forEach(function eachDay(d) {
     $("#daytodaycharts").append(
       $(
-        '<table><tr><td><div id="daytodaychart-' +
-          d +
-          '"></div></td><td><div id="daytodaystatchart-' +
-          d +
-          '"></td></tr></table>',
-      ),
+        /* HTML */
+        `<table><tr><td><div id="daytodaychart-${d}"></div></td><td><div id="daytodaystatchart-${d}"></td></tr></table>`
+      )
     );
   });
 };
@@ -108,7 +78,7 @@ daytoday.prepareHtml = function daytodayPrepareHtml(sorteddaystoshow) {
 daytoday.report = function report_daytoday(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -135,13 +105,13 @@ daytoday.report = function report_daytoday(
 
   var tddAverage = tddSum / datastorage.alldays;
   var basalAveragePercent = Math.round(
-    (basalSum / datastorage.alldays / tddAverage) * 100,
+    (basalSum / datastorage.alldays / tddAverage) * 100
   );
   var baseBasalAveragePercent = Math.round(
-    (baseBasalSum / datastorage.alldays / tddAverage) * 100,
+    (baseBasalSum / datastorage.alldays / tddAverage) * 100
   );
   var bolusAveragePercent = Math.round(
-    (bolusSum / datastorage.alldays / tddAverage) * 100,
+    (bolusSum / datastorage.alldays / tddAverage) * 100
   );
   var carbsAverage = carbsSum / datastorage.alldays;
   var proteinAverage = proteinSum / datastorage.alldays;
@@ -149,43 +119,27 @@ daytoday.report = function report_daytoday(
 
   if (options.insulindistribution) {
     var html =
-      "<br><br><b>" +
-      translate("TDD average") +
-      ":</b> " +
-      tddAverage.toFixed(1) +
-      "U&nbsp; ";
-    html +=
-      "<b>" +
-      translate("Bolus average") +
-      ":</b> " +
-      bolusAveragePercent +
-      "%&nbsp; ";
-    html +=
-      "<b>" +
-      translate("Basal average") +
-      ":</b> " +
-      basalAveragePercent +
-      "%&nbsp; ";
-    html +=
-      "<b>(" +
-      translate("Base basal average:") +
-      "</b> " +
-      baseBasalAveragePercent +
-      "%<b>)</b>&nbsp; ";
-    html +=
-      "<b>" +
-      translate("Carbs average") +
-      ":</b> " +
-      carbsAverage.toFixed(0) +
-      "g";
-    html +=
-      "<b>" +
-      translate("Protein average") +
-      ":</b> " +
-      proteinAverage.toFixed(0) +
-      "g";
-    html +=
-      "<b>" + translate("Fat average") + ":</b> " + fatAverage.toFixed(0) + "g";
+      /* HTML */
+      `
+        <br />
+        <br />
+        <b>${translate("TDD average")}:</b>
+        ${tddAverage.toFixed(1)}U&nbsp;
+        <b>${translate("Bolus average")}:</b>
+        ${bolusAveragePercent}%&nbsp;
+        <b>${translate("Basal average")}:</b>
+        ${basalAveragePercent}%&nbsp;
+        <b>(${translate("Base basal average:")}</b>
+        ${baseBasalAveragePercent}%
+        <b>)</b>
+        &nbsp;
+        <b>${translate("Carbs average")}:</b>
+        ${carbsAverage.toFixed(0)}g
+        <b>${translate("Protein average")}:</b>
+        ${proteinAverage.toFixed(0)}g
+        <b>${translate("Fat average")}:</b>
+        ${fatAverage.toFixed(0)}g
+      `;
     $("#daytodaycharts").append(html);
   }
 
@@ -363,7 +317,7 @@ daytoday.report = function report_daytoday(
       .select(".x")
       .attr(
         "transform",
-        "translate(" + padding.left + "," + (chartHeight + padding.top) + ")",
+        "translate(" + padding.left + "," + (chartHeight + padding.top) + ")"
       )
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
@@ -518,7 +472,7 @@ daytoday.report = function report_daytoday(
           var predictedIndex = findPredicted(
             predictions,
             timestamp,
-            Nightscout.predictions.offset,
+            Nightscout.predictions.offset
           ); // Find predictions offset before or after timestamp
 
           if (predictedIndex != null) {
@@ -628,7 +582,7 @@ daytoday.report = function report_daytoday(
     profile.updateTreatments(
       datastorage.profileSwitchTreatments,
       datastorage.tempbasalTreatments,
-      datastorage.combobolusTreatments,
+      datastorage.combobolusTreatments
     );
 
     var bolusInsulin = 0;
@@ -649,11 +603,11 @@ daytoday.report = function report_daytoday(
       (yCarbsScale(0) + padding.top) +
       " ";
     var timestart = new Date();
-    var cobStatusAvailable = client
-      .plugins.byName("cob")
+    var cobStatusAvailable = client.plugins
+      .byName("cob")
       .isDeviceStatusAvailable(datastorage.devicestatus);
-    var iobStatusAvailable = client
-      .plugins.byName("iob")
+    var iobStatusAvailable = client.plugins
+      .byName("iob")
       .isDeviceStatusAvailable(datastorage.devicestatus);
 
     console.log("Device COB status available: ", cobStatusAvailable);
@@ -661,13 +615,13 @@ daytoday.report = function report_daytoday(
 
     for (var dt = moment(from); dt < to; dt.add(5, "minutes")) {
       if (options.iob && !iobStatusAvailable) {
-        var iob = client
-          .plugins.byName("iob")
+        var iob = client.plugins
+          .byName("iob")
           .calcTotal(
             datastorage.treatments,
             datastorage.devicestatus,
             profile,
-            dt.toDate(),
+            dt.toDate()
           ).iob;
         // make the graph discontinuous when data is missing
         if (iob === undefined) {
@@ -699,13 +653,13 @@ daytoday.report = function report_daytoday(
         lastIOB = iob;
       }
       if (options.cob && !cobStatusAvailable) {
-        var cob = client
-          .plugins.byName("cob")
+        var cob = client.plugins
+          .byName("cob")
           .cobTotal(
             datastorage.treatments,
             datastorage.devicestatus,
             profile,
-            dt.toDate(),
+            dt.toDate()
           ).cob;
         if (!dt.isSame(from)) {
           cobpolyline += ", ";
@@ -761,12 +715,12 @@ daytoday.report = function report_daytoday(
     if (cobStatusAvailable) {
       var lastdate = 0;
       var previousdate = 0;
-      var cobArray = client
-        .plugins.byName("cob")
+      var cobArray = client.plugins
+        .byName("cob")
         .COBDeviceStatusesInTimeRange(
           datastorage.devicestatus,
           from.valueOf(),
-          to.valueOf(),
+          to.valueOf()
         );
       _.each(cobArray, function drawCob(point) {
         if (
@@ -815,12 +769,12 @@ daytoday.report = function report_daytoday(
     if (iobStatusAvailable) {
       lastdate = 0;
       previousdate = 0;
-      var iobArray = client
-        .plugins.byName("iob")
+      var iobArray = client.plugins
+        .byName("iob")
         .IOBDeviceStatusesInTimeRange(
           datastorage.devicestatus,
           from.valueOf(),
-          to.valueOf(),
+          to.valueOf()
         );
       _.each(iobArray, function drawCob(point) {
         if (
@@ -898,19 +852,19 @@ daytoday.report = function report_daytoday(
         basalMax,
         d3.max(basalareadata, function (d) {
           return d.b;
-        }),
+        })
       );
       basalMax = Math.max(
         basalMax,
         d3.max(tempbasalareadata, function (d) {
           return d.b;
-        }),
+        })
       );
       basalMax = Math.max(
         basalMax,
         d3.max(comboareadata, function (d) {
           return d.b;
-        }),
+        })
       );
 
       yScaleBasals.domain([basalMax, 0]);
@@ -999,10 +953,10 @@ daytoday.report = function report_daytoday(
                 (Math.max(t.mills, from.format("x")) +
                   Math.min(
                     t.mills + times.mins(t.duration).msecs,
-                    to.format("x"),
+                    to.format("x")
                   )) /
-                  2,
-              ) + padding.left,
+                  2
+              ) + padding.left
             )
             .attr("y", yScaleBasals(0) - 10 + padding.top);
           //            .text((t.percent ? (t.percent > 0 ? '+' : '') + t.percent + '%' : '') + (t.absolute ? Number(t.absolute).toFixed(2) + 'U' : ''));
@@ -1062,7 +1016,7 @@ daytoday.report = function report_daytoday(
                   (xScale2(treatment.mills) + padding.left) +
                   "," +
                   padding.top +
-                  ")",
+                  ")"
               )
               .html(text);
             foodtexts = (foodtexts + 1) % 6;
@@ -1086,7 +1040,7 @@ daytoday.report = function report_daytoday(
                 (xScale2(treatment.mills) + padding.left) +
                 "," +
                 padding.top +
-                ")",
+                ")"
             )
             .html(treatment.notes);
           foodtexts = (foodtexts + 1) % 6;
@@ -1105,7 +1059,7 @@ daytoday.report = function report_daytoday(
                 ? yCarbsScale(treatment.carbs)
                 : treatment.insulin
                   ? yInsulinScale(treatment.insulin)
-                  : chartHeight,
+                  : chartHeight
             )
             .style("stroke-dasharray", "1, 7")
             .attr("stroke", "grey");
@@ -1135,7 +1089,7 @@ daytoday.report = function report_daytoday(
               (xScale2(treatment.mills) + padding.left) +
               "," +
               +padding.top +
-              ")",
+              ")"
           );
         context
           .append("text")
@@ -1153,7 +1107,7 @@ daytoday.report = function report_daytoday(
               (xScale2(treatment.mills) + padding.left + 10) +
               "," +
               (padding.top + yCarbsScale(treatment.carbs)) +
-              ")",
+              ")"
           )
           .text("" + label);
       }
@@ -1174,7 +1128,7 @@ daytoday.report = function report_daytoday(
               (xScale2(treatment.mills) + padding.left - 2) +
               "," +
               +padding.top +
-              ")",
+              ")"
           );
         context
           .append("text")
@@ -1193,7 +1147,7 @@ daytoday.report = function report_daytoday(
               (xScale2(treatment.mills) + padding.left + 10) +
               "," +
               (padding.top + yInsulinScale(treatment.insulin)) +
-              ")",
+              ")"
           )
           .text(dataLabel);
       }
@@ -1213,7 +1167,7 @@ daytoday.report = function report_daytoday(
           appendProfileSwitch(context, {
             cutting: treatment.profile,
             profile: client.profilefunctions.activeProfileToTime(
-              times.mins(treatment.duration).msecs + treatment.mills + 1,
+              times.mins(treatment.duration).msecs + treatment.mills + 1
             ),
             mills: times.mins(treatment.duration).msecs + treatment.mills,
             end: true,
@@ -1227,12 +1181,12 @@ daytoday.report = function report_daytoday(
           .attr(
             "width",
             xScale2(treatment.mills + times.mins(treatment.duration).msecs) -
-              xScale2(treatment.mills),
+              xScale2(treatment.mills)
           )
           .attr(
             "height",
             yScale2(client.utils.scaleMgdl(360)) -
-              yScale2(client.utils.scaleMgdl(396)),
+              yScale2(client.utils.scaleMgdl(396))
           )
           .attr("stroke-width", 1)
           .attr("opacity", 0.2)
@@ -1249,8 +1203,8 @@ daytoday.report = function report_daytoday(
           .attr(
             "x",
             xScale2(
-              treatment.mills + times.mins(treatment.duration).msecs / 2,
-            ) + padding.left,
+              treatment.mills + times.mins(treatment.duration).msecs / 2
+            ) + padding.left
           )
           .text(treatment.notes);
       } else if (treatment.eventType === "Note" && treatment.duration) {
@@ -1261,12 +1215,12 @@ daytoday.report = function report_daytoday(
           .attr(
             "width",
             xScale2(treatment.mills + times.mins(treatment.duration).msecs) -
-              xScale2(treatment.mills),
+              xScale2(treatment.mills)
           )
           .attr(
             "height",
             yScale2(client.utils.scaleMgdl(324)) -
-              yScale2(client.utils.scaleMgdl(360)),
+              yScale2(client.utils.scaleMgdl(360))
           )
           .attr("stroke-width", 1)
           .attr("opacity", 0.2)
@@ -1283,8 +1237,8 @@ daytoday.report = function report_daytoday(
           .attr(
             "x",
             xScale2(
-              treatment.mills + times.mins(treatment.duration).msecs / 2,
-            ) + padding.left,
+              treatment.mills + times.mins(treatment.duration).msecs / 2
+            ) + padding.left
           )
           .text(treatment.notes);
       } else if (
@@ -1298,12 +1252,12 @@ daytoday.report = function report_daytoday(
           .attr(
             "width",
             xScale2(treatment.mills + times.mins(treatment.duration).msecs) -
-              xScale2(treatment.mills),
+              xScale2(treatment.mills)
           )
           .attr(
             "height",
             yScale2(client.utils.scaleMgdl(288)) -
-              yScale2(client.utils.scaleMgdl(324)),
+              yScale2(client.utils.scaleMgdl(324))
           )
           .attr("stroke-width", 1)
           .attr("opacity", 0.2)
@@ -1320,8 +1274,8 @@ daytoday.report = function report_daytoday(
           .attr(
             "x",
             xScale2(
-              treatment.mills + times.mins(treatment.duration).msecs / 2,
-            ) + padding.left,
+              treatment.mills + times.mins(treatment.duration).msecs / 2
+            ) + padding.left
           )
           .text(treatment.notes);
       } else if (
@@ -1336,12 +1290,12 @@ daytoday.report = function report_daytoday(
           .attr(
             "width",
             xScale2(treatment.mills + times.mins(treatment.duration).msecs) -
-              xScale2(treatment.mills),
+              xScale2(treatment.mills)
           )
           .attr(
             "height",
             yScale2(client.utils.scaleMgdl(396)) -
-              yScale2(client.utils.scaleMgdl(432)),
+              yScale2(client.utils.scaleMgdl(432))
           )
           .attr("stroke-width", 1)
           .attr("opacity", 0.2)
@@ -1358,8 +1312,8 @@ daytoday.report = function report_daytoday(
           .attr(
             "x",
             xScale2(
-              treatment.mills + times.mins(treatment.duration).msecs / 2,
-            ) + padding.left,
+              treatment.mills + times.mins(treatment.duration).msecs / 2
+            ) + padding.left
           )
           .text(treatment.reason);
       } else if (
@@ -1372,7 +1326,7 @@ daytoday.report = function report_daytoday(
           .attr("cx", xScale2(treatment.mills) + padding.left)
           .attr(
             "cy",
-            yScale2(scaledTreatmentBG(treatment, data.sgv)) + padding.top,
+            yScale2(scaledTreatmentBG(treatment, data.sgv)) + padding.top
           )
           .attr("fill", "red")
           .style("opacity", 1)
@@ -1386,7 +1340,7 @@ daytoday.report = function report_daytoday(
           .attr("cx", xScale2(treatment.mills) + padding.left)
           .attr(
             "cy",
-            yScale2(scaledTreatmentBG(treatment, data.sgv)) + padding.top,
+            yScale2(scaledTreatmentBG(treatment, data.sgv)) + padding.top
           )
           .attr("fill", "purple")
           .style("opacity", 1)
@@ -1400,11 +1354,11 @@ daytoday.report = function report_daytoday(
           .attr("fill", "purple")
           .attr(
             "y",
-            yScale2(scaledTreatmentBG(treatment, data.sgv)) + padding.top - 10,
+            yScale2(scaledTreatmentBG(treatment, data.sgv)) + padding.top - 10
           )
           .attr("x", xScale2(treatment.mills) + padding.left + 10)
           .text(
-            translate(client.careportal.resolveEventName(treatment.eventType)),
+            translate(client.careportal.resolveEventName(treatment.eventType))
           );
       } else if (treatment.duration && options.othertreatments) {
         // other treatments with duration
@@ -1415,12 +1369,12 @@ daytoday.report = function report_daytoday(
           .attr(
             "width",
             xScale2(treatment.mills + times.mins(treatment.duration).msecs) -
-              xScale2(treatment.mills),
+              xScale2(treatment.mills)
           )
           .attr(
             "height",
             yScale2(client.utils.scaleMgdl(396)) -
-              yScale2(client.utils.scaleMgdl(432)),
+              yScale2(client.utils.scaleMgdl(432))
           )
           .attr("stroke-width", 1)
           .attr("opacity", 0.2)
@@ -1437,8 +1391,8 @@ daytoday.report = function report_daytoday(
           .attr(
             "x",
             xScale2(
-              treatment.mills + times.mins(treatment.duration).msecs / 2,
-            ) + padding.left,
+              treatment.mills + times.mins(treatment.duration).msecs / 2
+            ) + padding.left
           )
           .text(treatment.notes);
       } else {
@@ -1460,90 +1414,92 @@ daytoday.report = function report_daytoday(
           " positiveTemps: " +
           positiveTemps +
           " negativeTemps: " +
-          negativeTemps,
+          negativeTemps
       );
       var table = $("<table>");
-      $(
-        "<tr><td><b>" +
-          translate("Bolus insulin:") +
-          '</b></td><td align="right">' +
-          bolusInsulin.toFixed(1) +
-          "U</td></tr>",
-      ).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td><b>${translate("Bolus insulin:")}</b></td>
+          <td align="right">${bolusInsulin.toFixed(1)}U</td>
+        </tr>
+      `).appendTo(table);
       if (positiveTemps > 0 || negativeTemps > 0) {
-        $(
-          "<tr><td>" +
-            translate("Base basal insulin:") +
-            '</td><td align="right">' +
-            baseBasalInsulin.toFixed(1) +
-            "U</td></tr>",
-        ).appendTo(table);
+        $(/* HTML */
+        `
+          <tr>
+            <td>${translate("Base basal insulin:")}</td>
+            <td align="right">${baseBasalInsulin.toFixed(1)}U</td>
+          </tr>
+        `).appendTo(table);
       }
       if (positiveTemps > 0) {
-        $(
-          "<tr><td>" +
-            translate("Positive temp basal insulin:") +
-            '</td><td align="right">' +
-            positiveTemps.toFixed(1) +
-            "U</td></tr>",
-        ).appendTo(table);
+        $(/* HTML */
+        `
+          <tr>
+            <td>${translate("Positive temp basal insulin:")}</td>
+            <td align="right">${positiveTemps.toFixed(1)}U</td>
+          </tr>
+        `).appendTo(table);
       }
       if (negativeTemps < 0) {
-        $(
-          "<tr><td>" +
-            translate("Negative temp basal insulin:") +
-            '</td><td align="right">' +
-            negativeTemps.toFixed(1) +
-            "U</td></tr>",
-        ).appendTo(table);
+        $(/* HTML */
+        `
+          <tr>
+            <td>${translate("Negative temp basal insulin:")}</td>
+            <td align="right">${negativeTemps.toFixed(1)}U</td>
+          </tr>
+        `).appendTo(table);
       }
       var totalBasalInsulin = baseBasalInsulin + positiveTemps + negativeTemps;
-      $(
-        "<tr><td><b>" +
-          translate("Total basal insulin:") +
-          '</b></td><td align="right">' +
-          totalBasalInsulin.toFixed(1) +
-          "U</td></tr>",
-      ).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td><b>${translate("Total basal insulin:")}</b></td>
+          <td align="right">${totalBasalInsulin.toFixed(1)}U</td>
+        </tr>
+      `).appendTo(table);
       var totalDailyInsulin =
         bolusInsulin + baseBasalInsulin + positiveTemps + negativeTemps;
-      $(
-        "<tr><td><b>" +
-          translate("Total daily insulin:") +
-          '</b></td><td align="right">' +
-          totalDailyInsulin.toFixed(1) +
-          "U</td></tr>",
-      ).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td><b>${translate("Total daily insulin:")}</b></td>
+          <td align="right">${totalDailyInsulin.toFixed(1)}U</td>
+        </tr>
+      `).appendTo(table);
 
-      $(
-        "<tr><td>" +
-          translate("Total carbs") +
-          ':</td><td align="right">' +
-          data.dailyCarbs +
-          " g</td></tr>",
-      ).appendTo(table);
-      $(
-        "<tr><td>" +
-          translate("Total protein") +
-          ':</td><td align="right">' +
-          data.dailyProtein +
-          " g</td></tr>",
-      ).appendTo(table);
-      $(
-        "<tr><td>" +
-          translate("Total fat") +
-          ':</td><td align="right">' +
-          data.dailyFat +
-          " g</td></tr>",
-      ).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td>${translate("Total carbs")}:</td>
+          <td align="right">${data.dailyCarbs} g</td>
+        </tr>
+      `).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td>${translate("Total protein")}:</td>
+          <td align="right">${data.dailyProtein} g</td>
+        </tr>
+      `).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td>${translate("Total fat")}:</td>
+          <td align="right">${data.dailyFat} g</td>
+        </tr>
+      `).appendTo(table);
 
-      $(
-        '<tr><td colspan="2"><span id="daytodaystatinsulinpiechart-' +
-          day +
-          '"></span><span id="daytodaystatcarbspiechart-' +
-          day +
-          '"></span></td></tr>',
-      ).appendTo(table);
+      $(/* HTML */
+      `
+        <tr>
+          <td colspan="2">
+            <span id="daytodaystatinsulinpiechart-${day}"></span>
+            <span id="daytodaystatcarbspiechart-${day}"></span>
+          </td>
+        </tr>
+      `).appendTo(table);
       $("#daytodaystatchart-" + day).append(table);
 
       var chartData = [
@@ -1691,23 +1647,9 @@ daytoday.report = function report_daytoday(
       var sign = treatment.first ? "▲▲▲" : "▬▬▬";
       var text;
       if (treatment.cutting) {
-        text =
-          sign +
-          "    " +
-          client.profilefunctions.profileSwitchName(treatment.cutting) +
-          "    " +
-          "►►►" +
-          "    " +
-          client.profilefunctions.profileSwitchName(treatment.profile) +
-          "    " +
-          sign;
+        text = `${sign}    ${client.profilefunctions.profileSwitchName(treatment.cutting)}    ►►►    ${client.profilefunctions.profileSwitchName(treatment.profile)}    ${sign}`;
       } else {
-        text =
-          sign +
-          "    " +
-          client.profilefunctions.profileSwitchName(treatment.profile) +
-          "    " +
-          sign;
+        text = `${sign}    ${client.profilefunctions.profileSwitchName(treatment.profile)}    ${sign}`;
       }
       context
         .append("text")
@@ -1727,7 +1669,7 @@ daytoday.report = function report_daytoday(
             (xScale2(treatment.mills) + padding.left) +
             "," +
             (yScaleBasals(0) + padding.top - 10) +
-            ")",
+            ")"
         )
         .text(text);
     }
@@ -1735,7 +1677,7 @@ daytoday.report = function report_daytoday(
     console.log(
       "Rendering " + day,
       new Date().getTime() - timestart.getTime(),
-      "msecs",
+      "msecs"
     );
   }
 

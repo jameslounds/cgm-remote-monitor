@@ -25,71 +25,69 @@ var interpolationRatio = 1.25; // But do allow rising interpolation if gap large
 
 loopalyzer.html = function html(client) {
   var translate = client.translate;
-  var ret = "";
-  ret +=
-    '<h2>Loopalyzer&nbsp;&nbsp;<span id="loopalyzer-dateinfo"></span></h2>';
-  ret +=
-    '<span id="loopalyzer-help">' +
-    translate(
-      "The primary purpose of Loopalyzer is to visualise how the Loop closed loop system performs. It may work with other setups as well, both closed and open loop, and non loop. However depending on which uploader you use, how frequent it is able to capture your data and upload, and how it is able to backfill missing data some graphs may have gaps or even be completely empty. Always ensure the graphs look reasonable. Best is to view one day at a time and scroll through a number of days first to see.",
-    );
-  ret +=
-    "<br/><br/>" +
-    translate(
-      "Loopalyzer includes a time shift feature. If you for example have breakfast at 07:00 one day and at 08:00 the day after your average blood glucose curve these two days will most likely look flattened and not show the actual response after a breakfast. Time shift will compute the average time these meals were eaten and then shift all data (carbs, insulin, basal etc.) during both days the corresponding time difference so that both meals align with the average meal start time.",
-    );
-  ret +=
-    "<br/>" +
-    translate(
-      "In this example all data from first day is pushed 30 minutes forward in time and all data from second day 30 minutes backward in time so it appears as if you had had breakfast at 07:30 both days. This allows you to see your actual average blood glucose response from a meal.",
-    );
-  ret +=
-    "<br/></br>" +
-    translate(
-      "Time shift highlights the period after the average meal start time in gray, for the duration of the DIA (Duration of Insulin Action). As all data points the entire day are shifted the curves outside the gray area may not be accurate.",
-    );
-  ret +=
-    "<br/></br>" +
-    translate(
-      "Note that time shift is available only when viewing multiple days.",
-    );
-  ret += "<br/><br/><b>";
-  ret += translate("To see this report, press SHOW while in this view");
-  ret += "</b></span>";
-  ret +=
-    '<span id="loopalyzer-notenoughdata" style="display:none;"><b>' +
-    translate(
-      "Please select a maximum of two weeks duration and click Show again.",
-    ) +
-    "</b><br/><br/></span>";
-  ret += '<div id="loopalyzer-buttons" style="display:none;">';
-  ret +=
-    '<input type="checkbox" id="rp_loopalyzerprofiles">' +
-    translate("Show profiles table") +
-    "&nbsp;&nbsp;&nbsp;&nbsp;";
-  ret +=
-    '<input type="checkbox" id="rp_loopalyzerpredictions">' +
-    translate("Show predictions");
-  ret += "<br/>";
-  ret +=
-    '<span id="rp_loopalyzertimeshiftinput">'; /* So we can show only if viewing multiple days  style="display:none;" */
+  var ret =
+    /* HTML */
+    `
+      <h2>
+        Loopalyzer&nbsp;&nbsp;
+        <span id="loopalyzer-dateinfo"></span>
+      </h2>
+      <span id="loopalyzer-help">
+        ${translate(
+          "The primary purpose of Loopalyzer is to visualise how the Loop closed loop system performs. It may work with other setups as well, both closed and open loop, and non loop. However depending on which uploader you use, how frequent it is able to capture your data and upload, and how it is able to backfill missing data some graphs may have gaps or even be completely empty. Always ensure the graphs look reasonable. Best is to view one day at a time and scroll through a number of days first to see."
+        )}
+        <br />
+        <br />
+        ${translate(
+          "Loopalyzer includes a time shift feature. If you for example have breakfast at 07:00 one day and at 08:00 the day after your average blood glucose curve these two days will most likely look flattened and not show the actual response after a breakfast. Time shift will compute the average time these meals were eaten and then shift all data (carbs, insulin, basal etc.) during both days the corresponding time difference so that both meals align with the average meal start time."
+        )}
+        <br />
+        ${translate(
+          "In this example all data from first day is pushed 30 minutes forward in time and all data from second day 30 minutes backward in time so it appears as if you had had breakfast at 07:30 both days. This allows you to see your actual average blood glucose response from a meal."
+        )}
+        <br />
+        <br />
+        ${translate(
+          "Time shift highlights the period after the average meal start time in gray, for the duration of the DIA (Duration of Insulin Action). As all data points the entire day are shifted the curves outside the gray area may not be accurate."
+        )}
+        <br />
+        <br />
+        ${translate(
+          "Note that time shift is available only when viewing multiple days."
+        )}
+        <br />
+        <br />
+        <b>${translate("To see this report, press SHOW while in this view")}</b>
+      </span>
+      <span id="loopalyzer-notenoughdata" style="display:none;">
+        <b>
+          ${translate(
+            "Please select a maximum of two weeks duration and click Show again."
+          )}
+        </b>
+        <br />
+        <br />
+      </span>
+      <div id="loopalyzer-buttons" style="display:none;">
+        <input type="checkbox" id="rp_loopalyzerprofiles" />
+        ${translate("Show profiles table")}&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="checkbox" id="rp_loopalyzerpredictions" />
+        ${translate("Show predictions")}
+        <br />
+        <span id="rp_loopalyzertimeshiftinput"></span>
+      </div>
+    `;
+  /* So we can show only if viewing multiple days  style="display:none;" */
   ret += '<input type="checkbox" id="rp_loopalyzertimeshift">';
 
   let numberInput =
     '<input type="number" style="width: 3.5em" value="10" id="rp_loopalyzermincarbs">';
 
   function genTimePicker(id) {
-    let timerPicker = ' <select id="' + id + '">';
+    let timerPicker = ` <select id="${id}">`;
     for (let i = 0; i < 24; i++) {
       const H = (i < 10 ? "0" : "") + i;
-      timerPicker +=
-        '  <option t1="' +
-        H +
-        ':00"' +
-        (i == 6 ? " selected" : "") +
-        ">" +
-        H +
-        ":00</option>";
+      timerPicker += `  <option t1="${H}:00"${i == 6 ? " selected" : ""}>${H}:00</option>`;
       timerPicker += '  <option t1="' + H + ':30">' + H + ":30</option>";
     }
     timerPicker += "</select>";
@@ -100,58 +98,79 @@ loopalyzer.html = function html(client) {
     "Timeshift on meals larger than %1 g carbs consumed between %2 and %3",
     numberInput,
     genTimePicker("rp_loopalyzert1"),
-    genTimePicker("rp_loopalyzert2"),
+    genTimePicker("rp_loopalyzert2")
   );
-
-  ret += "</span>"; /* timeShift */
-  ret += "<br/><br/>";
-  ret +=
-    '<input type="button" onclick="loopalyzerMoreBackward();" value="&lt;&lt;&lt;&nbsp;' +
-    translate("Previous") +
-    '">';
-  ret +=
-    '<input type="button" onclick="loopalyzerBackward();" value="&lt;&nbsp;' +
-    translate("Previous day") +
-    '">';
-  ret +=
-    '<input type="button" onclick="loopalyzerForward();" value="' +
-    translate("Next day") +
-    '&nbsp;&gt;">';
-  ret +=
-    '<input type="button" onclick="loopalyzerMoreForward();" value="' +
-    translate("Next") +
-    '&nbsp;&gt;&gt;&gt;">';
-  ret += "</div>"; /* loopalyzer-button */
-  ret += '<div id="loopalyzer-charts">';
-  ret +=
-    '  <div class="chart" id="loopalyzer-basal" style="height:100px;margin-bottom:-14px;"></div>';
-  ret +=
-    '  <div class="chart" id="loopalyzer-bg" style="height:200px;margin-bottom:-14px;"></div>';
-  ret +=
-    '  <div class="chart" id="loopalyzer-tempbasal" style="height:150px;margin-bottom:-14px;"></div>';
-  ret +=
-    '  <div class="chart" id="loopalyzer-iob" style="height:150px;margin-bottom:-14px;"></div>';
-  ret +=
-    '  <div class="chart" id="loopalyzer-cob" style="height:150px;"></div>';
-  ret += "</div>";
-  ret += '<div id="loopalyzer-profiles">';
-  ret += "</div>";
+  ret += /* HTML */ `</span>
+  <br/><br/>
+  <input type="button" onclick="loopalyzerMoreBackward();" value="&lt;&lt;&lt;&nbsp;${translate("Previous")}">
+  <input type="button" onclick="loopalyzerBackward();" value="&lt;&nbsp;${translate("Previous day")}">
+  <input type="button" onclick="loopalyzerForward();" value="${translate("Next day")}&nbsp;&gt;">
+  <input type="button" onclick="loopalyzerMoreForward();" value="${translate("Next")}&nbsp;&gt;&gt;&gt;"></div>
+    <div id="loopalyzer-charts">
+      <div
+        class="chart"
+        id="loopalyzer-basal"
+        style="height:100px;margin-bottom:-14px;"
+      ></div>
+      <div
+        class="chart"
+        id="loopalyzer-bg"
+        style="height:200px;margin-bottom:-14px;"
+      ></div>
+      <div
+        class="chart"
+        id="loopalyzer-tempbasal"
+        style="height:150px;margin-bottom:-14px;"
+      ></div>
+      <div
+        class="chart"
+        id="loopalyzer-iob"
+        style="height:150px;margin-bottom:-14px;"
+      ></div>
+      <div class="chart" id="loopalyzer-cob" style="height:150px;"></div>
+    </div>
+    <div id="loopalyzer-profiles"></div>
+  `;
   return ret;
 };
 
 loopalyzer.css =
-  "#loopalyzer-charts, #loopalyzer-profiles { padding: 20px; } " +
-  "#loopalyzer-basal, #loopalyzer-bg, #loopalyzer-tempbasal, #loopalyzer-iob, #loopalyzer-cob, #loopalyzer-profiles {" +
-  "  width: 100%;" +
-  "  height: 100%;" +
-  "}" +
-  "#loopalyzer-profiles-table table { margin: 0 10px; border-collapse: collapse; border: 0px; }" +
-  "#loopalyzer-profiles-table td { vertical-align: top; }" +
-  "#loopalyzer-profiles-table td table { margin: 0 10px; border-collapse: collapse; border: 0px; }" +
-  "#loopalyzer-profiles-table td caption { text-align: left; font-weight: bold; }" +
-  "#loopalyzer-profiles-table td th { background-color: #4CAF50; color: white; }" +
-  "#loopalyzer-profiles-table td td { text-align: right; vertical-align: top; padding: 0 1px; }" +
-  "#loopalyzer-profiles-table td td td { padding: 1px 8px; }";
+  /* CSS */
+  `#loopalyzer-charts, #loopalyzer-profiles {
+    padding: 20px;
+  }
+  #loopalyzer-basal, #loopalyzer-bg, #loopalyzer-tempbasal, #loopalyzer-iob, #loopalyzer-cob, #loopalyzer-profiles {
+    width: 100%;
+    height: 100%;
+  }
+  #loopalyzer-profiles-table table {
+    margin: 0 10px;
+    border-collapse: collapse;
+    border: 0px;
+  }
+  #loopalyzer-profiles-table td {
+    vertical-align: top;
+  }
+  #loopalyzer-profiles-table td table {
+    margin: 0 10px;
+    border-collapse: collapse;
+    border: 0px;
+  }
+  #loopalyzer-profiles-table td caption {
+    text-align: left;
+    font-weight: bold;
+  }
+  #loopalyzer-profiles-table td th {
+    background-color: #4CAF50;
+    color: white;
+  }
+  #loopalyzer-profiles-table td td { text-align: right;
+    vertical-align: top;
+    padding: 0 1px;
+  }
+  #loopalyzer-profiles-table td td td {
+    padding: 1px 8px;
+  }`;
 
 loopalyzer.prepareHtml = function loopalyzerPrepareHtml() {
   //  $('#loopalyzer-charts').append($('<table><tr><td><div id="loopalyzerchart"></div></td><td><div id="loopalyzerstatchart"></td></tr></table>'));
@@ -237,7 +256,7 @@ loopalyzer.getIOBs = function (
   daysToShow,
   profile,
   client,
-  treatments,
+  treatments
 ) {
   var iobStatusAvailable = client
     .plugins("iob")
@@ -258,12 +277,12 @@ loopalyzer.getIOBs = function (
         .IOBDeviceStatusesInTimeRange(
           datastorage.devicestatus,
           dayStart.valueOf(),
-          dayEnd.valueOf(),
+          dayEnd.valueOf()
         );
       if (laDebug) console.log("getIOBs iobArray", iobArray);
       iobArray.forEach(function (entry) {
         var index = Math.floor(
-          moment(entry.mills).diff(dayStart, "minutes") / 5,
+          moment(entry.mills).diff(dayStart, "minutes") / 5
         );
         iobs[index] = entry.iob;
       });
@@ -309,7 +328,7 @@ loopalyzer.getIOBs = function (
             datastorage.treatments,
             datastorage.devicestatus,
             profile,
-            dt.toDate(),
+            dt.toDate()
           ).iob;
         iobs.push(iob);
       }
@@ -325,7 +344,7 @@ loopalyzer.getCOBs = function (
   daysToShow,
   profile,
   client,
-  treatments,
+  treatments
 ) {
   var cobStatusAvailable = client
     .plugins("cob")
@@ -346,12 +365,12 @@ loopalyzer.getCOBs = function (
         .COBDeviceStatusesInTimeRange(
           datastorage.devicestatus,
           dayStart.valueOf(),
-          dayEnd.valueOf(),
+          dayEnd.valueOf()
         );
       if (laDebug) console.log("getCOBs cobArray", cobArray);
       cobArray.forEach(function (entry) {
         var index = Math.floor(
-          moment(entry.mills).diff(dayStart, "minutes") / 5,
+          moment(entry.mills).diff(dayStart, "minutes") / 5
         );
         cobs[index] = entry.cob;
       });
@@ -403,7 +422,7 @@ loopalyzer.getCOBs = function (
             datastorage.treatments,
             datastorage.devicestatus,
             profile,
-            dt.toDate(),
+            dt.toDate()
           ).cob;
         cobs.push(cob);
       }
@@ -615,7 +634,7 @@ loopalyzer.getPredictions = function (datastorage, daysToShow, client) {
     for (var i = 0; i < 288; i++) p.push(NaN);
     var treatmentTimestamps = loopalyzer.getAllTreatmentTimestampsForADay(
       datastorage,
-      day,
+      day
     );
     var predictions = loopalyzer.getAllPredictionsForADay(datastorage, day);
 
@@ -630,7 +649,7 @@ loopalyzer.getPredictions = function (datastorage, daysToShow, client) {
         var predictedIndex = loopalyzer.findPredicted(
           predictions,
           timestamp,
-          predictedOffset,
+          predictedOffset
         ); // Find predictions offset before or after timestamp
 
         if (predictedIndex != null) {
@@ -873,7 +892,7 @@ loopalyzer.isSameProfileValues = function (a, b) {
 loopalyzer.renderProfilesTable = function (
   datastoreProfiles,
   daysToShow,
-  client,
+  client
 ) {
   // Loop thru the daysToShow and get the timestamp of the first day displayed
   var beginningOfFirstDay = null;
@@ -938,7 +957,7 @@ loopalyzer.renderProfilesTable = function (
         "Comparing " +
           JSON.stringify(profileToCompareWith.startDate) +
           " to " +
-          JSON.stringify(entry.startDate),
+          JSON.stringify(entry.startDate)
       );
       console.log(profileToCompareWith, entry);
     }
@@ -968,7 +987,7 @@ loopalyzer.renderProfilesTable = function (
           " isBefore " +
           beginningOfFirstDay +
           " = " +
-          moment(entry.startDate).isBefore(beginningOfFirstDay),
+          moment(entry.startDate).isBefore(beginningOfFirstDay)
       );
     if (moment(entry.startDate).isBefore(beginningOfFirstDay))
       latestProfile = entry;
@@ -986,7 +1005,7 @@ loopalyzer.renderProfilesTable = function (
           " isAfter " +
           beginningOfFirstDay +
           " = " +
-          moment(entry.startDate).isAfter(beginningOfFirstDay),
+          moment(entry.startDate).isAfter(beginningOfFirstDay)
       );
     if (moment(entry.startDate).isAfter(beginningOfFirstDay))
       profiles.push(entry); // Add the profile if it's between beginning and end of show dates
@@ -1103,7 +1122,7 @@ loopalyzer.report = function (datastorage, sorteddaystoshow, options) {
         lastDay.format() +
         " is " +
         days +
-        " days",
+        " days"
     );
   if (days <= 14) {
     $("#loopalyzer-notenoughdata").hide();
@@ -1176,34 +1195,34 @@ loopalyzer.generateReport = function (datastorage, daysToShow, options) {
   profile.updateTreatments(
     datastorage.profileSwitchTreatments,
     datastorage.tempbasalTreatments,
-    datastorage.combobolusTreatments,
+    datastorage.combobolusTreatments
   );
 
   var carbTreatments = loopalyzer.getCarbTreatments(datastorage, daysToShow);
   var insulinTreatments = loopalyzer.getInsulinTreatments(
     datastorage,
-    daysToShow,
+    daysToShow
   );
   var sgvBin = loopalyzer.getSGVs(datastorage, daysToShow);
   var basalsBin = loopalyzer.getBasals(datastorage, daysToShow, profile);
   var tempBasalsBin = loopalyzer.getTempBasalDeltas(
     datastorage,
     daysToShow,
-    profile,
+    profile
   );
   var iobBin = loopalyzer.getIOBs(
     datastorage,
     daysToShow,
     profile,
     client,
-    insulinTreatments,
+    insulinTreatments
   );
   var cobBin = loopalyzer.getCOBs(
     datastorage,
     daysToShow,
     profile,
     client,
-    carbTreatments,
+    carbTreatments
   );
   var predictionsBin = [];
 
@@ -1296,7 +1315,7 @@ loopalyzer.generateReport = function (datastorage, daysToShow, options) {
         if (minutesAfterMidnight) {
           // Avoid NaN
           var delta = Math.round(
-            averageMinutesAfterMidnight - minutesAfterMidnight,
+            averageMinutesAfterMidnight - minutesAfterMidnight
           );
           timeShifts[index] = delta;
         }
@@ -1313,7 +1332,7 @@ loopalyzer.generateReport = function (datastorage, daysToShow, options) {
         loopalyzer.timeShiftSingleBin(
           insulinTreatments,
           daysToShow,
-          timeShifts,
+          timeShifts
         );
       }
     } else {
