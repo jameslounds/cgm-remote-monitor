@@ -97,6 +97,8 @@ export type Treatment = {
   created_at: string;
   timestamp?: number;
 
+  units?: "mg/dl" | "mmol"
+
   // are these real?
   mgdl: number;
   mmol?: number;
@@ -367,6 +369,7 @@ export interface Food extends EntryBase, Record<string, any> {
   portion: number;
   portions: number;
   /** Unit of portion */
+  // unit: "g" | "ml" | "pcs" | "oz";
   unit: string;
 }
 export interface QuickPick extends EntryBase, Record<string, any> {
@@ -496,5 +499,5 @@ type RemovePrefix<
 > = Key extends `${Prefix}${infer Suffix}` ? Suffix : never;
 
 type KeysOfType<TType, TKeys> = {
-  [K in keyof TKeys]: TType extends TKeys[K]  ? K : never;
+  [K in keyof TKeys]: TType extends TKeys[K] ? K : never;
 }[keyof TKeys];
