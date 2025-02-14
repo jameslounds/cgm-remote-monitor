@@ -16,7 +16,7 @@ utils.localeDate = function localeDate(day) {
   var zone = window.Nightscout.client.sbx.data.profile.getTimezone();
   var date;
   if (typeof day === "string") {
-    date = moment.tz(day + "T00:00:00", zone);
+    date = moment.tz(`${day}T00:00:00`, zone);
   } else {
     date = moment(day);
   }
@@ -38,14 +38,13 @@ utils.localeDateTime = function localeDateTime(day) {
   var zone = window.Nightscout.client.sbx.data.profile.getTimezone();
   var date;
   if (typeof day === "string") {
-    date = moment.tz(day + "T00:00:00", zone);
+    date = moment.tz(`${day}T00:00:00`, zone);
   } else {
     date = moment(day);
   }
-  var ret =
-    date.toDate().toLocaleDateString() +
-    " " +
-    date.toDate().toLocaleTimeString();
+  var ret = `${date.toDate().toLocaleDateString()} ${date
+    .toDate()
+    .toLocaleTimeString()}`;
   return ret;
 };
 
@@ -79,16 +78,15 @@ utils.scaledTreatmentBG = function scaledTreatmentBG(treatment, data) {
     if (treatment.glucose && treatment.units && client.settings.units) {
       if (treatment.units !== client.settings.units) {
         console.info(
-          "found mismatched glucose units, converting " +
-            treatment.units +
-            " into " +
-            client.settings.units,
-          treatment,
+          `found mismatched glucose units, converting ${treatment.units} into ${
+            client.settings.units
+          }`,
+          treatment
         );
         if (treatment.units === "mmol") {
           //BG is in mmol and display in mg/dl
           treatmentGlucose = Math.round(
-            treatment.glucose * consts.MMOL_TO_MGDL,
+            treatment.glucose * consts.MMOL_TO_MGDL
           );
         } else {
           //BG is in mg/dl and display in mmol
@@ -101,7 +99,7 @@ utils.scaledTreatmentBG = function scaledTreatmentBG(treatment, data) {
       //no units, assume everything is the same
       console.warn(
         "found an glucose value with any units, maybe from an old version?",
-        treatment,
+        treatment
       );
       treatmentGlucose = treatment.glucose;
     }

@@ -191,7 +191,7 @@ treatments.report = function report_treatments(
 
   function buildConfirmText(data) {
     var text = [
-      translate("Delete this treatment?") + "\n",
+      `${translate("Delete this treatment?")}\n`,
       `\n${translate("Event Type")}: ${translate(client.careportal.resolveEventName(data.eventType))}`,
     ];
 
@@ -201,10 +201,10 @@ treatments.report = function report_treatments(
       }
     }
 
-    pushIf(data.glucose, translate("Blood Glucose") + ": " + data.glucose);
+    pushIf(data.glucose, `${translate("Blood Glucose")}: ${data.glucose}`);
     pushIf(
       data.glucoseType,
-      translate("Measurement Method") + ": " + translate(data.glucoseType)
+      `${translate("Measurement Method")}: ${translate(data.glucoseType)}`
     );
 
     pushIf(data.carbs, `${translate("Carbs Given")}: ${data.carbs}`);
@@ -246,7 +246,7 @@ treatments.report = function report_treatments(
     if (window.confirm(buildConfirmText(data))) {
       $.ajax({
         method: "DELETE",
-        url: "/api/v1/treatments/" + data._id,
+        url: `/api/v1/treatments/${data._id}`,
         headers: client.headers(),
       })
         .done(function treatmentDeleted(response) {
@@ -291,7 +291,7 @@ treatments.report = function report_treatments(
 
     $("#rped_profile").empty().append('<option val=""></option>');
     client.profilefunctions.listBasalProfiles().forEach(function (p) {
-      $("#rped_profile").append('<option id="' + p + '">' + p + "</option>");
+      $("#rped_profile").append(`<option id="${p}">${p}</option>`);
     });
 
     $("#rp_edittreatmentdialog").dialog({
@@ -350,12 +350,12 @@ treatments.report = function report_treatments(
           .css({ width: "100%", "text-align": "right" });
         $(this)
           .parent()
-          .find('button:contains("' + translate("Save") + '")')
+          .find(`button:contains("${translate("Save")}")`)
           .css({ float: "left" });
         $("#rped_eventType").val(data.eventType);
         $("#rped_glucoseValue")
           .val(data.glucose ? data.glucose : "")
-          .attr("placeholder", translate("Value in") + " " + options.units);
+          .attr("placeholder", `${translate("Value in")} ${options.units}`);
         $("#rped_bgfromsensor").prop("checked", data.glucoseType === "Sensor");
         $("#rped_bgfrommeter").prop("checked", data.glucoseType === "Finger");
         $("#rped_bgmanual").prop("checked", data.glucoseType === "Manual");
@@ -401,11 +401,9 @@ treatments.report = function report_treatments(
       .fail(function treatmentSaveFail(response) {
         console.info("treatment save failed", response);
         window.alert(
-          translate("Saving record failed") +
-            ". " +
-            translate("Status") +
-            ": " +
+          `${translate("Saving record failed")}. ${translate("Status")}: ${
             response.status
+          }`
         );
       });
 
@@ -525,9 +523,9 @@ treatments.report = function report_treatments(
     for (var t = 0; t < treatments.length; t++) {
       var tr = treatments[t];
       var carbs = tr.carbs ? tr.carbs : "";
-      carbs += tr.foodType ? " " + tr.foodType : "";
+      carbs += tr.foodType ? ` ${tr.foodType}` : "";
       carbs += tr.absorptionTime
-        ? " " + Math.round((tr.absorptionTime / 60.0) * 10) / 10 + "h"
+        ? ` ${Math.round((tr.absorptionTime / 60.0) * 10) / 10}h`
         : "";
       var correctionRangeText = "";
       if (tr.correctionRange) {
@@ -540,9 +538,9 @@ treatments.report = function report_treatments(
         }
 
         if (tr.correctionRange[0] === tr.correctionRange[1]) {
-          correctionRangeText = "" + min;
+          correctionRangeText = `${min}`;
         } else {
-          correctionRangeText = "" + min + " - " + max;
+          correctionRangeText = `${min} - ${max}`;
         }
       }
       table.append(
@@ -581,11 +579,11 @@ treatments.report = function report_treatments(
             $("<td>").append(
               tr.eventType
                 ? translate(client.careportal.resolveEventName(tr.eventType)) +
-                    (tr.reason ? "<br>" + tr.reason : "") +
+                    (tr.reason ? `<br>${tr.reason}` : "") +
                     (tr.insulinNeedsScaleFactor
-                      ? "<br>" + tr.insulinNeedsScaleFactor * 100 + "%"
+                      ? `<br>${tr.insulinNeedsScaleFactor * 100}%`
                       : "") +
-                    (tr.correctionRange ? " " + correctionRangeText : "")
+                    (tr.correctionRange ? ` ${correctionRangeText}` : "")
                 : ""
             )
           )
@@ -593,9 +591,7 @@ treatments.report = function report_treatments(
             $("<td>")
               .attr("align", "center")
               .append(
-                tr.glucose
-                  ? tr.glucose + " (" + translate(tr.glucoseType) + ")"
-                  : ""
+                tr.glucose ? `${tr.glucose} (${translate(tr.glucoseType)})` : ""
               )
           )
           .append(

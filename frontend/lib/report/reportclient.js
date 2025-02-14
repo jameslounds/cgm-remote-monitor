@@ -437,7 +437,7 @@ var init = function init() {
           if (eventtype) {
             var treatmentData;
             var tquery = "?find[eventType]=/" + eventtype + "/i";
-            $.ajax("/api/v1/treatments.json" + tquery + timerange, {
+            $.ajax(`/api/v1/treatments.json${tquery}${timerange}`, {
               headers: client.headers(),
               success: function (xhr) {
                 treatmentData = xhr.map(function (treatment) {
@@ -504,21 +504,21 @@ var init = function init() {
       function display() {
         var count = 0;
         sorteddaystoshow = [];
-        $("#info").html("<b>" + translate("Loading") + " ...</b>");
+        $("#info").html(`<b>${translate("Loading")} ...</b>`);
         for (var d in daystoshow) {
           if (count < maxdays) {
-            $("#info").append($('<div id="info-' + d + '"></div>'));
+            $("#info").append($(`<div id="info-${d}"></div>`));
             count++;
             loadData(d, options, dataLoadedCallback);
           } else {
             $("#info").append(
-              $("<div>" + d + " " + translate("not displayed") + ".</div>")
+              $(`<div>${d} ${translate("not displayed")}.</div>`)
             );
             delete daystoshow[d];
           }
         }
         if (count === 0) {
-          $("#info").html("<b>" + translate("Result is empty") + "</b>");
+          $("#info").html(`<b>${translate("Result is empty")}</b>`);
           $("#rp_show").css("display", "");
         }
       }
@@ -549,7 +549,7 @@ var init = function init() {
             var formated = previous.format("YYYY-MM-DD");
             if (!daystoshow[formated]) {
               daystoshow[formated] = { treatmentsonly: true };
-              console.log("Adding " + formated + " for loading treatments");
+              console.log(`Adding ${formated} for loading treatments`);
               dayscount++;
             }
           }
@@ -748,14 +748,9 @@ var init = function init() {
           return $.Deferred().resolve();
         }
         $("#info-" + day).html(
-          "<b>" + translate("Loading CGM data of") + " " + day + " ...</b>"
+          `<b>${translate("Loading CGM data of")} ${day} ...</b>`
         );
-        var query =
-          "?find[date][$gte]=" +
-          from +
-          "&find[date][$lt]=" +
-          to +
-          "&count=10000";
+        var query = `?find[date][\$gte]=${from}&find[date][\$lt]=${to}&count=10000`;
         return $.ajax("/api/v1/entries.json" + query, {
           headers: client.headers(),
           success: function (xhr) {
@@ -821,18 +816,9 @@ var init = function init() {
         if (!datastorage.profileSwitchTreatments)
           datastorage.profileSwitchTreatments = [];
         $("#info-" + day).html(
-          "<b>" +
-            translate("Loading treatments data of") +
-            " " +
-            day +
-            " ...</b>"
+          `<b>${translate("Loading treatments data of")} ${day} ...</b>`
         );
-        var tquery =
-          "?find[created_at][$gte]=" +
-          new Date(from).toISOString() +
-          "&find[created_at][$lt]=" +
-          new Date(to).toISOString() +
-          "&count=1000";
+        var tquery = `?find[created_at][\$gte]=${new Date(from).toISOString()}&find[created_at][\$lt]=${new Date(to).toISOString()}&count=1000`;
         return $.ajax("/api/v1/treatments.json" + tquery, {
           headers: client.headers(),
           cache: false,
@@ -884,11 +870,7 @@ var init = function init() {
           options.predicted
         ) {
           $("#info-" + day).html(
-            "<b>" +
-              translate("Loading device status data of") +
-              " " +
-              day +
-              " ...</b>"
+            `<b>${translate("Loading device status data of")} ${day} ...</b>`
           );
           var tquery =
             "?find[created_at][$gte]=" +
@@ -916,7 +898,7 @@ var init = function init() {
       $.when(loadCGMData(), loadTreatmentData(), loadDevicestatusData()).done(
         function () {
           $("#info-" + day).html(
-            "<b>" + translate("Processing data of") + " " + day + " ...</b>"
+            `<b>${translate("Processing data of")} ${day} ...</b>`
           );
           processData(data, day, options, callback);
         }
@@ -925,13 +907,9 @@ var init = function init() {
 
     function loadProfileSwitch(from, callback) {
       $("#info > b").html(
-        "<b>" + translate("Loading profile switch data") + " ...</b>"
+        `<b>${translate("Loading profile switch data")} ...</b>`
       );
-      var tquery =
-        "?find[eventType]=Profile Switch" +
-        "&find[created_at][$lte]=" +
-        new Date(from).toISOString() +
-        "&count=1";
+      var tquery = `?find[eventType]=Profile Switch&find[created_at][\$lte]=${new Date(from).toISOString()}&count=1`;
       $.ajax("/api/v1/treatments.json" + tquery, {
         headers: client.headers(),
         success: function (xhr) {
@@ -956,9 +934,7 @@ var init = function init() {
     }
 
     function loadProfilesRange(dateFrom, dateTo, dayCount, callback) {
-      $("#info > b").html(
-        "<b>" + translate("Loading profile range") + " ...</b>"
-      );
+      $("#info > b").html(`<b>${translate("Loading profile range")} ...</b>`);
 
       $.when(
         loadProfilesRangeCore(dateFrom, dateTo, dayCount),
@@ -972,17 +948,10 @@ var init = function init() {
     }
 
     function loadProfilesRangeCore(dateFrom, dateTo) {
-      $("#info > b").html(
-        "<b>" + translate("Loading core profiles") + " ...</b>"
-      );
+      $("#info > b").html(`<b>${translate("Loading core profiles")} ...</b>`);
 
       //The results must be returned in descending order to work with key logic in routines such as getCurrentProfile
-      var tquery =
-        "?find[startDate][$gte]=" +
-        new Date(dateFrom).toISOString() +
-        "&find[startDate][$lte]=" +
-        new Date(dateTo).toISOString() +
-        "&sort[startDate]=-1&count=1000";
+      var tquery = `?find[startDate][\$gte]=${new Date(dateFrom).toISOString()}&find[startDate][\$lte]=${new Date(dateTo).toISOString()}&sort[startDate]=-1&count=1000`;
 
       return $.ajax("/api/v1/profiles" + tquery, {
         headers: client.headers(),
@@ -995,14 +964,11 @@ var init = function init() {
 
     function loadProfilesRangePrevious(dateFrom) {
       $("#info > b").html(
-        "<b>" + translate("Loading previous profile") + " ...</b>"
+        `<b>${translate("Loading previous profile")} ...</b>`
       );
 
       //Find first one before the start date and add to datastorage.profiles
-      var tquery =
-        "?find[startDate][$lt]=" +
-        new Date(dateFrom).toISOString() +
-        "&sort[startDate]=-1&count=1";
+      var tquery = `?find[startDate][\$lt]=${new Date(dateFrom).toISOString()}&sort[startDate]=-1&count=1`;
 
       return $.ajax("/api/v1/profiles" + tquery, {
         headers: client.headers(),
@@ -1016,15 +982,10 @@ var init = function init() {
     }
 
     function loadProfilesRangeNext(dateTo) {
-      $("#info > b").html(
-        "<b>" + translate("Loading next profile") + " ...</b>"
-      );
+      $("#info > b").html(`<b>${translate("Loading next profile")} ...</b>`);
 
       //Find first one after the end date and add to datastorage.profiles
-      var tquery =
-        "?find[startDate][$gt]=" +
-        new Date(dateTo).toISOString() +
-        "&sort[startDate]=1&count=1";
+      var tquery = `?find[startDate][\$gt]=${new Date(dateTo).toISOString()}&sort[startDate]=1&count=1`;
 
       return $.ajax("/api/v1/profiles" + tquery, {
         headers: client.headers(),

@@ -80,7 +80,7 @@ profiles.report = function report_profiles(datastorage) {
     var td = $("<td>");
     var table = $("<table>");
 
-    table.append($("<tr>").append($("<td>").append("<b>" + name + "</b>")));
+    table.append($("<tr>").append($("<td>").append(`<b>${name}</b>`)));
     table.append(
       $("<tr>").append(
         $("<td>").append(/* HTML */
@@ -170,7 +170,7 @@ profiles.report = function report_profiles(datastorage) {
 
     if (array && array2) {
       for (let i = 0; i < array.length; i++) {
-        text += `${array[i].time}&nbsp:&nbsp${array[i].value}${array2 ? " - " + array2[i].value : ""}<br>`;
+        text += `${array[i].time}&nbsp:&nbsp${array[i].value}${array2 ? ` - ${array2[i].value}` : ""}<br>`;
       }
     } else {
       for (let i = 0; i < array.length; i++) {

@@ -201,71 +201,60 @@ success.report = function report_success(
     </thead>
   `);
   table.append(
-    "<tbody>" +
-      quarters
-        .filter(function (quarter) {
-          return quarter.records.length > 0;
-        })
-        .map(function (quarter) {
-          var INVERT = true;
-          return (
-            "<tr>" +
-            [
-              `${quarter.starting.toLocaleDateString()} - ${quarter.ending.toLocaleDateString()}`,
-              {
-                klass: lowComparison(quarter, averages, "percentLow"),
-                text: Math.round(quarter.percentLow) + "%",
-              },
-              {
-                klass: lowComparison(
-                  quarter,
-                  averages,
-                  "percentInRange",
-                  INVERT
-                ),
-                text: Math.round(quarter.percentInRange) + "%",
-              },
-              {
-                klass: lowComparison(quarter, averages, "percentHigh"),
-                text: Math.round(quarter.percentHigh) + "%",
-              },
-              {
-                klass: lowComparison(quarter, averages, "standardDeviation"),
-                text:
-                  quarter.standardDeviation > 10
-                    ? Math.round(quarter.standardDeviation)
-                    : quarter.standardDeviation.toFixed(1),
-              },
-              {
-                klass: lowQuartileEvaluation(quarter, averages),
-                text: quarter.lowerQuartile,
-              },
-              {
-                klass: lowComparison(quarter, averages, "average"),
-                text: quarter.average.toFixed(1),
-              },
-              {
-                klass: upperQuartileEvaluation(quarter, averages),
-                text: quarter.upperQuartile,
-              },
-            ]
-              .map(function (v) {
-                if (typeof v === "object") {
-                  return /* HTML */ `
-                    <td class="${v.klass}">${v.text}</td>
-                  `;
-                } else {
-                  return /* HTML */ `
-                    <td>${v}</td>
-                  `;
-                }
-              })
-              .join("") +
-            "</tr>"
-          );
-        })
-        .join("") +
-      "</tbody>"
+    `<tbody>${quarters
+      .filter(function (quarter) {
+        return quarter.records.length > 0;
+      })
+      .map(function (quarter) {
+        var INVERT = true;
+        return `<tr>${[
+          `${quarter.starting.toLocaleDateString()} - ${quarter.ending.toLocaleDateString()}`,
+          {
+            klass: lowComparison(quarter, averages, "percentLow"),
+            text: `${Math.round(quarter.percentLow)}%`,
+          },
+          {
+            klass: lowComparison(quarter, averages, "percentInRange", INVERT),
+            text: `${Math.round(quarter.percentInRange)}%`,
+          },
+          {
+            klass: lowComparison(quarter, averages, "percentHigh"),
+            text: `${Math.round(quarter.percentHigh)}%`,
+          },
+          {
+            klass: lowComparison(quarter, averages, "standardDeviation"),
+            text:
+              quarter.standardDeviation > 10
+                ? Math.round(quarter.standardDeviation)
+                : quarter.standardDeviation.toFixed(1),
+          },
+          {
+            klass: lowQuartileEvaluation(quarter, averages),
+            text: quarter.lowerQuartile,
+          },
+          {
+            klass: lowComparison(quarter, averages, "average"),
+            text: quarter.average.toFixed(1),
+          },
+          {
+            klass: upperQuartileEvaluation(quarter, averages),
+            text: quarter.upperQuartile,
+          },
+        ]
+          .map(function (v) {
+            if (typeof v === "object") {
+              return /* HTML */ `
+                <td class="${v.klass}">${v.text}</td>
+              `;
+            } else {
+              return /* HTML */ `
+                <td>${v}</td>
+              `;
+            }
+          })
+          .join("")}</tr>`;
+      })
+      .join("")}</tbody>`
   );
   table.appendTo(grid);
 };

@@ -134,10 +134,10 @@ function init(ctx) {
 
     var weekstoshow = [];
 
-    var startDay = moment(sorteddaystoshow[0] + " 00:00:00");
+    var startDay = moment(`${sorteddaystoshow[0]} 00:00:00`);
 
     sorteddaystoshow.forEach(function eachDay(day) {
-      var weekNum = Math.abs(moment(day + " 00:00:00").diff(startDay, "weeks"));
+      var weekNum = Math.abs(moment(`${day} 00:00:00`).diff(startDay, "weeks"));
 
       if (typeof weekstoshow[weekNum] === "undefined") {
         weekstoshow[weekNum] = [];
@@ -154,11 +154,11 @@ function init(ctx) {
 
     weekstoshow.forEach(function eachWeek(week) {
       var sgvData = [];
-      var weekStart = moment(week[0] + " 00:00:00");
+      var weekStart = moment(`${week[0]} 00:00:00`);
 
       week.forEach(function eachDay(day) {
         var dayNum = Math.abs(
-          moment(day + " 00:00:00").diff(weekStart, "days")
+          moment(`${day} 00:00:00`).diff(weekStart, "days")
         );
 
         datastorage[day].sgv.forEach(function eachSgv(sgv) {
@@ -215,7 +215,7 @@ function init(ctx) {
         "12am",
       ];
       if (Nightscout.client.settings.timeFormat === 24) {
-        return ("00" + i).slice(-2);
+        return `00${i}`.slice(-2);
       } else {
         return t12[i];
       }
@@ -259,19 +259,17 @@ function init(ctx) {
         .style("stroke", "#0099ff")
         .style("stroke-width", 2)
         .append("path")
-        .attr("d", "M0,0 l" + dashWidth + "," + dashWidth)
+        .attr("d", `M0,0 l${dashWidth},${dashWidth}`)
         .append("path")
-        .attr("d", "M" + dashWidth + ",0 l-" + dashWidth + "," + dashWidth);
+        .attr("d", `M${dashWidth},0 l-${dashWidth},${dashWidth}`);
 
       // create svg and g to contain the chart contents
       charts = d3
-        .select("#weektoweekchart-" + week[0] + "-" + week[week.length - 1])
+        .select(`#weektoweekchart-${week[0]}-${week[week.length - 1]}`)
         .html(
-          "<b>" +
-            report_plugins.utils.localeDate(week[0]) +
-            "-" +
-            report_plugins.utils.localeDate(week[week.length - 1]) +
-            "</b><br>"
+          `<b>${report_plugins.utils.localeDate(
+            week[0]
+          )}-${report_plugins.utils.localeDate(week[week.length - 1])}</b><br>`
         )
         .append("svg");
 
@@ -340,10 +338,7 @@ function init(ctx) {
 
       context
         .select(".y")
-        .attr(
-          "transform",
-          "translate(" + padding.left + "," + padding.top + ")"
-        )
+        .attr("transform", `translate(${padding.left},${padding.top})`)
         .style("stroke", "black")
         .style("shape-rendering", "crispEdges")
         .style("fill", "none")
@@ -354,7 +349,7 @@ function init(ctx) {
         .select(".x")
         .attr(
           "transform",
-          "translate(" + padding.left + "," + (chartHeight + padding.top) + ")"
+          `translate(${padding.left},${chartHeight + padding.top})`
         )
         .style("stroke", "black")
         .style("shape-rendering", "crispEdges")

@@ -146,7 +146,7 @@ calibrations.report = function report_calibrations(
     for (i = events.length - 1; i > 0; i--) {
       if (typeof events[i].device !== "undefined") {
         events[i].checked = true;
-        $("#calibrations-" + i).prop("checked", true);
+        $(`#calibrations-${i}`).prop("checked", true);
         if (--maxcals < 1) {
           break;
         }
@@ -223,7 +223,7 @@ calibrations.report = function report_calibrations(
       .select(".y")
       .attr(
         "transform",
-        "translate(" + /*chartWidth + */ padding.left + "," + padding.top + ")"
+        `translate(${/*chartWidth + */ padding.left},${padding.top})`
       )
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
@@ -235,7 +235,7 @@ calibrations.report = function report_calibrations(
       .select(".x")
       .attr(
         "transform",
-        "translate(" + padding.left + "," + (chartHeight + padding.top) + ")"
+        `translate(${padding.left},${chartHeight + padding.top})`
       )
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
@@ -290,9 +290,11 @@ calibrations.report = function report_calibrations(
     if (lastsgv) {
       if (mbg.mills - lastsgv.mills > 5 * 60 * 1000) {
         console.log(
-          "Last SGV too old for MBG. Time diff: " +
-            ((mbg.mills - lastsgv.mills) / 1000 / 60).toFixed(1) +
-            " min",
+          `Last SGV too old for MBG. Time diff: ${(
+            (mbg.mills - lastsgv.mills) /
+            1000 /
+            60
+          ).toFixed(1)} min`,
           mbg
         );
       } else {

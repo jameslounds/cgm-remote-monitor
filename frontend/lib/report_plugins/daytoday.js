@@ -172,7 +172,7 @@ daytoday.report = function report_daytoday(
       "12am",
     ];
     if (Nightscout.client.settings.timeFormat === 24) {
-      return ("00" + i).slice(-2);
+      return `00${i}`.slice(-2);
     } else {
       return t12[i];
     }
@@ -218,14 +218,14 @@ daytoday.report = function report_daytoday(
       .style("stroke", "#0099ff")
       .style("stroke-width", 2)
       .append("path")
-      .attr("d", "M0,0 l" + dashWidth + "," + dashWidth)
+      .attr("d", `M0,0 l${dashWidth},${dashWidth}`)
       .append("path")
-      .attr("d", "M" + dashWidth + ",0 l-" + dashWidth + "," + dashWidth);
+      .attr("d", `M${dashWidth},0 l-${dashWidth},${dashWidth}`);
 
     // create svg and g to contain the chart contents
     charts = d3
-      .select("#daytodaychart-" + day)
-      .html("<b>" + report_plugins.utils.localeDate(moment(day)) + "</b><br>")
+      .select(`#daytodaychart-${day}`)
+      .html(`<b>${report_plugins.utils.localeDate(moment(day))}</b><br>`)
       .append("svg");
 
     charts
@@ -306,7 +306,7 @@ daytoday.report = function report_daytoday(
 
     context
       .select(".y")
-      .attr("transform", "translate(" + padding.left + "," + padding.top + ")")
+      .attr("transform", `translate(${padding.left},${padding.top})`)
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
       .style("fill", "none")
@@ -317,7 +317,7 @@ daytoday.report = function report_daytoday(
       .select(".x")
       .attr(
         "transform",
-        "translate(" + padding.left + "," + (chartHeight + padding.top) + ")"
+        `translate(${padding.left},${chartHeight + padding.top})`
       )
       .style("stroke", "black")
       .style("shape-rendering", "crispEdges")
@@ -381,18 +381,17 @@ daytoday.report = function report_daytoday(
         .on("mouseover", function (d) {
           if (options.openAps && d.openaps) {
             client.tooltip.style("opacity", 0.9);
-            var text =
-              "<b>BG:</b> " +
-              d.openaps.suggested.bg +
-              ", " +
-              d.openaps.suggested.reason +
-              (d.openaps.suggested.mealAssist
-                ? " <b>Meal Assist:</b> " + d.openaps.suggested.mealAssist
-                : "");
+            var text = `<b>BG:</b> ${d.openaps.suggested.bg}, ${
+              d.openaps.suggested.reason
+            }${
+              d.openaps.suggested.mealAssist
+                ? ` <b>Meal Assist:</b> ${d.openaps.suggested.mealAssist}`
+                : ""
+            }`;
             client.tooltip
               .html(text)
-              .style("left", d3.event.pageX + "px")
-              .style("top", d3.event.pageY + 15 + "px");
+              .style("left", `${d3.event.pageX}px`)
+              .style("top", `${d3.event.pageY + 15}px`);
           }
         })
         .on("mouseout", hideTooltip);
@@ -590,18 +589,12 @@ daytoday.report = function report_daytoday(
     var positiveTemps = 0;
     var negativeTemps = 0;
 
-    iobpolyline +=
-      xScale2(moment(from)) +
-      padding.left +
-      "," +
-      (yInsulinScale(0) + padding.top) +
-      " ";
-    cobpolyline +=
-      xScale2(moment(from)) +
-      padding.left +
-      "," +
-      (yCarbsScale(0) + padding.top) +
-      " ";
+    iobpolyline += `${xScale2(moment(from)) + padding.left},${
+      yInsulinScale(0) + padding.top
+    } `;
+    cobpolyline += `${xScale2(moment(from)) + padding.left},${
+      yCarbsScale(0) + padding.top
+    } `;
     var timestart = new Date();
     var cobStatusAvailable = client.plugins
       .byName("cob")
@@ -625,29 +618,21 @@ daytoday.report = function report_daytoday(
           ).iob;
         // make the graph discontinuous when data is missing
         if (iob === undefined) {
-          iobpolyline +=
-            ", " +
-            (xScale2(lastDt) + padding.left) +
-            "," +
-            (yInsulinScale(0) + padding.top);
-          iobpolyline +=
-            ", " +
-            (xScale2(dt) + padding.left) +
-            "," +
-            (yInsulinScale(0) + padding.top);
+          iobpolyline += `, ${xScale2(lastDt) + padding.left},${
+            yInsulinScale(0) + padding.top
+          }`;
+          iobpolyline += `, ${xScale2(dt) + padding.left},${
+            yInsulinScale(0) + padding.top
+          }`;
         } else {
           if (lastIOB === undefined) {
-            iobpolyline +=
-              ", " +
-              (xScale2(dt) + padding.left) +
-              "," +
-              (yInsulinScale(0) + padding.top);
+            iobpolyline += `, ${xScale2(dt) + padding.left},${
+              yInsulinScale(0) + padding.top
+            }`;
           }
-          iobpolyline +=
-            ", " +
-            (xScale2(dt) + padding.left) +
-            "," +
-            (yInsulinScale(iob) + padding.top);
+          iobpolyline += `, ${xScale2(dt) + padding.left},${
+            yInsulinScale(iob) + padding.top
+          }`;
         }
         lastDt = dt.clone();
         lastIOB = iob;
@@ -664,12 +649,9 @@ daytoday.report = function report_daytoday(
         if (!dt.isSame(from)) {
           cobpolyline += ", ";
         }
-        cobpolyline +=
-          xScale2(dt.toDate()) +
-          padding.left +
-          "," +
-          (yCarbsScale(cob) + padding.top) +
-          " ";
+        cobpolyline += `${xScale2(dt.toDate()) + padding.left},${
+          yCarbsScale(cob) + padding.top
+        } `;
       }
       if (options.basal) {
         var date = dt.format("x");
@@ -728,41 +710,28 @@ daytoday.report = function report_daytoday(
           point.mills - previousdate > times.mins(15).msecs
         ) {
           cobpolyline += ", ";
-          cobpolyline +=
-            xScale2(previousdate) +
-            padding.left +
-            "," +
-            (yCarbsScale(0) + padding.top) +
-            " ";
+          cobpolyline += `${xScale2(previousdate) + padding.left},${
+            yCarbsScale(0) + padding.top
+          } `;
           cobpolyline += ", ";
-          cobpolyline +=
-            xScale2(point.mills) +
-            padding.left +
-            "," +
-            (yCarbsScale(0) + padding.top) +
-            " ";
+          cobpolyline += `${xScale2(point.mills) + padding.left},${
+            yCarbsScale(0) + padding.top
+          } `;
         }
         cobpolyline += ", ";
-        cobpolyline +=
-          xScale2(point.mills) +
-          padding.left +
-          "," +
-          (yCarbsScale(point.cob) + padding.top) +
-          " ";
+        cobpolyline += `${xScale2(point.mills) + padding.left},${
+          yCarbsScale(point.cob) + padding.top
+        } `;
         if (point.mills > lastdate) lastdate = point.mills;
         previousdate = point.mills;
       });
-      cobpolyline +=
-        ", " +
-        (xScale2(lastdate) + padding.left) +
-        "," +
-        (yCarbsScale(0) + padding.top);
+      cobpolyline += `, ${xScale2(lastdate) + padding.left},${
+        yCarbsScale(0) + padding.top
+      }`;
     } else {
-      cobpolyline +=
-        ", " +
-        (xScale2(to) + padding.left) +
-        "," +
-        (yCarbsScale(0) + padding.top);
+      cobpolyline += `, ${xScale2(to) + padding.left},${
+        yCarbsScale(0) + padding.top
+      }`;
     }
 
     // Draw IOB from devicestatuses if available
@@ -782,41 +751,28 @@ daytoday.report = function report_daytoday(
           point.mills - previousdate > times.mins(15).msecs
         ) {
           iobpolyline += ", ";
-          iobpolyline +=
-            xScale2(previousdate) +
-            padding.left +
-            "," +
-            (yInsulinScale(0) + padding.top) +
-            " ";
+          iobpolyline += `${xScale2(previousdate) + padding.left},${
+            yInsulinScale(0) + padding.top
+          } `;
           iobpolyline += ", ";
-          iobpolyline +=
-            xScale2(point.mills) +
-            padding.left +
-            "," +
-            (yInsulinScale(0) + padding.top) +
-            " ";
+          iobpolyline += `${xScale2(point.mills) + padding.left},${
+            yInsulinScale(0) + padding.top
+          } `;
         }
         iobpolyline += ", ";
-        iobpolyline +=
-          xScale2(point.mills) +
-          padding.left +
-          "," +
-          (yInsulinScale(point.iob) + padding.top) +
-          " ";
+        iobpolyline += `${xScale2(point.mills) + padding.left},${
+          yInsulinScale(point.iob) + padding.top
+        } `;
         if (point.mills > lastdate) lastdate = point.mills;
         previousdate = point.mills;
       });
-      iobpolyline +=
-        ", " +
-        (xScale2(lastdate) + padding.left) +
-        "," +
-        (yInsulinScale(0) + padding.top);
+      iobpolyline += `, ${xScale2(lastdate) + padding.left},${
+        yInsulinScale(0) + padding.top
+      }`;
     } else {
-      iobpolyline +=
-        ", " +
-        (xScale2(to) + padding.left) +
-        "," +
-        (yInsulinScale(0) + padding.top);
+      iobpolyline += `, ${xScale2(to) + padding.left},${
+        yInsulinScale(0) + padding.top
+      }`;
     }
 
     if (options.iob) {
@@ -1002,8 +958,8 @@ daytoday.report = function report_daytoday(
           var foods = treatment.boluscalc.foods;
           for (var fi = 0; fi < foods.length; fi++) {
             var f = foods[fi];
-            var text = "" + f.name + " ";
-            text += "" + (f.carbs * f.portions).toFixed(1) + " g";
+            var text = `${f.name} `;
+            text += `${(f.carbs * f.portions).toFixed(1)} g`;
             context
               .append("text")
               .style("font-size", "10px")
@@ -1012,11 +968,9 @@ daytoday.report = function report_daytoday(
               .attr("y", foodtexts * 15 + padding.top)
               .attr(
                 "transform",
-                "translate(" +
-                  (xScale2(treatment.mills) + padding.left) +
-                  "," +
-                  padding.top +
-                  ")"
+                `translate(${xScale2(treatment.mills) + padding.left},${
+                  padding.top
+                })`
               )
               .html(text);
             foodtexts = (foodtexts + 1) % 6;
@@ -1036,11 +990,9 @@ daytoday.report = function report_daytoday(
             .attr("y", foodtexts * 15 + padding.top)
             .attr(
               "transform",
-              "translate(" +
-                (xScale2(treatment.mills) + padding.left) +
-                "," +
-                padding.top +
-                ")"
+              `translate(${xScale2(treatment.mills) + padding.left},${
+                padding.top
+              })`
             )
             .html(treatment.notes);
           foodtexts = (foodtexts + 1) % 6;
@@ -1067,13 +1019,13 @@ daytoday.report = function report_daytoday(
       }
 
       if (treatment.carbs && options.carbs) {
-        var label = " " + treatment.carbs + " g";
-        label += treatment.foodType ? " " + treatment.foodType : "";
+        var label = ` ${treatment.carbs} g`;
+        label += treatment.foodType ? ` ${treatment.foodType}` : "";
         label += treatment.absorptionTime
-          ? " " + Math.round((treatment.absorptionTime / 60.0) * 10) / 10 + "h"
+          ? ` ${Math.round((treatment.absorptionTime / 60.0) * 10) / 10}h`
           : "";
-        if (treatment.protein) label += " / " + treatment.protein + " g";
-        if (treatment.fat) label += " / " + treatment.fat + " g";
+        if (treatment.protein) label += ` / ${treatment.protein} g`;
+        if (treatment.fat) label += ` / ${treatment.fat} g`;
 
         context
           .append("rect")
@@ -1085,11 +1037,9 @@ daytoday.report = function report_daytoday(
           .attr("fill", "red")
           .attr(
             "transform",
-            "translate(" +
-              (xScale2(treatment.mills) + padding.left) +
-              "," +
-              +padding.top +
-              ")"
+            `translate(${
+              xScale2(treatment.mills) + padding.left
+            },${+padding.top})`
           );
         context
           .append("text")
@@ -1098,22 +1048,18 @@ daytoday.report = function report_daytoday(
           .attr("fill", "red")
           .attr(
             "transform",
-            "rotate(-45," +
-              (xScale2(treatment.mills) + padding.left) +
-              "," +
-              (padding.top + yCarbsScale(treatment.carbs)) +
-              ") " +
-              "translate(" +
-              (xScale2(treatment.mills) + padding.left + 10) +
-              "," +
-              (padding.top + yCarbsScale(treatment.carbs)) +
-              ")"
+            `rotate(-45,${xScale2(treatment.mills) + padding.left},${
+              padding.top + yCarbsScale(treatment.carbs)
+            }) ` +
+              `translate(${xScale2(treatment.mills) + padding.left + 10},${
+                padding.top + yCarbsScale(treatment.carbs)
+              })`
           )
-          .text("" + label);
+          .text(`${label}`);
       }
 
       if (treatment.insulin && options.insulin) {
-        var dataLabel = client.utils.toRoundedStr(treatment.insulin, 2) + "U";
+        var dataLabel = `${client.utils.toRoundedStr(treatment.insulin, 2)}U`;
         context
           .append("rect")
           .attr("y", yInsulinScale(treatment.insulin))
@@ -1124,11 +1070,9 @@ daytoday.report = function report_daytoday(
           .attr("fill", "blue")
           .attr(
             "transform",
-            "translate(" +
-              (xScale2(treatment.mills) + padding.left - 2) +
-              "," +
-              +padding.top +
-              ")"
+            `translate(${
+              xScale2(treatment.mills) + padding.left - 2
+            },${+padding.top})`
           );
         context
           .append("text")
@@ -1138,16 +1082,12 @@ daytoday.report = function report_daytoday(
           //.attr('y', yInsulinScale(treatment.insulin)-10)
           .attr(
             "transform",
-            "rotate(-45," +
-              (xScale2(treatment.mills) + padding.left - 2) +
-              "," +
-              (padding.top + yInsulinScale(treatment.insulin)) +
-              ")" +
-              "translate(" +
-              (xScale2(treatment.mills) + padding.left + 10) +
-              "," +
-              (padding.top + yInsulinScale(treatment.insulin)) +
-              ")"
+            `rotate(-45,${xScale2(treatment.mills) + padding.left - 2},${
+              padding.top + yInsulinScale(treatment.insulin)
+            })` +
+              `translate(${xScale2(treatment.mills) + padding.left + 10},${
+                padding.top + yInsulinScale(treatment.insulin)
+              })`
           )
           .text(dataLabel);
       }
@@ -1405,16 +1345,9 @@ daytoday.report = function report_daytoday(
       var basalcolor = "#0099ff";
 
       console.log(
-        "Insulin for day: " +
-          day +
-          " bolus: " +
-          bolusInsulin +
-          " basebasal: " +
-          baseBasalInsulin +
-          " positiveTemps: " +
-          positiveTemps +
-          " negativeTemps: " +
-          negativeTemps
+        `Insulin for day: ${day} bolus: ${bolusInsulin} basebasal: ${
+          baseBasalInsulin
+        } positiveTemps: ${positiveTemps} negativeTemps: ${negativeTemps}`
       );
       var table = $("<table>");
       $(/* HTML */
@@ -1500,7 +1433,7 @@ daytoday.report = function report_daytoday(
           </td>
         </tr>
       `).appendTo(table);
-      $("#daytodaystatchart-" + day).append(table);
+      $(`#daytodaystatchart-${day}`).append(table);
 
       var chartData = [
         {
@@ -1528,12 +1461,12 @@ daytoday.report = function report_daytoday(
         .innerRadius(radius / 2);
 
       var svg = d3
-        .select("#daytodaystatinsulinpiechart-" + day)
+        .select(`#daytodaystatinsulinpiechart-${day}`)
         .append("svg")
         .attr("width", width)
         .attr("height", height)
         .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+        .attr("transform", `translate(${width / 2},${height / 2})`);
 
       var arc = d3.arc().innerRadius(0).outerRadius(radius);
 
@@ -1562,13 +1495,13 @@ daytoday.report = function report_daytoday(
       insulg
         .append("text")
         .attr("transform", function (d) {
-          return "translate(" + labelArc.centroid(d) + ")";
+          return `translate(${labelArc.centroid(d)})`;
         })
         .attr("dy", ".15em")
         .style("font-weight", "bold")
         .attr("text-anchor", "middle")
         .text(function (d) {
-          return d.data.pct + "%";
+          return `${d.data.pct}%`;
         });
 
       // Carbs pie chart
@@ -1578,12 +1511,12 @@ daytoday.report = function report_daytoday(
       var carbsData = [{ label: translate("Carbs"), count: data.dailyCarbs }];
 
       var carbssvg = d3
-        .select("#daytodaystatcarbspiechart-" + day)
+        .select(`#daytodaystatcarbspiechart-${day}`)
         .append("svg")
         .attr("width", width)
         .attr("height", height)
         .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+        .attr("transform", `translate(${width / 2},${height / 2})`);
 
       var carbsarc = d3
         .arc()
@@ -1620,7 +1553,7 @@ daytoday.report = function report_daytoday(
         .style("font-weight", "bold")
         .attr("text-anchor", "middle")
         .text(function (d) {
-          return d.data.count + "g";
+          return `${d.data.count}g`;
         });
     }
 
@@ -1660,22 +1593,18 @@ daytoday.report = function report_daytoday(
         .attr("dy", ".35em")
         .attr(
           "transform",
-          "rotate(-90 " +
-            (xScale2(treatment.mills) + padding.left) +
-            "," +
-            (yScaleBasals(0) + padding.top - 10) +
-            ") " +
-            "translate(" +
-            (xScale2(treatment.mills) + padding.left) +
-            "," +
-            (yScaleBasals(0) + padding.top - 10) +
-            ")"
+          `rotate(-90 ${xScale2(treatment.mills) + padding.left},${
+            yScaleBasals(0) + padding.top - 10
+          }) ` +
+            `translate(${xScale2(treatment.mills) + padding.left},${
+              yScaleBasals(0) + padding.top - 10
+            })`
         )
         .text(text);
     }
 
     console.log(
-      "Rendering " + day,
+      `Rendering ${day}`,
       new Date().getTime() - timestart.getTime(),
       "msecs"
     );

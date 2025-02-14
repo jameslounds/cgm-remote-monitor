@@ -115,7 +115,7 @@ percentile.report = function report_percentile(
         },
       },
       {
-        label: "25%/75% " + translate("percentile"),
+        label: `25%/75% ${translate("percentile")}`,
         data: dat25,
         id: "c25",
         color: "#000055",
@@ -142,7 +142,7 @@ percentile.report = function report_percentile(
         fillBetween: "c50",
       },
       {
-        label: "10%/90% " + translate("percentile"),
+        label: `10%/90% ${translate("percentile")}`,
         data: dat10,
         id: "c10",
         color: "#a0a0FF",

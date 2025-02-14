@@ -88,7 +88,7 @@ loopalyzer.html = function html(client) {
     for (let i = 0; i < 24; i++) {
       const H = (i < 10 ? "0" : "") + i;
       timerPicker += `  <option t1="${H}:00"${i == 6 ? " selected" : ""}>${H}:00</option>`;
-      timerPicker += '  <option t1="' + H + ':30">' + H + ":30</option>";
+      timerPicker += `  <option t1="${H}:30">${H}:30</option>`;
     }
     timerPicker += "</select>";
     return timerPicker;
@@ -225,7 +225,7 @@ loopalyzer.getBasals = function (datastorage, daysToShow, profile) {
       var basal = profile.getTempBasal(dt.toDate());
       if (basal) basals[index++] = basal.basal;
     }
-    if (laDebug) console.log("getBasals " + day, basals);
+    if (laDebug) console.log(`getBasals ${day}`, basals);
     loopalyzer.addArrayToBins(bins, basals);
   });
   return bins;
@@ -245,7 +245,7 @@ loopalyzer.getTempBasalDeltas = function (datastorage, daysToShow, profile) {
       var basal = profile.getTempBasal(dt.toDate());
       if (basal) temps[index++] = basal.tempbasal - basal.basal;
     }
-    if (laDebug) console.log("getTempBasalDeltas " + day, temps);
+    if (laDebug) console.log(`getTempBasalDeltas ${day}`, temps);
     loopalyzer.addArrayToBins(bins, temps);
   });
   return bins;
@@ -261,7 +261,7 @@ loopalyzer.getIOBs = function (
   var iobStatusAvailable = client
     .plugins("iob")
     .isDeviceStatusAvailable(datastorage.devicestatus);
-  if (laDebug) console.log("getIOBs iobStatusAvailable=" + iobStatusAvailable);
+  if (laDebug) console.log(`getIOBs iobStatusAvailable=${iobStatusAvailable}`);
 
   var bins = loopalyzer.getEmptyBins();
 
@@ -333,7 +333,7 @@ loopalyzer.getIOBs = function (
         iobs.push(iob);
       }
     }
-    if (laDebug) console.log("getIOBs " + day, iobs);
+    if (laDebug) console.log(`getIOBs ${day}`, iobs);
     loopalyzer.addArrayToBins(bins, iobs);
   });
   return bins;
@@ -349,7 +349,7 @@ loopalyzer.getCOBs = function (
   var cobStatusAvailable = client
     .plugins("cob")
     .isDeviceStatusAvailable(datastorage.devicestatus);
-  if (laDebug) console.log("getCOBs cobStatusAvailable=" + cobStatusAvailable);
+  if (laDebug) console.log(`getCOBs cobStatusAvailable=${cobStatusAvailable}`);
 
   var bins = loopalyzer.getEmptyBins();
 
@@ -427,7 +427,7 @@ loopalyzer.getCOBs = function (
         cobs.push(cob);
       }
     }
-    if (laDebug) console.log("getCOBs " + day, cobs);
+    if (laDebug) console.log(`getCOBs ${day}`, cobs);
     loopalyzer.addArrayToBins(bins, cobs);
   });
   return bins;
@@ -847,43 +847,37 @@ loopalyzer.isSameProfileValues = function (a, b) {
   if (a.basal) {
     aString += "basal:";
     a.basal.forEach(function (entry) {
-      aString +=
-        "s" + entry.timeAsSeconds + "t" + entry.time + "v" + entry.value;
+      aString += `s${entry.timeAsSeconds}t${entry.time}v${entry.value}`;
     });
   }
   if (a.carbratio) {
     aString += "carbratio:";
     a.carbratio.forEach(function (entry) {
-      aString +=
-        "s" + entry.timeAsSeconds + "t" + entry.time + "v" + entry.value;
+      aString += `s${entry.timeAsSeconds}t${entry.time}v${entry.value}`;
     });
   }
   if (a.sens) {
     aString += "sens:";
     a.sens.forEach(function (entry) {
-      aString +=
-        "s" + entry.timeAsSeconds + "t" + entry.time + "v" + entry.value;
+      aString += `s${entry.timeAsSeconds}t${entry.time}v${entry.value}`;
     });
   }
   if (b.basal) {
     bString += "basal:";
     b.basal.forEach(function (entry) {
-      bString +=
-        "s" + entry.timeAsSeconds + "t" + entry.time + "v" + entry.value;
+      bString += `s${entry.timeAsSeconds}t${entry.time}v${entry.value}`;
     });
   }
   if (b.carbratio) {
     bString += "carbratio:";
     b.carbratio.forEach(function (entry) {
-      bString +=
-        "s" + entry.timeAsSeconds + "t" + entry.time + "v" + entry.value;
+      bString += `s${entry.timeAsSeconds}t${entry.time}v${entry.value}`;
     });
   }
   if (b.sens) {
     bString += "sens:";
     b.sens.forEach(function (entry) {
-      bString +=
-        "s" + entry.timeAsSeconds + "t" + entry.time + "v" + entry.value;
+      bString += `s${entry.timeAsSeconds}t${entry.time}v${entry.value}`;
     });
   }
   return aString == bString;
@@ -919,7 +913,7 @@ loopalyzer.renderProfilesTable = function (
     var store = entry.store;
     if (store) {
       for (var key in store) {
-        if (laDebug) console.log("profile " + key);
+        if (laDebug) console.log(`profile ${key}`);
         if (Object.prototype.hasOwnProperty.call(store, key)) {
           var defaultProfile = store[key];
           newEntry.profileName = key;
@@ -941,11 +935,11 @@ loopalyzer.renderProfilesTable = function (
   }); // Ascending
   if (laDebug) {
     profilesArray1.forEach(function (entry) {
-      console.log("profilesArray1 - " + entry.startDate);
+      console.log(`profilesArray1 - ${entry.startDate}`);
     });
   }
   if (laDebug)
-    console.log("profilesArray1 has " + profilesArray1.length + " profiles");
+    console.log(`profilesArray1 has ${profilesArray1.length} profiles`);
 
   // Second, the deduplication - remove all duplicates which have a later startDate but identical data
   var profilesArray2 = [];
@@ -954,10 +948,9 @@ loopalyzer.renderProfilesTable = function (
   profilesArray1.forEach(function (entry) {
     if (laDebug) {
       console.log(
-        "Comparing " +
-          JSON.stringify(profileToCompareWith.startDate) +
-          " to " +
-          JSON.stringify(entry.startDate)
+        `Comparing ${JSON.stringify(
+          profileToCompareWith.startDate
+        )} to ${JSON.stringify(entry.startDate)}`
       );
       console.log(profileToCompareWith, entry);
     }
@@ -971,7 +964,7 @@ loopalyzer.renderProfilesTable = function (
     }
   });
   if (laDebug)
-    console.log("profilesArray2 has " + profilesArray2.length + " profiles");
+    console.log(`profilesArray2 has ${profilesArray2.length} profiles`);
 
   // Sort the newest Profile first
   profilesArray2.sort(function (a, b) {
@@ -983,16 +976,14 @@ loopalyzer.renderProfilesTable = function (
   profilesArray2.forEach(function (entry) {
     if (laDebug)
       console.log(
-        entry.startDate +
-          " isBefore " +
-          beginningOfFirstDay +
-          " = " +
-          moment(entry.startDate).isBefore(beginningOfFirstDay)
+        `${entry.startDate} isBefore ${beginningOfFirstDay} = ${moment(
+          entry.startDate
+        ).isBefore(beginningOfFirstDay)}`
       );
     if (moment(entry.startDate).isBefore(beginningOfFirstDay))
       latestProfile = entry;
   });
-  if (laDebug) console.log("latest profile is " + latestProfile.startDate);
+  if (laDebug) console.log(`latest profile is ${latestProfile.startDate}`);
 
   // Now create a final array with the latest profile found above and add all
   // the other profiles with a startDate between beginningOfFirstDay and endOfLastDay
@@ -1001,11 +992,9 @@ loopalyzer.renderProfilesTable = function (
   profilesArray2.forEach(function (entry) {
     if (laDebug)
       console.log(
-        entry.startDate +
-          " isAfter " +
-          beginningOfFirstDay +
-          " = " +
-          moment(entry.startDate).isAfter(beginningOfFirstDay)
+        `${entry.startDate} isAfter ${beginningOfFirstDay} = ${moment(
+          entry.startDate
+        ).isAfter(beginningOfFirstDay)}`
       );
     if (moment(entry.startDate).isAfter(beginningOfFirstDay))
       profiles.push(entry); // Add the profile if it's between beginning and end of show dates
@@ -1014,10 +1003,10 @@ loopalyzer.renderProfilesTable = function (
   // Now we have an array of all the profiles that are relevant for the days we are displaying.
   if (laDebug) {
     profiles.forEach(function (entry) {
-      console.log("profiles - " + entry.startDate);
+      console.log(`profiles - ${entry.startDate}`);
     });
   }
-  if (laDebug) console.log("profiles has " + profiles.length + " profiles");
+  if (laDebug) console.log(`profiles has ${profiles.length} profiles`);
 
   var translate = client.translate;
   var tableHtml = '<table id="loopalyzer-profiles-table"><tbody><tr>';
@@ -1025,32 +1014,21 @@ loopalyzer.renderProfilesTable = function (
   profiles.forEach(function (theProfile, index) {
     if (index < 3) {
       tableHtml += "<td><table>";
-      tableHtml +=
-        "<caption>" +
-        theProfile.profileName +
-        " (" +
-        new Date(theProfile.startDate).toLocaleString() +
-        ")</caption>";
-      tableHtml +=
-        "<thead><tr><th>" +
-        translate("Basal") +
-        "</th><th>" +
-        translate("Carb ratio") +
-        "</th><th>" +
-        translate("Sensitivity") +
-        "</th></tr></thead>";
+      tableHtml += `<caption>${theProfile.profileName} (${new Date(
+        theProfile.startDate
+      ).toLocaleString()})</caption>`;
+      tableHtml += `<thead><tr><th>${translate("Basal")}</th><th>${translate(
+        "Carb ratio"
+      )}</th><th>${translate("Sensitivity")}</th></tr></thead>`;
       tableHtml += "<tbody><tr>";
 
       // Add Basal as a table in the first td
       tableHtml += "<td><table>";
       if (theProfile.basal) {
         theProfile.basal.forEach(function (entry) {
-          tableHtml +=
-            "<tr><td>" +
-            entry.time +
-            "</td><td>" +
-            parseFloat(entry.value).toFixed(3) +
-            "</td></tr>";
+          tableHtml += `<tr><td>${entry.time}</td><td>${parseFloat(
+            entry.value
+          ).toFixed(3)}</td></tr>`;
         });
       }
       tableHtml += "</table></td>";
@@ -1059,12 +1037,9 @@ loopalyzer.renderProfilesTable = function (
       tableHtml += "<td><table>";
       if (theProfile.carbratio) {
         theProfile.carbratio.forEach(function (entry) {
-          tableHtml +=
-            "<tr><td>" +
-            entry.time +
-            "</td><td>" +
-            parseFloat(entry.value).toFixed(1) +
-            "</td></tr>";
+          tableHtml += `<tr><td>${entry.time}</td><td>${parseFloat(
+            entry.value
+          ).toFixed(1)}</td></tr>`;
         });
       }
       tableHtml += "</table></td>";
@@ -1073,12 +1048,9 @@ loopalyzer.renderProfilesTable = function (
       tableHtml += "<td><table>";
       if (theProfile.sens) {
         theProfile.sens.forEach(function (entry) {
-          tableHtml +=
-            "<tr><td>" +
-            entry.time +
-            "</td><td>" +
-            parseFloat(entry.value).toFixed(1) +
-            "</td></tr>";
+          tableHtml += `<tr><td>${entry.time}</td><td>${parseFloat(
+            entry.value
+          ).toFixed(1)}</td></tr>`;
         });
       }
       tableHtml += "</table></td>";
@@ -1100,7 +1072,7 @@ loopalyzer.renderProfilesTable = function (
 
 // Main method
 loopalyzer.report = function (datastorage, sorteddaystoshow, options) {
-  if (laDebug) console.log("Loopalyzer " + laVersion);
+  if (laDebug) console.log(`Loopalyzer ${laVersion}`);
 
   // Copy the sorteddaystoshow into new array (clone) and re-sort ascending (so we don't mess with original array)
   var daysToShow = [];
@@ -1116,13 +1088,7 @@ loopalyzer.report = function (datastorage, sorteddaystoshow, options) {
   var days = lastDay.diff(firstDay, "day") + 1;
   if (laDebug)
     console.log(
-      "Loopalyzer " +
-        firstDay.format() +
-        " - " +
-        lastDay.format() +
-        " is " +
-        days +
-        " days"
+      `Loopalyzer ${firstDay.format()} - ${lastDay.format()} is ${days} days`
     );
   if (days <= 14) {
     $("#loopalyzer-notenoughdata").hide();
@@ -1159,8 +1125,7 @@ loopalyzer.generateReport = function (datastorage, daysToShow, options) {
 
   var dateInfo = moment(daysToShow[0]).format("ddd MMM D"); // .split(',')[0];
   if (daysToShow.length > 1)
-    dateInfo +=
-      " - " + moment(daysToShow[daysToShow.length - 1]).format("ddd MMM D"); // .split(',')[0];
+    dateInfo += ` - ${moment(daysToShow[daysToShow.length - 1]).format("ddd MMM D")}`; // .split(',')[0];
   $("#loopalyzer-dateinfo").html(dateInfo);
 
   loopalyzer.prepareHtml();
@@ -1359,7 +1324,7 @@ loopalyzer.generateReport = function (datastorage, daysToShow, options) {
     if (val >= axis.max) {
       return "";
     }
-    return val + "";
+    return `${val}`;
   }
 
   var tickColor = "#DDDDDD";

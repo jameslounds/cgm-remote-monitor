@@ -136,7 +136,7 @@ hourlystats.report = function report_hourlystats(
         (${Math.floor((100 * pivotedByHour[hour].length) / data.length)}%)
       </td>
     `).appendTo(tr);
-    $("<td>" + avg + "</td>").appendTo(tr);
+    $(`<td>${avg}</td>`).appendTo(tr);
     $(/* HTML */
     `
       <td>
@@ -148,7 +148,7 @@ hourlystats.report = function report_hourlystats(
         )}
       </td>
     `).appendTo(tr);
-    // eslint-disable-next-line no-cond-assign
+
     $(/* HTML */
     `
       <td>
@@ -162,7 +162,7 @@ hourlystats.report = function report_hourlystats(
           : 0}
       </td>
     `).appendTo(tr);
-    // eslint-disable-next-line no-cond-assign
+
     $(/* HTML */
     `
       <td>
@@ -176,7 +176,7 @@ hourlystats.report = function report_hourlystats(
           : 0}
       </td>
     `).appendTo(tr);
-    // eslint-disable-next-line no-cond-assign
+
     $(/* HTML */
     `
       <td>
@@ -201,7 +201,7 @@ hourlystats.report = function report_hourlystats(
         )}
       </td>
     `).appendTo(tr);
-    $("<td>" + Math.floor(dev * 10) / 10 + "</td>").appendTo(tr);
+    $(`<td>${Math.floor(dev * 10) / 10}</td>`).appendTo(tr);
     table.append(tr);
   });
 
@@ -273,7 +273,7 @@ hourlystats.report = function report_hourlystats(
     22,
     23,
   ].forEach(function (hour) {
-    $("<th>" + hour + "</th>").appendTo(thead);
+    $(`<th>${hour}</th>`).appendTo(thead);
     totalPositive[hour] = 0;
     totalNegative[hour] = 0;
     positivesCount[hour] = 0;
@@ -286,7 +286,7 @@ hourlystats.report = function report_hourlystats(
     if (datastorage[day].netBasalPositive) {
       days++;
       var tr = $("<tr>");
-      $("<td>" + report_plugins.utils.localeDate(day) + "</td>").appendTo(tr);
+      $(`<td>${report_plugins.utils.localeDate(day)}</td>`).appendTo(tr);
       for (var h = 0; h < 24; h++) {
         var positive = datastorage[day].netBasalPositive[h];
         var negative = datastorage[day].netBasalNegative[h];

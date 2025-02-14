@@ -190,13 +190,13 @@ glucosedistribution.report = function report_glucosedistribution(
   var stats = [];
   var table = $('<table class="centeraligned">');
   var thead = $("<tr/>");
-  $("<th>" + translate("Range") + "</th>").appendTo(thead);
-  $("<th>" + translate("% of Readings") + "</th>").appendTo(thead);
-  $("<th>" + translate("# of Readings") + "</th>").appendTo(thead);
-  $("<th>" + translate("Average") + "</th>").appendTo(thead);
-  $("<th>" + translate("Median") + "</th>").appendTo(thead);
-  $("<th>" + translate("Standard Deviation") + "</th>").appendTo(thead);
-  $("<th>" + translate("A1c estimation*") + "</th>").appendTo(thead);
+  $(`<th>${translate("Range")}</th>`).appendTo(thead);
+  $(`<th>${translate("% of Readings")}</th>`).appendTo(thead);
+  $(`<th>${translate("# of Readings")}</th>`).appendTo(thead);
+  $(`<th>${translate("Average")}</th>`).appendTo(thead);
+  $(`<th>${translate("Median")}</th>`).appendTo(thead);
+  $(`<th>${translate("Standard Deviation")}</th>`).appendTo(thead);
+  $(`<th>${translate("A1c estimation*")}</th>`).appendTo(thead);
   thead.appendTo(table);
 
   var data = datastorage.allstatsrecords;
@@ -209,14 +209,12 @@ glucosedistribution.report = function report_glucosedistribution(
   var lastDay = reportPlugins.utils.localeDate(sorteddaystoshow[0]);
 
   $("#glucosedistribution-days").text(
-    days + " " + translate("days total") + ", " + firstDay + " - " + lastDay
+    `${days} ${translate("days total")}, ${firstDay} - ${lastDay}`
   );
 
   for (var i = 0; i < 24; i++) {
-    $("#glucosedistribution-" + i)
-      .unbind("click")
-      .click(onClick);
-    enabledHours[i] = $("#glucosedistribution-" + i).is(":checked");
+    $(`#glucosedistribution-${i}`).unbind("click").click(onClick);
+    enabledHours[i] = $(`#glucosedistribution-${i}`).is(":checked");
   }
 
   var result = {};
@@ -398,10 +396,10 @@ glucosedistribution.report = function report_glucosedistribution(
 
     var rangeExp = "";
     if (range == "Low") {
-      rangeExp = " (<" + options.targetLow + ")";
+      rangeExp = ` (<${options.targetLow})`;
     }
     if (range == "High") {
-      rangeExp = " (>=" + options.targetHigh + ")";
+      rangeExp = ` (>=${options.targetHigh})`;
     }
 
     var rangeLabel = range;
@@ -413,12 +411,12 @@ glucosedistribution.report = function report_glucosedistribution(
         <strong>${translate(rangeLabel)}${rangeExp}:</strong>
       </td>
     `).appendTo(tr);
-    $('<td class="tdborder">' + r.readingspct + "%</td>").appendTo(tr);
-    $('<td class="tdborder">' + r.rangeRecords.length + "</td>").appendTo(tr);
+    $(`<td class="tdborder">${r.readingspct}%</td>`).appendTo(tr);
+    $(`<td class="tdborder">${r.rangeRecords.length}</td>`).appendTo(tr);
     if (r.rangeRecords.length > 0) {
-      $('<td class="tdborder">' + r.mean.toFixed(1) + "</td>").appendTo(tr);
-      $('<td class="tdborder">' + r.median.toFixed(1) + "</td>").appendTo(tr);
-      $('<td class="tdborder">' + r.stddev.toFixed(1) + "</td>").appendTo(tr);
+      $(`<td class="tdborder">${r.mean.toFixed(1)}</td>`).appendTo(tr);
+      $(`<td class="tdborder">${r.median.toFixed(1)}</td>`).appendTo(tr);
+      $(`<td class="tdborder">${r.stddev.toFixed(1)}</td>`).appendTo(tr);
       $("<td> </td>").appendTo(tr);
     } else {
       $('<td class="tdborder">N/A</td>').appendTo(tr);
@@ -432,10 +430,10 @@ glucosedistribution.report = function report_glucosedistribution(
 
   var tr = $("<tr>");
   $(
-    '<td class="tdborder"><strong>' + translate("Overall") + ": </strong></td>"
+    `<td class="tdborder"><strong>${translate("Overall")}: </strong></td>`
   ).appendTo(tr);
   $("<td> </td>").appendTo(tr);
-  $('<td class="tdborder">' + glucose_data.length + "</td>").appendTo(tr);
+  $(`<td class="tdborder">${glucose_data.length}</td>`).appendTo(tr);
   if (glucose_data.length > 0) {
     var localBgs = glucose_data
       .map(function (r) {
