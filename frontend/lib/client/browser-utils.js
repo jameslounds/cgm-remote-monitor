@@ -113,7 +113,7 @@ class BrowserUtils {
       right: "0",
       top: "0px",
       height: `${isSmallScreen ? windowHeight : windowHeight - 45}px`,
-      width: `${isSmallScreen ? windowWidth : 250}px`,
+      width: `${isSmallScreen ? windowWidth : 350}px`,
     });
   }
 
