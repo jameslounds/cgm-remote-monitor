@@ -15,20 +15,21 @@ module.exports = init;
 profiles.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Profiles") +
-    "</h2>" +
-    "<br>" +
-    translate("Database records") +
-    "&nbsp" +
-    '<br><select id="profiles-databaserecords"></select>' +
-    '<br><span id="profiles-default"></span>' +
-    '<div id="profiles-chart">' +
-    "</div>";
+    /* HTML */
+    `
+      <h2>${translate("Profiles")}</h2>
+      <br />
+      ${translate("Database records")}&nbsp
+      <br />
+      <select id="profiles-databaserecords"></select>
+      <br />
+      <span id="profiles-default"></span>
+      <div id="profiles-chart"></div>
+    `;
   return ret;
 };
 
-profiles.css = "#profiles-chart {" + "  width: 100%;" + "  height: 100%;" + "}";
+profiles.css = /* CSS */ `#profiles-chart {  width: 100%;  height: 100%;}`;
 
 profiles.report = function report_profiles(datastorage) {
   var Nightscout = window.Nightscout;
@@ -40,15 +41,13 @@ profiles.report = function report_profiles(datastorage) {
 
   databaseRecords.empty();
   for (var r = 0; r < profileRecords.length; r++) {
-    databaseRecords.append(
-      '<option value="' +
-        r +
-        '">' +
-        translate("Valid from:") +
-        " " +
-        new Date(profileRecords[r].startDate).toLocaleString() +
-        "</option>",
-    );
+    databaseRecords.append(/* HTML */
+    `
+      <option value="${r}">
+        ${translate("Valid from:")}
+        ${new Date(profileRecords[r].startDate).toLocaleString()}
+      </option>
+    `);
   }
   databaseRecords.unbind().bind("change", recordChange);
 
@@ -81,79 +80,85 @@ profiles.report = function report_profiles(datastorage) {
     var td = $("<td>");
     var table = $("<table>");
 
-    table.append($("<tr>").append($("<td>").append("<b>" + name + "</b>")));
+    table.append($("<tr>").append($("<td>").append(`<b>${name}</b>`)));
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" + translate("Units") + "</b>:&nbsp" + record.units,
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Units")}</b>
+          :&nbsp${record.units}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append("<b>" + translate("DIA") + "</b>:&nbsp" + record.dia),
-      ),
+        $("<td>").append(/* HTML */ `
+          <b>${translate("DIA")}</b>
+          :&nbsp${record.dia}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" + translate("Timezone") + "</b>:&nbsp" + record.timezone,
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Timezone")}</b>
+          :&nbsp${record.timezone}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" +
-            translate("Carbs activity / absorption rate") +
-            "</b>:&nbsp" +
-            record.carbs_hr,
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Carbs activity / absorption rate")}</b>
+          :&nbsp${record.carbs_hr}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" +
-            translate("Insulin to carb ratio (I:C)") +
-            "</b>:&nbsp" +
-            "<br>" +
-            displayRanges(record.carbratio),
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Insulin to carb ratio (I:C)")}</b>
+          :&nbsp
+          <br />
+          ${displayRanges(record.carbratio)}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" +
-            translate("Insulin Sensitivity Factor (ISF)") +
-            "</b>:&nbsp" +
-            "<br>" +
-            displayRanges(record.sens),
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Insulin Sensitivity Factor (ISF)")}</b>
+          :&nbsp
+          <br />
+          ${displayRanges(record.sens)}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" +
-            translate("Basal rates [unit/hour]") +
-            "</b>:&nbsp" +
-            "<br>" +
-            displayRanges(record.basal),
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Basal rates [unit/hour]")}</b>
+          :&nbsp
+          <br />
+          ${displayRanges(record.basal)}
+        `)
+      )
     );
     table.append(
       $("<tr>").append(
-        $("<td>").append(
-          "<b>" +
-            translate("Target BG range [mg/dL,mmol/L]") +
-            "</b>:&nbsp" +
-            "<br>" +
-            displayRanges(record.target_low, record.target_high),
-        ),
-      ),
+        $("<td>").append(/* HTML */
+        `
+          <b>${translate("Target BG range [mg/dL,mmol/L]")}</b>
+          :&nbsp
+          <br />
+          ${displayRanges(record.target_low, record.target_high)}
+        `)
+      )
     );
 
     td.append(table);
@@ -165,16 +170,11 @@ profiles.report = function report_profiles(datastorage) {
 
     if (array && array2) {
       for (let i = 0; i < array.length; i++) {
-        text +=
-          array[i].time +
-          "&nbsp:&nbsp" +
-          array[i].value +
-          (array2 ? " - " + array2[i].value : "") +
-          "<br>";
+        text += `${array[i].time}&nbsp:&nbsp${array[i].value}${array2 ? ` - ${array2[i].value}` : ""}<br>`;
       }
     } else {
       for (let i = 0; i < array.length; i++) {
-        text += array[i].time + "&nbsp:&nbsp" + array[i].value + "<br>";
+        text += `${array[i].time}&nbsp:&nbsp${array[i].value}<br>`;
       }
     }
     return text;

@@ -17,14 +17,16 @@ module.exports = init;
 success.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Weekly Distribution") +
-    "</h2>" +
-    '<div id="success-grid"></div>';
+    /* HTML */
+    `
+      <h2>${translate("Weekly Distribution")}</h2>
+      <div id="success-grid"></div>
+    `;
   return ret;
 };
 
-success.css = `#success-placeholder td {
+success.css = /* CSS */ `
+  #success-placeholder td {
   	border: 1px #ccc solid;
   	margin: 0;
   	padding: 1px;
@@ -49,7 +51,7 @@ success.css = `#success-placeholder td {
 success.report = function report_success(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -78,13 +80,14 @@ success.report = function report_success(
 
   if (quarters === 0) {
     // insufficent data
-    grid.append(
-      "<p>" +
-        translate(
-          "There is not sufficient data to run this report. Select more days.",
-        ) +
-        "</p>",
-    );
+    grid.append(/* HTML */
+    `
+      <p>
+        ${translate(
+          "There is not sufficient data to run this report. Select more days."
+        )}
+      </p>
+    `);
     return;
   }
 
@@ -182,89 +185,76 @@ success.report = function report_success(
     }
   };
 
+  table.append(/* HTML */
+  `
+    <thead>
+      <tr>
+        <th>${translate("Period")}</th>
+        <th>${translate("Low")}</th>
+        <th>${translate("In Range")}</th>
+        <th>${translate("High")}</th>
+        <th>${translate("Standard Deviation")}</th>
+        <th>${translate("Low Quartile")}</th>
+        <th>${translate("Average")}</th>
+        <th>${translate("Upper Quartile")}</th>
+      </tr>
+    </thead>
+  `);
   table.append(
-    "<thead><tr><th>" +
-      translate("Period") +
-      "</th><th>" +
-      translate("Low") +
-      "</th><th>" +
-      translate("In Range") +
-      "</th><th>" +
-      translate("High") +
-      "</th><th>" +
-      translate("Standard Deviation") +
-      "</th><th>" +
-      translate("Low Quartile") +
-      "</th><th>" +
-      translate("Average") +
-      "</th><th>" +
-      translate("Upper Quartile") +
-      "</th></tr></thead>",
-  );
-  table.append(
-    "<tbody>" +
-      quarters
-        .filter(function (quarter) {
-          return quarter.records.length > 0;
-        })
-        .map(function (quarter) {
-          var INVERT = true;
-          return (
-            "<tr>" +
-            [
-              quarter.starting.toLocaleDateString() +
-                " - " +
-                quarter.ending.toLocaleDateString(),
-              {
-                klass: lowComparison(quarter, averages, "percentLow"),
-                text: Math.round(quarter.percentLow) + "%",
-              },
-              {
-                klass: lowComparison(
-                  quarter,
-                  averages,
-                  "percentInRange",
-                  INVERT,
-                ),
-                text: Math.round(quarter.percentInRange) + "%",
-              },
-              {
-                klass: lowComparison(quarter, averages, "percentHigh"),
-                text: Math.round(quarter.percentHigh) + "%",
-              },
-              {
-                klass: lowComparison(quarter, averages, "standardDeviation"),
-                text:
-                  quarter.standardDeviation > 10
-                    ? Math.round(quarter.standardDeviation)
-                    : quarter.standardDeviation.toFixed(1),
-              },
-              {
-                klass: lowQuartileEvaluation(quarter, averages),
-                text: quarter.lowerQuartile,
-              },
-              {
-                klass: lowComparison(quarter, averages, "average"),
-                text: quarter.average.toFixed(1),
-              },
-              {
-                klass: upperQuartileEvaluation(quarter, averages),
-                text: quarter.upperQuartile,
-              },
-            ]
-              .map(function (v) {
-                if (typeof v === "object") {
-                  return '<td class="' + v.klass + '">' + v.text + "</td>";
-                } else {
-                  return "<td>" + v + "</td>";
-                }
-              })
-              .join("") +
-            "</tr>"
-          );
-        })
-        .join("") +
-      "</tbody>",
+    `<tbody>${quarters
+      .filter(function (quarter) {
+        return quarter.records.length > 0;
+      })
+      .map(function (quarter) {
+        var INVERT = true;
+        return `<tr>${[
+          `${quarter.starting.toLocaleDateString()} - ${quarter.ending.toLocaleDateString()}`,
+          {
+            klass: lowComparison(quarter, averages, "percentLow"),
+            text: `${Math.round(quarter.percentLow)}%`,
+          },
+          {
+            klass: lowComparison(quarter, averages, "percentInRange", INVERT),
+            text: `${Math.round(quarter.percentInRange)}%`,
+          },
+          {
+            klass: lowComparison(quarter, averages, "percentHigh"),
+            text: `${Math.round(quarter.percentHigh)}%`,
+          },
+          {
+            klass: lowComparison(quarter, averages, "standardDeviation"),
+            text:
+              quarter.standardDeviation > 10
+                ? Math.round(quarter.standardDeviation)
+                : quarter.standardDeviation.toFixed(1),
+          },
+          {
+            klass: lowQuartileEvaluation(quarter, averages),
+            text: quarter.lowerQuartile,
+          },
+          {
+            klass: lowComparison(quarter, averages, "average"),
+            text: quarter.average.toFixed(1),
+          },
+          {
+            klass: upperQuartileEvaluation(quarter, averages),
+            text: quarter.upperQuartile,
+          },
+        ]
+          .map(function (v) {
+            if (typeof v === "object") {
+              return /* HTML */ `
+                <td class="${v.klass}">${v.text}</td>
+              `;
+            } else {
+              return /* HTML */ `
+                <td>${v}</td>
+              `;
+            }
+          })
+          .join("")}</tr>`;
+      })
+      .join("")}</tbody>`
   );
   table.appendTo(grid);
 };

@@ -178,8 +178,8 @@ var init = function init() {
       if (profile.target_high.length !== profile.target_low.length) {
         window.alert(
           translate(
-            "Time ranges of target_low and target_high don't  match. Values are restored to defaults.",
-          ),
+            "Time ranges of target_low and target_high don't  match. Values are restored to defaults."
+          )
         );
         profile.target_low = _.cloneDeep(defaultprofile.target_low);
         profile.target_high = _.cloneDeep(defaultprofile.target_high);
@@ -189,11 +189,11 @@ var init = function init() {
     function initeditor() {
       $("#pe_history").toggle(
         client.settings.extendedSettings.profile &&
-          client.settings.extendedSettings.profile.history,
+          client.settings.extendedSettings.profile.history
       );
       $("#pe_multiple").toggle(
         client.settings.extendedSettings.profile &&
-          client.settings.extendedSettings.profile.multiple,
+          client.settings.extendedSettings.profile.multiple
       );
 
       // Load timezones
@@ -235,27 +235,23 @@ var init = function init() {
     function initRecord() {
       databaseRecords.empty();
       for (var r = 0; r < mongorecords.length; r++) {
-        databaseRecords.append(
-          '<option value="' +
-            r +
-            '">' +
-            translate("Valid from:") +
-            " " +
-            new Date(mongorecords[r].startDate).toLocaleString() +
-            "</option>",
-        );
+        databaseRecords.append(/* HTML */
+        `
+          <option value="${r}">
+            ${translate("Valid from:")}
+            ${new Date(mongorecords[r].startDate).toLocaleString()}
+          </option>
+        `);
       }
       databaseRecords.val(currentrecord);
 
       timeInput.val(
-        client.ctx
-          .moment(mongorecords[currentrecord].startDate)
-          .format("HH:mm"),
+        client.ctx.moment(mongorecords[currentrecord].startDate).format("HH:mm")
       );
       dateInput.val(
         client.ctx
           .moment(mongorecords[currentrecord].startDate)
-          .format("YYYY-MM-DD"),
+          .format("YYYY-MM-DD")
       );
 
       initProfile();
@@ -288,9 +284,10 @@ var init = function init() {
 
       for (var key in record.store) {
         if (Object.prototype.hasOwnProperty.call(record.store, key)) {
-          $("#pe_profiles").append(
-            '<option value="' + key + '">' + key + "</option>",
-          );
+          $("#pe_profiles").append(/* HTML */
+          `
+            <option value="${key}">${key}</option>
+          `);
         }
       }
 
@@ -309,7 +306,7 @@ var init = function init() {
       if (
         dirty &&
         window.confirm(
-          translate("Save current record before switching to new?"),
+          translate("Save current record before switching to new?")
         )
       ) {
         profileSubmit();
@@ -325,7 +322,7 @@ var init = function init() {
       if (
         dirty &&
         window.confirm(
-          translate("Save current record before switching to new?"),
+          translate("Save current record before switching to new?")
         )
       ) {
         profileSubmit();
@@ -384,7 +381,7 @@ var init = function init() {
       if (
         dirty &&
         window.confirm(
-          translate("Save current record before switching to new?"),
+          translate("Save current record before switching to new?")
         )
       ) {
         profileSubmit();
@@ -397,7 +394,7 @@ var init = function init() {
           "srvCreated",
           "identifier",
           "mills",
-        ]),
+        ])
       );
       currentrecord = mongorecords.length - 1;
       mongorecords[currentrecord].startDate = new Date().toISOString();
@@ -508,7 +505,7 @@ var init = function init() {
           return false;
         } else {
           var minutesFromMidnight = toMinutesFromMidnight(
-            c_profile[array][i - 1].time,
+            c_profile[array][i - 1].time
           );
           return !isNaN(minutesFromMidnight) && minutesFromMidnight < time * 30;
         }
@@ -525,13 +522,12 @@ var init = function init() {
             if (lowest === -1) {
               lowest = t * 30;
             }
-            select.append(
-              '<option value="' +
-                toTimeString(t * 30) +
-                '">' +
-                toDisplayTime(t * 30) +
-                "</option>",
-            );
+            select.append(/* HTML */
+            `
+              <option value="${toTimeString(t * 30)}">
+                ${toDisplayTime(t * 30)}
+              </option>
+            `);
           }
         }
         var selectedValue =
@@ -541,7 +537,7 @@ var init = function init() {
         tr.append(
           $("<td>")
             .append(translate("From") + ": ")
-            .append(select),
+            .append(select)
         );
         tr.append(
           $("<td>")
@@ -550,8 +546,8 @@ var init = function init() {
               $('<input type="text">')
                 .attr("id", e.prefix + "_val_" + i)
                 .attr("value", c_profile[e.array][i].value)
-                .attr("class", e.prefix + "_value"),
-            ),
+                .attr("class", e.prefix + "_value")
+            )
         );
         var icons_td = $("<td>").append(
           $("<img>")
@@ -560,7 +556,7 @@ var init = function init() {
             .attr("title", translate("Add new interval before"))
             .attr("src", icon_add)
             .attr("array", e.array)
-            .attr("pos", i),
+            .attr("pos", i)
         );
         if (c_profile[e.array].length > 1) {
           icons_td.append(
@@ -570,7 +566,7 @@ var init = function init() {
               .attr("title", translate("Delete interval"))
               .attr("src", icon_remove)
               .attr("array", e.array)
-              .attr("pos", i),
+              .attr("pos", i)
           );
         }
         tr.append(icons_td);
@@ -587,14 +583,14 @@ var init = function init() {
           {
             prefix: "pe_basal",
             array: "basal",
-            label: translate("Basal rate") + " : ",
+            label: `${translate("Basal rate")} : `,
           },
           {
             prefix: "pe_ic",
             array: "carbratio",
-            label: translate("I:C") + " : ",
+            label: `${translate("I:C")} : `,
           },
-          { prefix: "pe_isf", array: "sens", label: translate("ISF") + " : " },
+          { prefix: "pe_isf", array: "sens", label: `${translate("ISF")} : ` },
         ],
         function (e) {
           var html = "<table>";
@@ -613,7 +609,7 @@ var init = function init() {
             '" href="#"></td></tr>';
           html += "</table>";
           $("#" + e.prefix + "_placeholder").html(html);
-        },
+        }
       );
       $(".pe_basal_value").on("change keyup paste", refreshTotalBasal);
       $(".addsingle").click(function addsingle_click() {
@@ -653,7 +649,7 @@ var init = function init() {
                 toTimeString(t * 30) +
                 '">' +
                 toDisplayTime(t * 30) +
-                "</option>",
+                "</option>"
             );
           }
         }
@@ -663,7 +659,7 @@ var init = function init() {
         tr.append(
           $("<td>")
             .append(translate("From") + ": ")
-            .append(select),
+            .append(select)
         );
         tr.append(
           $("<td>")
@@ -671,8 +667,8 @@ var init = function init() {
             .append(
               $('<input type="text">')
                 .attr("id", "pe_targetbg_low_" + i)
-                .attr("value", c_profile.target_low[i].value),
-            ),
+                .attr("value", c_profile.target_low[i].value)
+            )
         );
         tr.append(
           $("<td>")
@@ -680,8 +676,8 @@ var init = function init() {
             .append(
               $('<input type="text">')
                 .attr("id", "pe_targetbg_high_" + i)
-                .attr("value", c_profile.target_high[i].value),
-            ),
+                .attr("value", c_profile.target_high[i].value)
+            )
         );
         var icons_td = $("<td>").append(
           $("<img>")
@@ -689,7 +685,7 @@ var init = function init() {
             .attr("style", "cursor:pointer")
             .attr("title", translate("Add new interval before"))
             .attr("src", icon_add)
-            .attr("pos", i),
+            .attr("pos", i)
         );
         if (c_profile.target_low.length > 1) {
           icons_td.append(
@@ -698,7 +694,7 @@ var init = function init() {
               .attr("style", "cursor:pointer")
               .attr("title", translate("Delete interval"))
               .attr("src", icon_remove)
-              .attr("pos", i),
+              .attr("pos", i)
           );
         }
         tr.append(icons_td);
@@ -716,13 +712,24 @@ var init = function init() {
         html += addBGLine(i);
       }
       html +=
-        '<tr><td></td><td></td><td></td><td><img class="addtargetbg" style="cursor:pointer" title="' +
-        translate("Add new interval before") +
-        '" src="' +
-        icon_add +
-        '" pos="' +
-        i +
-        '" href="#"></td></tr>';
+        /* HTML */
+        `
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>
+              <img
+                class="addtargetbg"
+                style="cursor:pointer"
+                title="${translate("Add new interval before")}"
+                src="${icon_add}"
+                pos="${i}"
+                href="#"
+              />
+            </td>
+          </tr>
+        `;
       html += "</table>";
       $("#pe_targetbg_placeholder").html(html);
 
@@ -790,10 +797,10 @@ var init = function init() {
       ].forEach(function (e) {
         for (index = 0; index < c_profile[e.array].length; index++) {
           $("#" + e.prefix + "_from_" + index).val(
-            c_profile[e.array][index].time,
+            c_profile[e.array][index].time
           );
           $("#" + e.prefix + "_val_" + index).val(
-            c_profile[e.array][index].value,
+            c_profile[e.array][index].value
           );
         }
       });
@@ -841,10 +848,10 @@ var init = function init() {
       ].forEach(function (e) {
         for (index = 0; index < c_profile[e.array].length; index++) {
           c_profile[e.array][index].time = $(
-            "#" + e.prefix + "_from_" + index,
+            "#" + e.prefix + "_from_" + index
           ).val();
           c_profile[e.array][index].value = parseFloat(
-            $("#" + e.prefix + "_val_" + index).val(),
+            $("#" + e.prefix + "_val_" + index).val()
           );
         }
       });
@@ -853,11 +860,11 @@ var init = function init() {
         var input = $("#pe_targetbg_from_" + index);
         c_profile.target_low[index].time = input.val();
         c_profile.target_low[index].value = parseFloat(
-          $("#pe_targetbg_low_" + index).val(),
+          $("#pe_targetbg_low_" + index).val()
         );
         c_profile.target_high[index].time = input.val();
         c_profile.target_high[index].value = parseFloat(
-          $("#pe_targetbg_high_" + index).val(),
+          $("#pe_targetbg_high_" + index).val()
         );
       }
 
@@ -898,7 +905,7 @@ var init = function init() {
       profileChange(event);
       var record = mongorecords[currentrecord];
       record.startDate = new Date(
-        client.utils.mergeInputTime(timeInput.val(), dateInput.val()),
+        client.utils.mergeInputTime(timeInput.val(), dateInput.val())
       ).toISOString();
       record.created_at = new Date().toISOString();
       record.srvModified = new Date().getTime(); // remove when switching to v3 API

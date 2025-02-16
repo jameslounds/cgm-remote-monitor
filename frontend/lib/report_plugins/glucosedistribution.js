@@ -17,96 +17,128 @@ module.exports = init;
 glucosedistribution.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Glucose distribution") +
-    " (" +
-    '<span id="glucosedistribution-days"></span>' +
-    ")" +
-    "  </h2>" +
-    "<table><tr>" +
-    '<td rowspan="2" style="valign:middle;"><div id="glucosedistribution-overviewchart"></div></td>' +
-    '<td><div id="glucosedistribution-report"></div></td>' +
-    "</tr>" +
-    '<tr><td><div id="glucosedistribution-stability"></div></td></tr>' +
-    "</table>" +
-    "<br/>" +
-    "<br/>" +
-    '<br/><div id="explanation">' +
-    "* " +
-    translate(
-      "This is only a rough estimation that can be very inaccurate and does not replace actual blood testing. The formula used is taken from:",
-    ) +
-    'Nathan, David M., et al. "Translating the A1C assay into estimated average glucose values." <i>Diabetes care</i> 31.8 (2008): 1473-1478.' +
-    "<br/><br/>" +
-    translate(
-      "Time in fluctuation and Time in rapid fluctuation measure the % of time during the examined period, during which the blood glucose has been changing relatively fast or rapidly. Lower values are better.",
-    ) +
-    "<br/><br/>" +
-    translate(
-      "Mean Total Daily Change is a sum of the absolute value of all glucose excursions for the examined period, divided by the number of days. Lower is better.",
-    ) +
-    "<br/><br/>" +
-    translate(
-      "Mean Hourly Change is a sum of the absolute value of all glucose excursions for the examined period, divided by the number of hours in the period. Lower is better.",
-    ) +
-    "<br/><br/>" +
-    translate(
-      "Out of Range RMS is calculated by squaring the distance out of range for all glucose readings for the examined period, summing them, dividing by the count and taking the square root. This metric is similar to in-range percentage but weights readings far out of range higher. Lower values are better.",
-    ) +
-    "<br/><br/>" +
-    translate(
-      'GVI (Glycemic Variability Index) and PGS (Patient Glycemic Status) are measures developed by Dexcom, detailed <a href="',
-    ) +
-    "https://web.archive.org/web/20160523152519/http://www.healthline.com/diabetesmine/a-new-view-of-glycemic-variability-how-long-is-your-line" +
-    translate('">can be found here</a>.') +
-    "</div><br/><br/>" +
-    translate("Filter by hours") +
-    ":" +
-    "<br/>" +
-    '0<input type="checkbox" id="glucosedistribution-0" checked>' +
-    '1<input type="checkbox" id="glucosedistribution-1" checked>' +
-    '2<input type="checkbox" id="glucosedistribution-2" checked>' +
-    '3<input type="checkbox" id="glucosedistribution-3" checked>' +
-    '4<input type="checkbox" id="glucosedistribution-4" checked>' +
-    '5<input type="checkbox" id="glucosedistribution-5" checked>' +
-    '6<input type="checkbox" id="glucosedistribution-6" checked>' +
-    '7<input type="checkbox" id="glucosedistribution-7" checked>' +
-    '8<input type="checkbox" id="glucosedistribution-8" checked>' +
-    '9<input type="checkbox" id="glucosedistribution-9" checked>' +
-    '10<input type="checkbox" id="glucosedistribution-10" checked>' +
-    '11<input type="checkbox" id="glucosedistribution-11" checked>' +
-    '12<input type="checkbox" id="glucosedistribution-12" checked>' +
-    '13<input type="checkbox" id="glucosedistribution-13" checked>' +
-    '14<input type="checkbox" id="glucosedistribution-14" checked>' +
-    '15<input type="checkbox" id="glucosedistribution-15" checked>' +
-    '16<input type="checkbox" id="glucosedistribution-16" checked>' +
-    '17<input type="checkbox" id="glucosedistribution-17" checked>' +
-    '18<input type="checkbox" id="glucosedistribution-18" checked>' +
-    '19<input type="checkbox" id="glucosedistribution-19" checked>' +
-    '20<input type="checkbox" id="glucosedistribution-20" checked>' +
-    '21<input type="checkbox" id="glucosedistribution-21" checked>' +
-    '22<input type="checkbox" id="glucosedistribution-22" checked>' +
-    '23<input type="checkbox" id="glucosedistribution-23" checked>';
+    /* HTML */
+    `
+      <h2>
+        ${translate("Glucose distribution")} (
+        <span id="glucosedistribution-days"></span>
+        )
+      </h2>
+      <table>
+        <tr>
+          <td rowspan="2" style="valign:middle;">
+            <div id="glucosedistribution-overviewchart"></div>
+          </td>
+          <td><div id="glucosedistribution-report"></div></td>
+        </tr>
+        <tr>
+          <td><div id="glucosedistribution-stability"></div></td>
+        </tr>
+      </table>
+      <br />
+      <br />
+      <br />
+      <div id="explanation">
+        *
+        ${translate(
+          "This is only a rough estimation that can be very inaccurate and does not replace actual blood testing. The formula used is taken from:"
+        )}Nathan,
+        David M., et al. "Translating the A1C assay into estimated average
+        glucose values."
+        <i>Diabetes care</i>
+        31.8 (2008): 1473-1478.
+        <br />
+        <br />
+        ${translate(
+          "Time in fluctuation and Time in rapid fluctuation measure the % of time during the examined period, during which the blood glucose has been changing relatively fast or rapidly. Lower values are better."
+        )}
+        <br />
+        <br />
+        ${translate(
+          "Mean Total Daily Change is a sum of the absolute value of all glucose excursions for the examined period, divided by the number of days. Lower is better."
+        )}
+        <br />
+        <br />
+        ${translate(
+          "Mean Hourly Change is a sum of the absolute value of all glucose excursions for the examined period, divided by the number of hours in the period. Lower is better."
+        )}
+        <br />
+        <br />
+        ${translate(
+          "Out of Range RMS is calculated by squaring the distance out of range for all glucose readings for the examined period, summing them, dividing by the count and taking the square root. This metric is similar to in-range percentage but weights readings far out of range higher. Lower values are better."
+        )}
+        <br />
+        <br />
+        ${translate(
+          'GVI (Glycemic Variability Index) and PGS (Patient Glycemic Status) are measures developed by Dexcom, detailed <a href="'
+        )}https://web.archive.org/web/20160523152519/http://www.healthline.com/diabetesmine/a-new-view-of-glycemic-variability-how-long-is-your-line${translate(
+          '">can be found here</a>.'
+        )}
+      </div>
+      <br />
+      <br />
+      ${translate("Filter by hours")}:
+      <br />
+      0
+      <input type="checkbox" id="glucosedistribution-0" checked />
+      1
+      <input type="checkbox" id="glucosedistribution-1" checked />
+      2
+      <input type="checkbox" id="glucosedistribution-2" checked />
+      3
+      <input type="checkbox" id="glucosedistribution-3" checked />
+      4
+      <input type="checkbox" id="glucosedistribution-4" checked />
+      5
+      <input type="checkbox" id="glucosedistribution-5" checked />
+      6
+      <input type="checkbox" id="glucosedistribution-6" checked />
+      7
+      <input type="checkbox" id="glucosedistribution-7" checked />
+      8
+      <input type="checkbox" id="glucosedistribution-8" checked />
+      9
+      <input type="checkbox" id="glucosedistribution-9" checked />
+      10
+      <input type="checkbox" id="glucosedistribution-10" checked />
+      11
+      <input type="checkbox" id="glucosedistribution-11" checked />
+      12
+      <input type="checkbox" id="glucosedistribution-12" checked />
+      13
+      <input type="checkbox" id="glucosedistribution-13" checked />
+      14
+      <input type="checkbox" id="glucosedistribution-14" checked />
+      15
+      <input type="checkbox" id="glucosedistribution-15" checked />
+      16
+      <input type="checkbox" id="glucosedistribution-16" checked />
+      17
+      <input type="checkbox" id="glucosedistribution-17" checked />
+      18
+      <input type="checkbox" id="glucosedistribution-18" checked />
+      19
+      <input type="checkbox" id="glucosedistribution-19" checked />
+      20
+      <input type="checkbox" id="glucosedistribution-20" checked />
+      21
+      <input type="checkbox" id="glucosedistribution-21" checked />
+      22
+      <input type="checkbox" id="glucosedistribution-22" checked />
+      23
+      <input type="checkbox" id="glucosedistribution-23" checked />
+    `;
   return ret;
 };
 
 glucosedistribution.css =
-  "#glucosedistribution-overviewchart {" +
-  "  width: 2.4in;" +
-  "  height: 2.4in;" +
-  "}" +
-  "#glucosedistribution-placeholder .tdborder {" +
-  "  width:80px;" +
-  "  border: 1px #ccc solid;" +
-  "  margin: 0;" +
-  "  padding: 1px;" +
-  "    text-align:center;" +
-  "}";
+  /* CSS */
+  `#glucosedistribution-overviewchart {  width: 2.4in;  height: 2.4in;}#glucosedistribution-placeholder .tdborder {  width:80px;  border: 1px #ccc solid;  margin: 0;  padding: 1px;    text-align:center;}`;
 
 glucosedistribution.report = function report_glucosedistribution(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -158,13 +190,13 @@ glucosedistribution.report = function report_glucosedistribution(
   var stats = [];
   var table = $('<table class="centeraligned">');
   var thead = $("<tr/>");
-  $("<th>" + translate("Range") + "</th>").appendTo(thead);
-  $("<th>" + translate("% of Readings") + "</th>").appendTo(thead);
-  $("<th>" + translate("# of Readings") + "</th>").appendTo(thead);
-  $("<th>" + translate("Average") + "</th>").appendTo(thead);
-  $("<th>" + translate("Median") + "</th>").appendTo(thead);
-  $("<th>" + translate("Standard Deviation") + "</th>").appendTo(thead);
-  $("<th>" + translate("A1c estimation*") + "</th>").appendTo(thead);
+  $(`<th>${translate("Range")}</th>`).appendTo(thead);
+  $(`<th>${translate("% of Readings")}</th>`).appendTo(thead);
+  $(`<th>${translate("# of Readings")}</th>`).appendTo(thead);
+  $(`<th>${translate("Average")}</th>`).appendTo(thead);
+  $(`<th>${translate("Median")}</th>`).appendTo(thead);
+  $(`<th>${translate("Standard Deviation")}</th>`).appendTo(thead);
+  $(`<th>${translate("A1c estimation*")}</th>`).appendTo(thead);
   thead.appendTo(table);
 
   var data = datastorage.allstatsrecords;
@@ -172,19 +204,17 @@ glucosedistribution.report = function report_glucosedistribution(
 
   var reportPlugins = Nightscout.report_plugins;
   var firstDay = reportPlugins.utils.localeDate(
-    sorteddaystoshow[sorteddaystoshow.length - 1],
+    sorteddaystoshow[sorteddaystoshow.length - 1]
   );
   var lastDay = reportPlugins.utils.localeDate(sorteddaystoshow[0]);
 
   $("#glucosedistribution-days").text(
-    days + " " + translate("days total") + ", " + firstDay + " - " + lastDay,
+    `${days} ${translate("days total")}, ${firstDay} - ${lastDay}`
   );
 
   for (var i = 0; i < 24; i++) {
-    $("#glucosedistribution-" + i)
-      .unbind("click")
-      .click(onClick);
-    enabledHours[i] = $("#glucosedistribution-" + i).is(":checked");
+    $(`#glucosedistribution-${i}`).unbind("click").click(onClick);
+    enabledHours[i] = $(`#glucosedistribution-${i}`).is(":checked");
   }
 
   var result = {};
@@ -366,29 +396,27 @@ glucosedistribution.report = function report_glucosedistribution(
 
     var rangeExp = "";
     if (range == "Low") {
-      rangeExp = " (<" + options.targetLow + ")";
+      rangeExp = ` (<${options.targetLow})`;
     }
     if (range == "High") {
-      rangeExp = " (>=" + options.targetHigh + ")";
+      rangeExp = ` (>=${options.targetHigh})`;
     }
 
     var rangeLabel = range;
     if (rangeLabel == "Normal") rangeLabel = "In Range";
 
-    $(
-      '<td class="tdborder" style="background-color:' +
-        tablecolors[range] +
-        '"><strong>' +
-        translate(rangeLabel) +
-        rangeExp +
-        ": </strong></td>",
-    ).appendTo(tr);
-    $('<td class="tdborder">' + r.readingspct + "%</td>").appendTo(tr);
-    $('<td class="tdborder">' + r.rangeRecords.length + "</td>").appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder" style="background-color:${tablecolors[range]}">
+        <strong>${translate(rangeLabel)}${rangeExp}:</strong>
+      </td>
+    `).appendTo(tr);
+    $(`<td class="tdborder">${r.readingspct}%</td>`).appendTo(tr);
+    $(`<td class="tdborder">${r.rangeRecords.length}</td>`).appendTo(tr);
     if (r.rangeRecords.length > 0) {
-      $('<td class="tdborder">' + r.mean.toFixed(1) + "</td>").appendTo(tr);
-      $('<td class="tdborder">' + r.median.toFixed(1) + "</td>").appendTo(tr);
-      $('<td class="tdborder">' + r.stddev.toFixed(1) + "</td>").appendTo(tr);
+      $(`<td class="tdborder">${r.mean.toFixed(1)}</td>`).appendTo(tr);
+      $(`<td class="tdborder">${r.median.toFixed(1)}</td>`).appendTo(tr);
+      $(`<td class="tdborder">${r.stddev.toFixed(1)}</td>`).appendTo(tr);
       $("<td> </td>").appendTo(tr);
     } else {
       $('<td class="tdborder">N/A</td>').appendTo(tr);
@@ -402,10 +430,10 @@ glucosedistribution.report = function report_glucosedistribution(
 
   var tr = $("<tr>");
   $(
-    '<td class="tdborder"><strong>' + translate("Overall") + ": </strong></td>",
+    `<td class="tdborder"><strong>${translate("Overall")}: </strong></td>`
   ).appendTo(tr);
   $("<td> </td>").appendTo(tr);
-  $('<td class="tdborder">' + glucose_data.length + "</td>").appendTo(tr);
+  $(`<td class="tdborder">${glucose_data.length}</td>`).appendTo(tr);
   if (glucose_data.length > 0) {
     var localBgs = glucose_data
       .map(function (r) {
@@ -421,28 +449,37 @@ glucosedistribution.report = function report_glucosedistribution(
       .filter(function (bg) {
         return !!bg;
       });
-    $(
-      '<td class="tdborder">' +
-        (Math.round(10 * ss.mean(localBgs)) / 10).toFixed(1) +
-        "</td>",
-    ).appendTo(tr);
-    $(
-      '<td class="tdborder">' +
-        (Math.round(10 * ss.quantile(localBgs, 0.5)) / 10).toFixed(1) +
-        "</td>",
-    ).appendTo(tr);
-    $(
-      '<td class="tdborder">' +
-        (Math.round(ss.standard_deviation(localBgs) * 10) / 10).toFixed(1) +
-        "</td>",
-    ).appendTo(tr);
-    $(
-      '<td class="tdborder"><center>' +
-        (Math.round((10 * (ss.mean(mgDlBgs) + 46.7)) / 28.7) / 10).toFixed(1) +
-        "%<sub>DCCT</sub> | " +
-        Math.round(((ss.mean(mgDlBgs) + 46.7) / 28.7 - 2.15) * 10.929) +
-        "<sub>IFCC</sub></center></td>",
-    ).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        ${(Math.round(10 * ss.mean(localBgs)) / 10).toFixed(1)}
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        ${(Math.round(10 * ss.quantile(localBgs, 0.5)) / 10).toFixed(1)}
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        ${(Math.round(ss.standard_deviation(localBgs) * 10) / 10).toFixed(1)}
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        <center>
+          ${(Math.round((10 * (ss.mean(mgDlBgs) + 46.7)) / 28.7) / 10).toFixed(
+            1
+          )}%
+          <sub>DCCT</sub>
+          | ${Math.round(((ss.mean(mgDlBgs) + 46.7) / 28.7 - 2.15) * 10.929)}
+          <sub>IFCC</sub>
+        </center>
+      </td>
+    `).appendTo(tr);
   } else {
     $('<td class="tdborder">N/A</td>').appendTo(tr);
     $('<td class="tdborder">N/A</td>').appendTo(tr);
@@ -503,7 +540,7 @@ glucosedistribution.report = function report_glucosedistribution(
 
     // Calculate the distance travelled for this time step
     GVITotal += Math.sqrt(
-      Math.pow(timeDelta / (1000 * 60), 2) + Math.pow(delta, 2),
+      Math.pow(timeDelta / (1000 * 60), 2) + Math.pow(delta, 2)
     );
 
     // Keep track of the number of minutes in this timestep
@@ -520,7 +557,7 @@ glucosedistribution.report = function report_glucosedistribution(
 
   // Difference between first and last reading
   var GVIDelta = Math.floor(
-    glucose_data[0].bgValue - glucose_data[glucose_data.length - 1].bgValue,
+    glucose_data[0].bgValue - glucose_data[glucose_data.length - 1].bgValue
   );
 
   // Delta for total time considered against total period rise
@@ -535,7 +572,7 @@ glucosedistribution.report = function report_glucosedistribution(
     "GVITotal",
     GVITotal,
     "GVIIdeal_Time",
-    GVIIdeal_Time,
+    GVIIdeal_Time
   );
 
   var glucoseMean = Math.floor(glucoseTotal / usedRecords);
@@ -547,7 +584,7 @@ glucosedistribution.report = function report_glucosedistribution(
     "tirMultiplier",
     tirMultiplier,
     "PGS",
-    PGS,
+    PGS
   );
 
   var TDC = deltaTotal / daysTotal;
@@ -581,53 +618,53 @@ glucosedistribution.report = function report_glucosedistribution(
     t2exp = ">0.55 mmol/l/5m";
   }
 
-  $(
-    "<tr><th>" +
-      translate("Mean Total Daily Change") +
-      "</th><th>" +
-      translate("Time in fluctuation") +
-      "<br>(" +
-      t1exp +
-      ")</th><th>" +
-      translate("Time in rapid fluctuation") +
-      "<br>(" +
-      t2exp +
-      ")</th></tr>",
-  ).appendTo(stabilitytable);
-  $(
-    '<tr><td class="tdborder">' +
-      TDC +
-      unitString +
-      '</td><td class="tdborder">' +
-      timeInT1 +
-      '%</td><td class="tdborder">' +
-      timeInT2 +
-      "%</td></tr>",
-  ).appendTo(stabilitytable);
+  $(/* HTML */
+  `
+    <tr>
+      <th>${translate("Mean Total Daily Change")}</th>
+      <th>
+        ${translate("Time in fluctuation")}
+        <br />
+        (${t1exp})
+      </th>
+      <th>
+        ${translate("Time in rapid fluctuation")}
+        <br />
+        (${t2exp})
+      </th>
+    </tr>
+  `).appendTo(stabilitytable);
+  $(/* HTML */ `
+    <tr>
+      <td class="tdborder">${TDC}${unitString}</td>
+      <td class="tdborder">${timeInT1}%</td>
+      <td class="tdborder">${timeInT2}%</td>
+    </tr>
+  `).appendTo(stabilitytable);
 
-  $(
-    "<tr><th>" +
-      translate("Mean Hourly Change") +
-      "</th><th>GVI</th><th>PGS</th></tr>",
-  ).appendTo(stabilitytable);
-  $(
-    '<tr><td class="tdborder">' +
-      TDCHourly +
-      unitString +
-      '</td><td class="tdborder">' +
-      GVI +
-      '</td><td class="tdborder">' +
-      PGS +
-      "</td></tr>",
-  ).appendTo(stabilitytable);
+  $(/* HTML */ `
+    <tr>
+      <th>${translate("Mean Hourly Change")}</th>
+      <th>GVI</th>
+      <th>PGS</th>
+    </tr>
+  `).appendTo(stabilitytable);
+  $(/* HTML */ `
+    <tr>
+      <td class="tdborder">${TDCHourly}${unitString}</td>
+      <td class="tdborder">${GVI}</td>
+      <td class="tdborder">${PGS}</td>
+    </tr>
+  `).appendTo(stabilitytable);
 
-  $("<tr><th>Out of Range RMS</th></tr>").appendTo(stabilitytable);
-  $(
-    '<tr><td class="tdborder">' +
-      Math.round(RMS * 100) / 100 +
-      unitString +
-      "</td></tr>",
-  ).appendTo(stabilitytable);
+  $(/* HTML */ `
+    <tr><th>Out of Range RMS</th></tr>
+  `).appendTo(stabilitytable);
+  $(/* HTML */ `
+    <tr>
+      <td class="tdborder">${Math.round(RMS * 100) / 100}${unitString}</td>
+    </tr>
+  `).appendTo(stabilitytable);
   stabilitytable.appendTo(stability);
 
   setTimeout(function () {

@@ -17,28 +17,31 @@ module.exports = init;
 hourlystats.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Hourly stats") +
-    "</h2>" +
-    '<div id="hourlystats-overviewchart"></div>' +
-    '<div id="hourlystats-report"></div>';
+    /* HTML */
+    `
+      <h2>${translate("Hourly stats")}</h2>
+      <div id="hourlystats-overviewchart"></div>
+      <div id="hourlystats-report"></div>
+    `;
   return ret;
 };
 
-hourlystats.css =
-  "#hourlystats-overviewchart {" +
-  "  width: 100%;" +
-  "  min-width: 6.5in;" +
-  "  height: 5in;" +
-  "}" +
-  "#hourlystats-placeholder td {" +
-  "  text-align:center;" +
-  "}";
+hourlystats.css = /* CSS */ `
+  #hourlystats-overviewchart {
+    width: 100%;
+    min-width: 6.5in;
+    height: 5in;
+  }
+
+  #hourlystats-placeholder
+    td {
+      text-align:center;
+    }`;
 
 hourlystats.report = function report_hourlystats(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   //console.log(window);
   var ss = require("simple-statistics");
@@ -69,15 +72,15 @@ hourlystats.report = function report_hourlystats(
 
   var table = $('<table width="100%" border="1">');
   var thead = $("<tr/>");
-  $("<th>" + translate("Time") + "</th>").appendTo(thead);
-  $("<th>" + translate("Readings") + "</th>").appendTo(thead);
-  $("<th>" + translate("Average") + "</th>").appendTo(thead);
-  $("<th>" + translate("Min") + "</th>").appendTo(thead);
-  $("<th>" + translate("Quartile") + " 25</th>").appendTo(thead);
-  $("<th>" + translate("Median") + "</th>").appendTo(thead);
-  $("<th>" + translate("Quartile") + " 75</th>").appendTo(thead);
-  $("<th>" + translate("Max") + "</th>").appendTo(thead);
-  $("<th>" + translate("Standard Deviation") + "</th>").appendTo(thead);
+  $(`<th>${translate("Time")}</th>`).appendTo(thead);
+  $(`<th>${translate("Readings")}</th>`).appendTo(thead);
+  $(`<th>${translate("Average")}</th>`).appendTo(thead);
+  $(`<th>${translate("Min")}</th>`).appendTo(thead);
+  $(`<th>${translate("Quartile")} 25</th>`).appendTo(thead);
+  $(`<th>${translate("Median")}</th>`).appendTo(thead);
+  $(`<th>${translate("Quartile")} 75</th>`).appendTo(thead);
+  $(`<th>${translate("Max")}</th>`).appendTo(thead);
+  $(`<th>${translate("Standard Deviation")}</th>`).appendTo(thead);
   thead.appendTo(table);
 
   [
@@ -96,14 +99,14 @@ hourlystats.report = function report_hourlystats(
         })
         .reduce(function (o, v) {
           return o + v;
-        }, 0) / pivotedByHour[hour].length,
+        }, 0) / pivotedByHour[hour].length
     );
     var d = new Date(times.hours(hour).msecs);
 
     var dev = ss.standard_deviation(
       pivotedByHour[hour].map(function (r) {
         return r.sgv;
-      }),
+      })
     );
     stats.push([
       new Date(d),
@@ -111,87 +114,94 @@ hourlystats.report = function report_hourlystats(
         pivotedByHour[hour].map(function (r) {
           return r.sgv;
         }),
-        0.25,
+        0.25
       ),
       ss.quantile(
         pivotedByHour[hour].map(function (r) {
           return r.sgv;
         }),
-        0.75,
+        0.75
       ),
       avg - dev,
       avg + dev,
     ]);
     var tmp;
-    $("<td>" + display + "</td>").appendTo(tr);
-    $(
-      "<td>" +
-        pivotedByHour[hour].length +
-        " (" +
-        Math.floor((100 * pivotedByHour[hour].length) / data.length) +
-        "%)</td>",
-    ).appendTo(tr);
-    $("<td>" + avg + "</td>").appendTo(tr);
-    $(
-      "<td>" +
-        Math.min.apply(
+    $(/* HTML */ `
+      <td>${display}</td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td>
+        ${pivotedByHour[hour].length}
+        (${Math.floor((100 * pivotedByHour[hour].length) / data.length)}%)
+      </td>
+    `).appendTo(tr);
+    $(`<td>${avg}</td>`).appendTo(tr);
+    $(/* HTML */
+    `
+      <td>
+        ${Math.min.apply(
           Math,
           pivotedByHour[hour].map(function (r) {
             return r.sgv;
-          }),
-        ) +
-        "</td>",
-    ).appendTo(tr);
-    // eslint-disable-next-line no-cond-assign
-    $(
-      "<td>" +
-        ((tmp = ss.quantile(
+          })
+        )}
+      </td>
+    `).appendTo(tr);
+
+    $(/* HTML */
+    `
+      <td>
+        ${(tmp = ss.quantile(
           pivotedByHour[hour].map(function (r) {
             return r.sgv;
           }),
-          0.25,
+          0.25
         ))
           ? tmp.toFixed(1)
-          : 0) +
-        "</td>",
-    ).appendTo(tr);
-    // eslint-disable-next-line no-cond-assign
-    $(
-      "<td>" +
-        ((tmp = ss.quantile(
+          : 0}
+      </td>
+    `).appendTo(tr);
+
+    $(/* HTML */
+    `
+      <td>
+        ${(tmp = ss.quantile(
           pivotedByHour[hour].map(function (r) {
             return r.sgv;
           }),
-          0.5,
+          0.5
         ))
           ? tmp.toFixed(1)
-          : 0) +
-        "</td>",
-    ).appendTo(tr);
-    // eslint-disable-next-line no-cond-assign
-    $(
-      "<td>" +
-        ((tmp = ss.quantile(
+          : 0}
+      </td>
+    `).appendTo(tr);
+
+    $(/* HTML */
+    `
+      <td>
+        ${(tmp = ss.quantile(
           pivotedByHour[hour].map(function (r) {
             return r.sgv;
           }),
-          0.75,
+          0.75
         ))
           ? tmp.toFixed(1)
-          : 0) +
-        "</td>",
-    ).appendTo(tr);
-    $(
-      "<td>" +
-        Math.max.apply(
+          : 0}
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td>
+        ${Math.max.apply(
           Math,
           pivotedByHour[hour].map(function (r) {
             return r.sgv;
-          }),
-        ) +
-        "</td>",
-    ).appendTo(tr);
-    $("<td>" + Math.floor(dev * 10) / 10 + "</td>").appendTo(tr);
+          })
+        )}
+      </td>
+    `).appendTo(tr);
+    $(`<td>${Math.floor(dev * 10) / 10}</td>`).appendTo(tr);
     table.append(tr);
   });
 
@@ -225,7 +235,7 @@ hourlystats.report = function report_hourlystats(
       grid: {
         show: true,
       },
-    },
+    }
   );
 
   var totalPositive = [];
@@ -263,7 +273,7 @@ hourlystats.report = function report_hourlystats(
     22,
     23,
   ].forEach(function (hour) {
-    $("<th>" + hour + "</th>").appendTo(thead);
+    $(`<th>${hour}</th>`).appendTo(thead);
     totalPositive[hour] = 0;
     totalNegative[hour] = 0;
     positivesCount[hour] = 0;
@@ -276,7 +286,7 @@ hourlystats.report = function report_hourlystats(
     if (datastorage[day].netBasalPositive) {
       days++;
       var tr = $("<tr>");
-      $("<td>" + report_plugins.utils.localeDate(day) + "</td>").appendTo(tr);
+      $(`<td>${report_plugins.utils.localeDate(day)}</td>`).appendTo(tr);
       for (var h = 0; h < 24; h++) {
         var positive = datastorage[day].netBasalPositive[h];
         var negative = datastorage[day].netBasalNegative[h];
@@ -288,40 +298,32 @@ hourlystats.report = function report_hourlystats(
         totalNet[h] += net;
         var color =
           Math.abs(net) < 0.019 ? "black" : net < 0 ? "red" : "lightgreen";
-        $(
-          "<td>" +
-            '<span style="color:black;">' +
-            negative.toFixed(2) +
-            "</span>" +
-            "<br>" +
-            '<span style="color:black;">' +
-            positive.toFixed(2) +
-            "</span>" +
-            "<br>" +
-            '<span style="color:' +
-            color +
-            ';font-weight:bold;">' +
-            net.toFixed(2) +
-            "</span>" +
-            "</td>",
-        ).appendTo(tr);
+        $(/* HTML */
+        `
+          <td>
+            <span style="color:black;">${negative.toFixed(2)}</span>
+            <br />
+            <span style="color:black;">${positive.toFixed(2)}</span>
+            <br />
+            <span style="color:${color};font-weight:bold;">
+              ${net.toFixed(2)}
+            </span>
+          </td>
+        `).appendTo(tr);
       }
       table.append(tr);
     }
   });
   if (days > 0) {
     var tr = $("<tr>");
-    $(
-      "<td>" +
-        '<span style="font-weight:bold;">' +
-        translate("Average") +
-        " " +
-        days +
-        " " +
-        translate("days") +
-        "</span>" +
-        "</td>",
-    ).appendTo(tr);
+    $(/* HTML */
+    `
+      <td>
+        <span style="font-weight:bold;">
+          ${translate("Average")} ${days} ${translate("days")}
+        </span>
+      </td>
+    `).appendTo(tr);
     for (var h = 0; h < 24; h++) {
       var color =
         Math.abs(totalNet[h]) < 0.01
@@ -329,37 +331,32 @@ hourlystats.report = function report_hourlystats(
           : totalNet[h] < 0
             ? "red"
             : "lightgreen";
-      $(
-        '<td style="background-color:' +
-          color +
-          '";>' +
-          '<span style="color:black;">' +
-          (totalNegative[h] / days).toFixed(2) +
-          " (" +
-          negativesCount[h] +
-          ")" +
-          "</span>" +
-          "<br>" +
-          '<span style="color:black;">' +
-          (totalPositive[h] / days).toFixed(2) +
-          " (" +
-          positivesCount[h] +
-          ")" +
-          "</span>" +
-          "<br>" +
-          '<span style="color:black;font-weight:bold;">' +
-          (totalNet[h] / days).toFixed(2) +
-          "</span>" +
-          "</td>",
-      ).appendTo(tr);
+      $(/* HTML */
+      `
+        <td style="background-color:${color}" ;>
+          <span style="color:black;">
+            ${(totalNegative[h] / days).toFixed(2)} (${negativesCount[h]})
+          </span>
+          <br />
+          <span style="color:black;">
+            ${(totalPositive[h] / days).toFixed(2)} (${positivesCount[h]})
+          </span>
+          <br />
+          <span style="color:black;font-weight:bold;">
+            ${(totalNet[h] / days).toFixed(2)}
+          </span>
+        </td>
+      `).appendTo(tr);
     }
     table.append(tr);
   }
 
   report.append("<br>");
-  report.append("<h2>" + translate("netIOB stats") + "</h2>");
+  report.append(/* HTML */ `
+    <h2>${translate("netIOB stats")}</h2>
+  `);
   report.append(
-    translate("(temp basals must be rendered to display this report)"),
+    translate("(temp basals must be rendered to display this report)")
   );
   report.append("<br><br>");
   report.append(table);

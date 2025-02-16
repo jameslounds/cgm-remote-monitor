@@ -14,31 +14,31 @@ module.exports = init;
 
 dailystats.html = function html(client) {
   var translate = client.translate;
-  var ret =
-    "<h2>" +
-    translate("Daily stats report") +
-    "</h2>" +
-    '<div id="dailystats-report"></div>';
+  var ret = /* HTML */ `
+    <h2>${translate("Daily stats report")}</h2>
+    <div id="dailystats-report"></div>
+  `;
   return ret;
 };
 
 dailystats.css =
-  "#dailystats-placeholder .tdborder {" +
-  "  width:80px;" +
-  "  border: 1px #ccc solid;" +
-  "  margin: 0;" +
-  "  padding: 1px;" +
-  "  text-align:center;" +
-  "}" +
-  "#dailystats-placeholder .inlinepiechart {" +
-  "  width: 2.2in;" +
-  "  height: 0.9in;" +
-  "}";
+  /* CSS */
+  `#dailystats-placeholder .tdborder {
+    width:80px;
+    border: 1px #ccc solid;
+    margin: 0;
+    padding: 1px;
+    text-align:center;
+  }
+  #dailystats-placeholder .inlinepiechart {
+    width: 2.2in;
+    height: 0.9in;
+  }`;
 
 dailystats.report = function report_dailystats(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -56,18 +56,18 @@ dailystats.report = function report_dailystats(
   report.append(table);
   var thead = $("<tr/>");
   $("<th></th>").appendTo(thead);
-  $("<th>" + translate("Date") + "</th>").appendTo(thead);
-  $("<th>" + translate("Low") + "</th>").appendTo(thead);
-  $("<th>" + translate("Normal") + "</th>").appendTo(thead);
-  $("<th>" + translate("High") + "</th>").appendTo(thead);
-  $("<th>" + translate("Readings") + "</th>").appendTo(thead);
-  $("<th>" + translate("Min") + "</th>").appendTo(thead);
-  $("<th>" + translate("Max") + "</th>").appendTo(thead);
-  $("<th>" + translate("Average") + "</th>").appendTo(thead);
-  $("<th>" + translate("StDev") + "</th>").appendTo(thead);
-  $("<th>" + translate("25%") + "</th>").appendTo(thead);
-  $("<th>" + translate("Median") + "</th>").appendTo(thead);
-  $("<th>" + translate("75%") + "</th>").appendTo(thead);
+  $(`<th>${translate("Date")}</th>`).appendTo(thead);
+  $(`<th>${translate("Low")}</th>`).appendTo(thead);
+  $(`<th>${translate("Normal")}</th>`).appendTo(thead);
+  $(`<th>${translate("High")}</th>`).appendTo(thead);
+  $(`<th>${translate("Readings")}</th>`).appendTo(thead);
+  $(`<th>${translate("Min")}</th>`).appendTo(thead);
+  $(`<th>${translate("Max")}</th>`).appendTo(thead);
+  $(`<th>${translate("Average")}</th>`).appendTo(thead);
+  $(`<th>${translate("StDev")}</th>`).appendTo(thead);
+  $(`<th>${translate("25%")}</th>`).appendTo(thead);
+  $(`<th>${translate("Median")}</th>`).appendTo(thead);
+  $(`<th>${translate("75%")}</th>`).appendTo(thead);
   thead.appendTo(table);
 
   sorteddaystoshow.forEach(function (day) {
@@ -77,16 +77,16 @@ dailystats.report = function report_dailystats(
 
     if (daysRecords.length === 0) {
       $("<td/>").appendTo(tr);
-      $(
-        '<td class="tdborder" style="width:160px">' +
-          report_plugins.utils.localeDate(day) +
-          "</td>",
-      ).appendTo(tr);
-      $(
-        '<td  class="tdborder"colspan="10">' +
-          translate("No data available") +
-          "</td>",
-      ).appendTo(tr);
+      $(/* HTML */
+      `
+        <td class="tdborder" style="width:160px">
+          ${report_plugins.utils.localeDate(day)}
+        </td>
+      `).appendTo(tr);
+      $(/* HTML */
+      `
+        <td class="tdborder" colspan="10">${translate("No data available")}</td>
+      `).appendTo(tr);
       table.append(tr);
       return;
     }
@@ -118,60 +118,62 @@ dailystats.report = function report_dailystats(
         lows: 0,
         normal: 0,
         highs: 0,
-      },
+      }
     );
     var average = sum / daysRecords.length;
 
     var bgValues = daysRecords.map(function (r) {
       return r.sgv;
     });
-    $(
-      '<td><div id="dailystat-chart-' +
-        day.toString() +
-        '" class="inlinepiechart"></div></td>',
-    ).appendTo(tr);
+    $(/* HTML */
+    `
+      <td>
+        <div
+          id="dailystat-chart-${day.toString()}"
+          class="inlinepiechart"
+        ></div>
+      </td>
+    `).appendTo(tr);
 
+    $(/* HTML */
+    `
+      <td class="tdborder" style="width:160px">
+        ${report_plugins.utils.localeDate(day)}
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        ${Math.round((100 * stats.lows) / daysRecords.length)}%
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        ${Math.round((100 * stats.normal) / daysRecords.length)}%
+      </td>
+    `).appendTo(tr);
+    $(/* HTML */
+    `
+      <td class="tdborder">
+        ${Math.round((100 * stats.highs) / daysRecords.length)}%
+      </td>
+    `).appendTo(tr);
+    $(`<td class="tdborder">${daysRecords.length}</td>`).appendTo(tr);
+    $(`<td class="tdborder">${minForDay}</td>`).appendTo(tr);
+    $(`<td class="tdborder">${maxForDay}</td>`).appendTo(tr);
+    $(`<td class="tdborder">${average.toFixed(1)}</td>`).appendTo(tr);
     $(
-      '<td class="tdborder" style="width:160px">' +
-        report_plugins.utils.localeDate(day) +
-        "</td>",
+      `<td class="tdborder">${ss.standard_deviation(bgValues).toFixed(1)}</td>`
     ).appendTo(tr);
     $(
-      '<td class="tdborder">' +
-        Math.round((100 * stats.lows) / daysRecords.length) +
-        "%</td>",
+      `<td class="tdborder">${ss.quantile(bgValues, 0.25).toFixed(1)}</td>`
     ).appendTo(tr);
     $(
-      '<td class="tdborder">' +
-        Math.round((100 * stats.normal) / daysRecords.length) +
-        "%</td>",
+      `<td class="tdborder">${ss.quantile(bgValues, 0.5).toFixed(1)}</td>`
     ).appendTo(tr);
     $(
-      '<td class="tdborder">' +
-        Math.round((100 * stats.highs) / daysRecords.length) +
-        "%</td>",
-    ).appendTo(tr);
-    $('<td class="tdborder">' + daysRecords.length + "</td>").appendTo(tr);
-    $('<td class="tdborder">' + minForDay + "</td>").appendTo(tr);
-    $('<td class="tdborder">' + maxForDay + "</td>").appendTo(tr);
-    $('<td class="tdborder">' + average.toFixed(1) + "</td>").appendTo(tr);
-    $(
-      '<td class="tdborder">' +
-        ss.standard_deviation(bgValues).toFixed(1) +
-        "</td>",
-    ).appendTo(tr);
-    $(
-      '<td class="tdborder">' +
-        ss.quantile(bgValues, 0.25).toFixed(1) +
-        "</td>",
-    ).appendTo(tr);
-    $(
-      '<td class="tdborder">' + ss.quantile(bgValues, 0.5).toFixed(1) + "</td>",
-    ).appendTo(tr);
-    $(
-      '<td class="tdborder">' +
-        ss.quantile(bgValues, 0.75).toFixed(1) +
-        "</td>",
+      `<td class="tdborder">${ss.quantile(bgValues, 0.75).toFixed(1)}</td>`
     ).appendTo(tr);
 
     table.append(tr);
@@ -189,7 +191,7 @@ dailystats.report = function report_dailystats(
         data: Math.round((stats.highs * 1000) / daysRecords.length) / 10,
       },
     ];
-    $.plot("#dailystat-chart-" + day.toString(), inrange, {
+    $.plot(`#dailystat-chart-${day.toString()}`, inrange, {
       series: {
         pie: {
           show: true,

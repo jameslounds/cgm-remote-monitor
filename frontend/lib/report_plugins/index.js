@@ -53,22 +53,22 @@ function init(ctx) {
   plugins.addHtmlFromPlugins = function addHtmlFromPlugins(client) {
     plugins.eachPlugin(function addHtml(p) {
       // add main plugin html
-      if (p.html && !$("#" + p.name + "-placeholder").length) {
+      if (p.html && !$(`#${p.name}-placeholder`).length) {
         $("#pluginchartplaceholders").append(
           $("<div>")
-            .attr("id", p.name + "-placeholder")
+            .attr("id", `${p.name}-placeholder`)
             .addClass("tabplaceholder")
             .css("display", "none")
-            .append(p.html(client)),
+            .append(p.html(client))
         );
       }
       // add menu item
-      if (p.html && !$("#" + p.name).length) {
+      if (p.html && !$(`#${p.name}`).length) {
         $("#tabnav").append(
           $("<li>")
             .attr("id", p.name)
             .addClass("menutab")
-            .append(client.translate(p.label)),
+            .append(client.translate(p.label))
         );
       }
       // add css

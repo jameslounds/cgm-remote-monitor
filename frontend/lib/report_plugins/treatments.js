@@ -18,122 +18,171 @@ module.exports = init;
 treatments.html = function html(client) {
   var translate = client.translate;
   var ret =
-    "<h2>" +
-    translate("Treatments") +
-    "</h2>" +
-    "<b>" +
-    translate("To see this report, press SHOW while in this view") +
-    "</b>" +
-    '<div id="treatments-report"></div>';
-  ret +=
-    '<div id="rp_edittreatmentdialog" style="display:none" title="' +
-    translate("Edit treatment") +
-    '">' +
-    '      <label for="rped_eventType">' +
-    translate("Event Type") +
-    '         <select id="rped_eventType"></select>' +
-    "      </label>" +
-    "      <fieldset>" +
-    "          <legend>" +
-    translate("Glucose Reading") +
-    "</legend>" +
-    '          <input type="number" step="any" id="rped_glucoseValue" />' +
-    "          <label><br>" +
-    translate("Measurement Method") +
-    "<br></label>" +
-    '          <input type="radio" name="rp_bginput" id="rped_bgfromsensor"  value="Sensor">' +
-    '          <i title="' +
-    translate("BG from CGM") +
-    '" class="icon-chart-line" style="margin-right:0;margin-left:-0.6em;color:lightgreen"></i>' +
-    '          <input type="radio" name="rp_bginput" id="rped_bgfrommeter"  value="Finger">' +
-    '          <i title="' +
-    translate("BG from meter") +
-    '" class="icon-tint" style="margin-right:0;margin-left:-0.6em;color:red"></i>' +
-    '          <input type="radio" name="rp_bginput" id="rped_bgmanual" value="Manual">' +
-    '          <i title="' +
-    translate("Manual BG") +
-    '" class="icon-sort-numeric" style="margin-right:0;margin-left:-0.6em;color:blue"></i>' +
-    "      </fieldset>" +
-    '      <label for="rped_carbsGiven">' +
-    translate("Carbs Given") +
-    '          <input type="number" step="any" min="0" id="rped_carbsGiven" placeholder="' +
-    translate("Amount in grams") +
-    '" />' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_proteinGiven">' +
-    translate("Protein") +
-    '          <input type="number" step="any" min="0" id="rped_proteinGiven" placeholder="' +
-    translate("Amount in grams") +
-    '" />' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_fatGiven">' +
-    translate("Fat") +
-    '          <input type="number" step="any" min="0" id="rped_fatGiven" placeholder="' +
-    translate("Amount in grams") +
-    '" />' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_insulinGiven">' +
-    translate("Insulin Given") +
-    '          <input type="number" step="0.05" min="0" id="rped_insulinGiven" placeholder="' +
-    translate("Amount in units") +
-    '"/>' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_duration">' +
-    translate("Duration") +
-    '          <input type="number" step="1" min="0" id="rped_duration" placeholder="' +
-    translate("Duration in minutes") +
-    '"/>' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_percent">' +
-    translate("Percent") +
-    '          <input type="number" step="10" id="rped_percent" placeholder="' +
-    translate("Basal change in %") +
-    '"/>' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_absolute">' +
-    translate("Basal value") +
-    '          <input type="number" step="0.05" id="rped_absolute" placeholder="' +
-    translate("Absolute basal value") +
-    '"/>' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_profile">' +
-    translate("Profile") +
-    '          <select id="rped_profile" /></select>' +
-    "      </label>" +
-    "      <br>" +
-    '      <label for="rped_adnotes">' +
-    translate("Additional Notes, Comments") +
-    "</label>" +
-    '      <textarea id="rped_adnotes" style="width:300px"></textarea><br>' +
-    '      <label for="rped_enteredBy" class="left-column extra-space">' +
-    translate("Entered By") +
-    '        <input type="text" id="rped_enteredBy" value="" />' +
-    "      </label>" +
-    '      <div id="rp_eventTime">' +
-    translate("Event Time") +
-    "        <br>" +
-    '        <input type="date" id="rped_eventDateValue" class="rp_eventinput"/>' +
-    '        <input type="time" id="rped_eventTimeValue" class="rp_eventinput"/>' +
-    "     </div>" +
-    "   </div>";
+    /* HTML */
+    `
+      <h2>${translate("Treatments")}</h2>
+      <b>${translate("To see this report, press SHOW while in this view")}</b>
+      <div id="treatments-report"></div>
+
+      <div
+        id="rp_edittreatmentdialog"
+        style="display:none"
+        title="${translate("Edit treatment")}"
+      >
+        <label for="rped_eventType">
+          ${translate("Event Type")}
+          <select id="rped_eventType"></select>
+        </label>
+        <fieldset>
+          <legend>${translate("Glucose Reading")}</legend>
+          <input type="number" step="any" id="rped_glucoseValue" />
+          <label>
+            <br />
+            ${translate("Measurement Method")}
+            <br />
+          </label>
+          <input
+            type="radio"
+            name="rp_bginput"
+            id="rped_bgfromsensor"
+            value="Sensor"
+          />
+          <i
+            title="${translate("BG from CGM")}"
+            class="icon-chart-line"
+            style="margin-right:0;margin-left:-0.6em;color:lightgreen"
+          ></i>
+          <input
+            type="radio"
+            name="rp_bginput"
+            id="rped_bgfrommeter"
+            value="Finger"
+          />
+          <i
+            title="${translate("BG from meter")}"
+            class="icon-tint"
+            style="margin-right:0;margin-left:-0.6em;color:red"
+          ></i>
+          <input
+            type="radio"
+            name="rp_bginput"
+            id="rped_bgmanual"
+            value="Manual"
+          />
+          <i
+            title="${translate("Manual BG")}"
+            class="icon-sort-numeric"
+            style="margin-right:0;margin-left:-0.6em;color:blue"
+          ></i>
+        </fieldset>
+        <label for="rped_carbsGiven">
+          ${translate("Carbs Given")}
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="rped_carbsGiven"
+            placeholder="${translate("Amount in grams")}"
+          />
+        </label>
+        <br />
+      </div>
+      <label for="rped_proteinGiven">
+        ${translate("Protein")}
+        <input
+          type="number"
+          step="any"
+          min="0"
+          id="rped_proteinGiven"
+          placeholder="${translate("Amount in grams")}"
+        />
+      </label>
+      <br />
+      <label for="rped_fatGiven">
+        ${translate("Fat")}
+        <input
+          type="number"
+          step="any"
+          min="0"
+          id="rped_fatGiven"
+          placeholder="${translate("Amount in grams")}"
+        />
+      </label>
+      <br />
+      <label for="rped_insulinGiven">
+        ${translate("Insulin Given")}
+        <input
+          type="number"
+          step="0.05"
+          min="0"
+          id="rped_insulinGiven"
+          placeholder="${translate("Amount in units")}"
+        />
+      </label>
+      <br />
+      <label for="rped_duration">
+        ${translate("Duration")}
+        <input
+          type="number"
+          step="1"
+          min="0"
+          id="rped_duration"
+          placeholder="${translate("Duration in minutes")}"
+        />
+      </label>
+      <br />
+      <label for="rped_percent">
+        ${translate("Percent")}
+        <input
+          type="number"
+          step="10"
+          id="rped_percent"
+          placeholder="${translate("Basal change in %")}"
+        />
+      </label>
+      <br />
+      <label for="rped_absolute">
+        ${translate("Basal value")}
+        <input
+          type="number"
+          step="0.05"
+          id="rped_absolute"
+          placeholder="${translate("Absolute basal value")}"
+        />
+      </label>
+      <br />
+      <label for="rped_profile">
+        ${translate("Profile")}
+        <select id="rped_profile"></select>
+      </label>
+      <br />
+      <label for="rped_adnotes">
+        ${translate("Additional Notes, Comments")}
+      </label>
+      <textarea id="rped_adnotes" style="width:300px"></textarea>
+      <br />
+      <label for="rped_enteredBy" class="left-column extra-space">
+        ${translate("Entered By")}
+        <input type="text" id="rped_enteredBy" value="" />
+      </label>
+      <div id="rp_eventTime">
+        ${translate("Event Time")}
+        <br />
+      </div>
+        <input type="date" id="rped_eventDateValue" class="rp_eventinput"/>
+        <input type="time" id="rped_eventTimeValue" class="rp_eventinput"/>
+      </div>
+    </div>`;
 
   return ret;
 };
 
-treatments.css =
-  ".border_bottom td {" + "  border-bottom:1pt solid #eee;" + "}";
+treatments.css = /* CSS */ `.border_bottom td {  border-bottom:1pt solid #eee;}`;
 
 treatments.report = function report_treatments(
   datastorage,
   sorteddaystoshow,
-  options,
+  options
 ) {
   var Nightscout = window.Nightscout;
   var client = Nightscout.client;
@@ -142,11 +191,8 @@ treatments.report = function report_treatments(
 
   function buildConfirmText(data) {
     var text = [
-      translate("Delete this treatment?") + "\n",
-      "\n" +
-        translate("Event Type") +
-        ": " +
-        translate(client.careportal.resolveEventName(data.eventType)),
+      `${translate("Delete this treatment?")}\n`,
+      `\n${translate("Event Type")}: ${translate(client.careportal.resolveEventName(data.eventType))}`,
     ];
 
     function pushIf(check, valueText) {
@@ -155,35 +201,35 @@ treatments.report = function report_treatments(
       }
     }
 
-    pushIf(data.glucose, translate("Blood Glucose") + ": " + data.glucose);
+    pushIf(data.glucose, `${translate("Blood Glucose")}: ${data.glucose}`);
     pushIf(
       data.glucoseType,
-      translate("Measurement Method") + ": " + translate(data.glucoseType),
+      `${translate("Measurement Method")}: ${translate(data.glucoseType)}`
     );
 
-    pushIf(data.carbs, translate("Carbs Given") + ": " + data.carbs);
-    pushIf(data.protein, translate("Protein") + ": " + data.protein);
-    pushIf(data.fat, translate("Fat") + ": " + data.fat);
-    pushIf(data.insulin, translate("Insulin Given") + ": " + data.insulin);
-    pushIf(data.duration, translate("Duration") + ": " + data.duration);
-    pushIf(data.percent, translate("Percent") + ": " + data.percent);
+    pushIf(data.carbs, `${translate("Carbs Given")}: ${data.carbs}`);
+    pushIf(data.protein, `${translate("Protein")}: ${data.protein}`);
+    pushIf(data.fat, `${translate("Fat")}: ${data.fat}`);
+    pushIf(data.insulin, `${translate("Insulin Given")}: ${data.insulin}`);
+    pushIf(data.duration, `${translate("Duration")}: ${data.duration}`);
+    pushIf(data.percent, `${translate("Percent")}: ${data.percent}`);
     pushIf(
       !isNaN(data.absolute),
-      translate("Basal value") + ": " + data.absolute,
+      `${translate("Basal value")}: ${data.absolute}`
     );
     pushIf(
       data.preBolus,
-      translate("Carb Time") + ": " + data.preBolus + " " + translate("mins"),
+      `${translate("Carb Time")}: ${data.preBolus} ${translate("mins")}`
     );
-    pushIf(data.notes, translate("Notes") + ": " + data.notes);
-    pushIf(data.enteredBy, translate("Entered By") + ": " + data.enteredBy);
+    pushIf(data.notes, `${translate("Notes")}: ${data.notes}`);
+    pushIf(data.enteredBy, `${translate("Entered By")}: ${data.enteredBy}`);
 
     text.push(
-      translate("Event Time") +
-        ": " +
-        (data.eventTime
+      `${translate("Event Time")}: ${
+        data.eventTime
           ? data.eventTime.toLocaleString()
-          : new Date().toLocaleString()),
+          : new Date().toLocaleString()
+      }`
     );
     return text.join("\n");
   }
@@ -200,7 +246,7 @@ treatments.report = function report_treatments(
     if (window.confirm(buildConfirmText(data))) {
       $.ajax({
         method: "DELETE",
-        url: "/api/v1/treatments/" + data._id,
+        url: `/api/v1/treatments/${data._id}`,
         headers: client.headers(),
       })
         .done(function treatmentDeleted(response) {
@@ -209,11 +255,7 @@ treatments.report = function report_treatments(
         .fail(function treatmentDeleteFail(response) {
           console.info("treatment delete failed", response);
           window.alert(
-            translate("Deleting record failed") +
-              ". " +
-              translate("Status") +
-              ": " +
-              response.status,
+            `${translate("Deleting record failed")}. ${translate("Status")}: ${response.status}`
           );
         });
       delete datastorage[day];
@@ -233,24 +275,23 @@ treatments.report = function report_treatments(
       if (event.name.indexOf("Temp Basal") > -1) {
         return;
       }
-      $("#rped_eventType").append(
-        '<option value="' +
-          event.val +
-          '">' +
-          translate(event.name) +
-          "</option>",
-      );
+      $("#rped_eventType").append(/* HTML */
+      `
+        <option value="${event.val}">${translate(event.name)}</option>
+      `);
     });
-    $("#rped_eventType").append(
-      '<option value="Temp Basal">' + translate("Temp Basal") + "</option>",
-    );
-    $("#rped_eventType").append(
-      '<option value="Bolus Wizard">' + translate("Bolus Wizard") + "</option>",
-    );
+    $("#rped_eventType").append(/* HTML */
+    `
+      <option value="Temp Basal">${translate("Temp Basal")}</option>
+    `);
+    $("#rped_eventType").append(/* HTML */
+    `
+      <option value="Bolus Wizard">${translate("Bolus Wizard")}</option>
+    `);
 
     $("#rped_profile").empty().append('<option val=""></option>');
     client.profilefunctions.listBasalProfiles().forEach(function (p) {
-      $("#rped_profile").append('<option id="' + p + '">' + p + "</option>");
+      $("#rped_profile").append(`<option id="${p}">${p}</option>`);
     });
 
     $("#rp_edittreatmentdialog").dialog({
@@ -279,8 +320,8 @@ treatments.report = function report_treatments(
             data.eventTime = new Date(
               client.utils.mergeInputTime(
                 $("#rped_eventTimeValue").val(),
-                $("#rped_eventDateValue").val(),
-              ),
+                $("#rped_eventDateValue").val()
+              )
             ).toISOString();
             data.units = options.units;
             delete data.mills;
@@ -309,12 +350,12 @@ treatments.report = function report_treatments(
           .css({ width: "100%", "text-align": "right" });
         $(this)
           .parent()
-          .find('button:contains("' + translate("Save") + '")')
+          .find(`button:contains("${translate("Save")}")`)
           .css({ float: "left" });
         $("#rped_eventType").val(data.eventType);
         $("#rped_glucoseValue")
           .val(data.glucose ? data.glucose : "")
-          .attr("placeholder", translate("Value in") + " " + options.units);
+          .attr("placeholder", `${translate("Value in")} ${options.units}`);
         $("#rped_bgfromsensor").prop("checked", data.glucoseType === "Sensor");
         $("#rped_bgfrommeter").prop("checked", data.glucoseType === "Finger");
         $("#rped_bgmanual").prop("checked", data.glucoseType === "Manual");
@@ -330,7 +371,7 @@ treatments.report = function report_treatments(
         $("#rped_enteredBy").val(data.enteredBy ? data.enteredBy : "");
         $("#rped_eventTimeValue").val(moment(data.created_at).format("HH:mm"));
         $("#rped_eventDateValue").val(
-          moment(data.created_at).format("YYYY-MM-DD"),
+          moment(data.created_at).format("YYYY-MM-DD")
         );
         $("#rped_eventType").focus();
       },
@@ -360,11 +401,9 @@ treatments.report = function report_treatments(
       .fail(function treatmentSaveFail(response) {
         console.info("treatment save failed", response);
         window.alert(
-          translate("Saving record failed") +
-            ". " +
-            translate("Status") +
-            ": " +
-            response.status,
+          `${translate("Saving record failed")}. ${translate("Status")}: ${
+            response.status
+          }`
         );
       });
 
@@ -392,80 +431,80 @@ treatments.report = function report_treatments(
         $("<th>")
           .css("width", "80px")
           .attr("align", "left")
-          .append(translate("Time")),
+          .append(translate("Time"))
       )
       .append(
         $("<th>")
           .css("width", "150px")
           .attr("align", "left")
-          .append(translate("Event Type")),
+          .append(translate("Event Type"))
       )
       .append(
         $("<th>")
           .css("width", "150px")
           .attr("align", "left")
-          .append(translate("Blood Glucose")),
+          .append(translate("Blood Glucose"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Insulin")),
+          .append(translate("Insulin"))
       )
       .append(
         $("<th>")
           .css("width", "100px")
           .attr("align", "left")
-          .append(translate("Carbs/Food/Time")),
+          .append(translate("Carbs/Food/Time"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Protein")),
+          .append(translate("Protein"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Fat")),
+          .append(translate("Fat"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Duration")),
+          .append(translate("Duration"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Percent")),
+          .append(translate("Percent"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Basal value")),
+          .append(translate("Basal value"))
       )
       .append(
         $("<th>")
           .css("width", "50px")
           .attr("align", "left")
-          .append(translate("Profile")),
+          .append(translate("Profile"))
       )
       .append(
         $("<th>")
           .css("width", "150px")
           .attr("align", "left")
-          .append(translate("Entered By")),
+          .append(translate("Entered By"))
       )
       .append(
         $("<th>")
           .css("width", "300px")
           .attr("align", "left")
-          .append(translate("Notes")),
-      ),
+          .append(translate("Notes"))
+      )
   );
 
   sorteddaystoshow.forEach(function (day) {
@@ -474,8 +513,8 @@ treatments.report = function report_treatments(
         $("<td>")
           .attr("colspan", "12")
           .css("background", "lightgray")
-          .append($("<b>").append(report_plugins.utils.localeDate(day))),
-      ),
+          .append($("<b>").append(report_plugins.utils.localeDate(day)))
+      )
     );
     var treatments = _.clone(datastorage[day].treatments);
     if (options.order === report_plugins.consts.ORDER_NEWESTONTOP) {
@@ -484,9 +523,9 @@ treatments.report = function report_treatments(
     for (var t = 0; t < treatments.length; t++) {
       var tr = treatments[t];
       var carbs = tr.carbs ? tr.carbs : "";
-      carbs += tr.foodType ? " " + tr.foodType : "";
+      carbs += tr.foodType ? ` ${tr.foodType}` : "";
       carbs += tr.absorptionTime
-        ? " " + Math.round((tr.absorptionTime / 60.0) * 10) / 10 + "h"
+        ? ` ${Math.round((tr.absorptionTime / 60.0) * 10) / 10}h`
         : "";
       var correctionRangeText = "";
       if (tr.correctionRange) {
@@ -499,9 +538,9 @@ treatments.report = function report_treatments(
         }
 
         if (tr.correctionRange[0] === tr.correctionRange[1]) {
-          correctionRangeText = "" + min;
+          correctionRangeText = `${min}`;
         } else {
-          correctionRangeText = "" + min + " - " + max;
+          correctionRangeText = `${min} - ${max}`;
         }
       }
       table.append(
@@ -516,7 +555,7 @@ treatments.report = function report_treatments(
                   .attr("title", translate("Delete record"))
                   .attr("src", icon_remove)
                   .attr("data", JSON.stringify(tr))
-                  .attr("day", day),
+                  .attr("day", day)
               )
               .append("&nbsp;")
               .append(
@@ -526,75 +565,73 @@ treatments.report = function report_treatments(
                   .attr("title", translate("Edit record"))
                   .attr("src", icon_edit)
                   .attr("data", JSON.stringify(tr))
-                  .attr("day", day),
-              ),
+                  .attr("day", day)
+              )
           )
           .append(
             $("<td>").append(
               new Date(tr.created_at)
                 .toLocaleTimeString()
-                .replace(/([\d]+:[\d]{2})(:[\d]{2})(.*)/, "$1$3"),
-            ),
+                .replace(/([\d]+:[\d]{2})(:[\d]{2})(.*)/, "$1$3")
+            )
           )
           .append(
             $("<td>").append(
               tr.eventType
                 ? translate(client.careportal.resolveEventName(tr.eventType)) +
-                    (tr.reason ? "<br>" + tr.reason : "") +
+                    (tr.reason ? `<br>${tr.reason}` : "") +
                     (tr.insulinNeedsScaleFactor
-                      ? "<br>" + tr.insulinNeedsScaleFactor * 100 + "%"
+                      ? `<br>${tr.insulinNeedsScaleFactor * 100}%`
                       : "") +
-                    (tr.correctionRange ? " " + correctionRangeText : "")
-                : "",
-            ),
+                    (tr.correctionRange ? ` ${correctionRangeText}` : "")
+                : ""
+            )
           )
           .append(
             $("<td>")
               .attr("align", "center")
               .append(
-                tr.glucose
-                  ? tr.glucose + " (" + translate(tr.glucoseType) + ")"
-                  : "",
-              ),
+                tr.glucose ? `${tr.glucose} (${translate(tr.glucoseType)})` : ""
+              )
           )
           .append(
             $("<td>")
               .attr("align", "center")
-              .append(tr.insulin ? tr.insulin.toFixed(2) : ""),
+              .append(tr.insulin ? tr.insulin.toFixed(2) : "")
           )
           .append($("<td>").attr("align", "center").append(carbs))
           .append(
             $("<td>")
               .attr("align", "center")
-              .append(tr.protein ? tr.protein : ""),
+              .append(tr.protein ? tr.protein : "")
           )
           .append(
             $("<td>")
               .attr("align", "center")
-              .append(tr.fat ? tr.fat : ""),
+              .append(tr.fat ? tr.fat : "")
           )
           .append(
             $("<td>")
               .attr("align", "center")
-              .append(tr.duration ? tr.duration.toFixed(0) : ""),
+              .append(tr.duration ? tr.duration.toFixed(0) : "")
           )
           .append(
             $("<td>")
               .attr("align", "center")
-              .append(tr.percent ? tr.percent : ""),
+              .append(tr.percent ? tr.percent : "")
           )
           .append(
             $("<td>")
               .attr("align", "center")
-              .append("absolute" in tr ? tr.absolute.toFixed(2) : ""),
+              .append("absolute" in tr ? tr.absolute.toFixed(2) : "")
           )
           .append(
             $("<td>")
               .attr("align", "center")
-              .append(tr.profile ? tr.profile : ""),
+              .append(tr.profile ? tr.profile : "")
           )
           .append($("<td>").append(tr.enteredBy ? tr.enteredBy : ""))
-          .append($("<td>").append(tr.notes ? tr.notes : "")),
+          .append($("<td>").append(tr.notes ? tr.notes : ""))
       );
     }
   });
